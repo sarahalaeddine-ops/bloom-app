@@ -27,9 +27,11 @@ export default function AuthScreen({ onLogin }) {
     <div className="min-h-screen bg-bloom-bg flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <p className="font-serif text-5xl font-light italic text-bloom-accent" style={{ letterSpacing: "0.12em" }}>bloom</p>
-          <p className="text-bloom-accent text-2xl">✦</p>
-          <p className="text-bloom-muted text-sm mt-2 font-light">Your IVF companion</p>
+          <p style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: '52px', fontWeight: '300', fontStyle: 'italic', color: '#9B6DC5', letterSpacing: '0.12em', lineHeight: '1', marginBottom: '4px' }}>
+            bloom
+          </p>
+          <p style={{ color: '#9B6DC5', fontSize: '28px', marginBottom: '8px' }}>✦</p>
+          <p style={{ color: '#7A6880', fontSize: '14px', fontWeight: '300' }}>Your IVF companion</p>
         </div>
 
         <div className="bg-white rounded-3xl p-6 border border-bloom-border shadow-sm">

@@ -17,10 +17,10 @@ export default function SplashScreen({ onDone }) {
       <div className="absolute top-1/4 -left-20 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #9B6DC5, transparent)" }} />
       <div className="absolute bottom-1/4 -right-20 w-56 h-56 rounded-full opacity-8" style={{ background: "radial-gradient(circle, #E07A8A, transparent)" }} />
       <div className="relative z-10 flex flex-col items-center animate-fade-in">
-        <p className="font-serif text-6xl font-light italic tracking-widest text-bloom-accent" style={{ letterSpacing: "0.15em" }}>
+        <p style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: '64px', fontWeight: '300', fontStyle: 'italic', color: '#9B6DC5', letterSpacing: '0.15em', lineHeight: '1' }}>
           bloom
         </p>
-        <p className="text-bloom-accent text-3xl mt-1">✦</p>
+        <p style={{ color: '#9B6DC5', fontSize: '32px', marginTop: '4px' }}>✦</p>
         <div className="w-16 h-px bg-bloom-accent opacity-30 my-6" />
         <p className="text-bloom-muted text-xs tracking-widest uppercase" style={{ letterSpacing: "0.2em" }}>
           Your IVF companion
