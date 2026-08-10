@@ -1,6 +1,8 @@
-/** @type {import("tailwindcss").Config} */
 module.exports = {
-  content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
@@ -19,11 +21,7 @@ module.exports = {
           dim:     "#C5B8CC",
         },
       },
-      fontFamily: {
-        serif: ["Cormorant Garamond", "Georgia", "serif"],
-        sans:  ["DM Sans", "Inter", "sans-serif"],
-      },
     },
   },
   plugins: [],
-};
+}
