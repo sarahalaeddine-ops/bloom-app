@@ -4,15 +4,59 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
   font-family: "DM Sans", sans-serif;
-  background: #FAF7F4;
-  color: #1A1014;
+  background: #faf7f4;
+  color: #1a1014;
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
 }
 
-::-webkit-scrollbar { display: none; }
+::-webkit-scrollbar {
+  display: none;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl p-4 border border-bloom-border mb-3;
+  }
+  .btn {
+    @apply rounded-xl bg-bloom-accent text-white font-semibold px-4 py-3 disabled:opacity-50;
+  }
+  .field {
+    @apply w-full bg-bloom-surface border border-bloom-border rounded-xl px-3 py-3 text-bloom-text text-sm;
+  }
+}
+input,
+textarea,
+select {
+  min-width: 0;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #9b6dc5;
+  outline-offset: 3px;
+}
+button {
+  touch-action: manipulation;
+}
+@media print {
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    max-width: none;
+  }
+}
