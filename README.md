@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bloom — IVF treatment companion
 
-## Getting Started
+Bloom keeps the existing cream, lavender and pastel design. The release-readiness branch replaces prototype account storage and fabricated treatment information with Supabase Auth and owner-scoped records.
 
-First, run the development server:
+**Not ready for patient launch yet.** See [the audit and launch checklist](docs/RELEASE_READINESS.md). No live database, mail service, generative AI, payment system or deployment is provisioned by this repository.
 
-```bash
+## Run locally
+
+Use Node 22 or newer, with a version supported by the locked Next.js dependencies.
+
+```sh
+npm ci
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without configuration, Bloom opens a clear setup-pending account screen and does not accept or save patient information. There is no insecure demo-account fallback.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Connect an isolated Supabase test project
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Choose a test project with synthetic data only. Confirm hosting region, privacy requirements and costs separately before production use.
+2. Apply `supabase/migrations/202609080001_bloom.sql` to the **test** project's SQL editor or your existing migration pipeline. Do not apply to production without review. This creates profiles, cycles, doses, appointments, results, check-ins and journals; an Auth trigger creates profiles.
+3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`. Use the project's publishable key, **never** a secret/service-role key. The public key is intended for the browser; PostgreSQL row-level security enforces ownership.
+4. Configure Auth's local site URL and allowed redirect URLs, including `http://localhost:3000` and `http://localhost:3000/?recovery=1`. Add only your approved staging URL when ready. Require email confirmation, set a password minimum of 12 characters, and review rate limits/email delivery settings.
+5. Restart the dev server. Create two synthetic test accounts, confirm their emails and complete the checklist in `docs/RELEASE_READINESS.md`.
 
-## Learn More
+Do not paste secrets into chat, commit `.env.local`, or configure a service-role key in a browser environment variable. No database credentials are needed by the automated tests.
 
-To learn more about Next.js, take a look at the following resources:
+## Verify
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```sh
+npm test
+npm run lint
+npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tests cover React UI journeys with mock transport, the actual auth/data adapters with a mock provider, treatment-data validation, calendar/report generation, and the actual SQL migration/RLS policies in isolated PGlite PostgreSQL. They do not prove live Supabase email delivery, hosted gateway configuration, mobile calendar notifications or browser rendering.
 
-## Deploy on Vercel
+## Data and limitations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Passwords go to Supabase Auth. Bloom never persists passwords. The old `bloom_user` plaintext prototype record is discarded, not migrated.
+- All clinical entries are user-entered copies of clinic instructions. There is no clinic integration or automatic medical interpretation.
+- Each dose is one dated occurrence. Calendar exports are optional, generic reminders; users must import them and check their calendar alert settings. Editing/deleting a Bloom dose does not update an imported event.
+- Records save only after a successful database response; failures stay visible. Treatment records reload from the database rather than local storage.
+- Reports download as JSON; sensitive check-in/journal entries are excluded unless explicitly selected. Reports are not sent automatically.
+- Partner access, staff/admin workflows, chat AI, paid services and appointments booking are not implemented. They are labelled unavailable.
+- The old PowerShell prototype generators are retired because they would overwrite the maintained app with insecure demo code.

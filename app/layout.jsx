@@ -2,7 +2,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "Bloom — Your IVF Companion",
-  description: "The world first dedicated IVF companion app",
+  description: "Your personal IVF treatment companion",
 };
 
 export default function RootLayout({ children }) {
@@ -10,8 +10,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <link rel="apple-touch-icon" sizes="512x512" href="/icon.svg" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -1,90 +1,188 @@
 "use client";
 import { useState } from "react";
 import { auth } from "../lib/store";
-
-export default function AuthScreen({ onLogin }) {
-  const [mode, setMode] = useState("signup");
+import { isConfigured } from "../lib/supabase";
+export default function AuthScreen({ onLogin, recovery = false }) {
+  const [mode, setMode] = useState(recovery ? "reset" : "login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleAuth() {
+  const [busy, setBusy] = useState(false);
+  async function submit(event) {
+    event.preventDefault();
     setError("");
-    if (!email || !password) { setError("Please enter email and password"); return; }
-    if (mode === "signup" && !name) { setError("Please enter your name"); return; }
-    setLoading(true);
-    const result = mode === "signup"
-      ? auth.signUp(name, email, password)
-      : auth.signIn(email, password);
-    if (result.error) { setError(result.error); setLoading(false); return; }
-    onLogin(result.data);
-    setLoading(false);
+    setMessage("");
+    setBusy(true);
+    try {
+      if (["signup", "reset"].includes(mode) && password !== confirm)
+        throw new Error("Passwords do not match.");
+      if (mode === "recover") {
+        await auth.recover(email);
+        setMessage(
+          "If an account exists for this email, you will receive a reset link. Check your spam folder too.",
+        );
+      } else if (mode === "reset") {
+        await auth.resetPassword(password);
+        await auth.signOut();
+        window.history.replaceState({}, "", "/");
+        setMode("login");
+        setPassword("");
+        setConfirm("");
+        setMessage("Password updated. Sign in with your new password.");
+      } else {
+        const user =
+          mode === "signup"
+            ? await auth.signUp(name, email, password)
+            : await auth.signIn(email, password);
+        setPassword("");
+        setConfirm("");
+        if (user) onLogin(user);
+        else
+          setMessage("Check your email to confirm your account, then sign in.");
+      }
+    } catch (e) {
+      setError(e.message || "Unable to continue. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
-
   return (
-    <div className="min-h-screen bg-bloom-bg flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
-          <p style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: '52px', fontWeight: '300', fontStyle: 'italic', color: '#9B6DC5', letterSpacing: '0.12em', lineHeight: '1', marginBottom: '4px' }}>
-            bloom
+    <main className="min-h-screen flex flex-col justify-center px-6 py-8">
+      <div className="text-center mb-8">
+        <p className="text-5xl italic font-serif text-bloom-accent">bloom ✦</p>
+        <p className="text-bloom-muted mt-3">Your IVF companion</p>
+      </div>
+      <form onSubmit={submit} className="card space-y-4">
+        <h1 className="text-xl font-semibold">
+          {
+            {
+              login: "Welcome back",
+              signup: "Create your account",
+              recover: "Account recovery",
+              reset: "Choose a new password",
+            }[mode]
+          }
+        </h1>
+        {!isConfigured && (
+          <p role="status" className="text-bloom-muted">
+            Account setup is not complete yet. Sign-in and saving will be
+            available once Bloom is connected.
           </p>
-          <p style={{ color: '#9B6DC5', fontSize: '28px', marginBottom: '8px' }}>✦</p>
-          <p style={{ color: '#7A6880', fontSize: '14px', fontWeight: '300' }}>Your IVF companion</p>
-        </div>
-
-        <div className="bg-white rounded-3xl p-6 border border-bloom-border shadow-sm">
-          <div className="flex bg-bloom-surface rounded-xl p-1 mb-6">
-            {["signup", "login"].map((m) => (
-              <button key={m} onClick={() => { setMode(m); setError(""); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === m ? "bg-bloom-accent text-white" : "text-bloom-muted"}`}>
-                {m === "signup" ? "Sign Up" : "Sign In"}
+        )}
+        {mode === "signup" && (
+          <label className="block">
+            Your name
+            <input
+              className="field mt-1"
+              required
+              maxLength={100}
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+        )}
+        {mode !== "reset" && (
+          <label className="block">
+            Email
+            <input
+              className="field mt-1"
+              required
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+        )}
+        {mode !== "recover" && (
+          <label className="block">
+            Password
+            <input
+              className="field mt-1"
+              required
+              type="password"
+              minLength={mode === "login" ? 1 : 12}
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+        )}
+        {["signup", "reset"].includes(mode) && (
+          <>
+            <p className="text-xs text-bloom-muted">
+              Use at least 12 characters.
+            </p>
+            <label className="block">
+              Confirm password
+              <input
+                className="field mt-1"
+                required
+                type="password"
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+              />
+            </label>
+          </>
+        )}
+        {error && (
+          <p role="alert" className="text-red-700">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p role="status" className="text-bloom-muted">
+            {message}
+          </p>
+        )}
+        <button className="btn w-full" disabled={busy || !isConfigured}>
+          {busy
+            ? "Please wait…"
+            : {
+                login: "Sign in",
+                signup: "Create account",
+                recover: "Send reset link",
+                reset: "Update password",
+              }[mode]}
+        </button>
+        <div className="flex flex-wrap gap-4 text-sm text-bloom-accent">
+          {["login", "signup", "recover"]
+            .filter((m) => m !== mode)
+            .map((m) => (
+              <button
+                disabled={busy}
+                type="button"
+                key={m}
+                onClick={() => {
+                  setMode(m);
+                  setError("");
+                  setMessage("");
+                  setPassword("");
+                  setConfirm("");
+                }}
+              >
+                {
+                  {
+                    login: "Sign in",
+                    signup: "Sign up",
+                    recover: "Forgot password?",
+                  }[m]
+                }
               </button>
             ))}
-          </div>
-
-          {mode === "signup" && (
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-bloom-muted uppercase tracking-wide mb-2 block">Your name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)}
-                placeholder="Sarah"
-                className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-4 py-3 text-bloom-text text-sm outline-none focus:border-bloom-accent transition-colors" />
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label className="text-xs font-semibold text-bloom-muted uppercase tracking-wide mb-2 block">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-4 py-3 text-bloom-text text-sm outline-none focus:border-bloom-accent transition-colors" />
-          </div>
-
-          <div className="mb-4">
-            <label className="text-xs font-semibold text-bloom-muted uppercase tracking-wide mb-2 block">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-4 py-3 text-bloom-text text-sm outline-none focus:border-bloom-accent transition-colors" />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-              <p className="text-red-500 text-sm text-center">{error}</p>
-            </div>
-          )}
-
-          <button onClick={handleAuth} disabled={loading}
-            className="w-full bg-bloom-accent text-white font-semibold py-4 rounded-xl mt-2 transition-opacity disabled:opacity-60">
-            {loading ? "..." : mode === "signup" ? "Create Account" : "Sign In"}
-          </button>
-
-          <p className="text-bloom-dim text-xs text-center mt-4">
-            {mode === "login" ? "New to Bloom? Switch to Sign Up" : "Already have an account? Switch to Sign In"}
-          </p>
         </div>
-
-        <p className="text-bloom-dim text-xs text-center mt-6">Your data is private and never sold.</p>
-      </div>
-    </div>
+      </form>
+      <p className="text-xs text-bloom-muted text-center">
+        Bloom records your clinic’s instructions. It does not prescribe
+        treatment or monitor emergencies.
+      </p>
+    </main>
   );
 }
