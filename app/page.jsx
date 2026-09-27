@@ -3,6 +3,14 @@ import WaitlistForm from "../components/site/WaitlistForm";
 export const metadata = {
   title: "Bloom — The hardest journey. Not alone.",
   description: "An AI companion built for women going through IVF. Join the waitlist.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Bloom — The hardest journey. Not alone.",
+    description: "An AI companion built for women going through IVF. Join the waitlist.",
+    url: "/",
+    siteName: "Bloom",
+    type: "website",
+  },
 };
 
 var FEATURES = [
@@ -184,7 +192,7 @@ export default function Site() {
       <footer className="relative z-10 border-t border-bloom-border">
         <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-bloom-muted text-sm">
           <p>© {year} Bloom. Bloom does not replace medical advice from your clinic.</p>
-          <a href="mailto:hello@bloomivf.app" className="hover:text-bloom-text underline underline-offset-4">hello@bloomivf.app</a>
+          <a href="mailto:hello@bloomivfcompanion.com" className="hover:text-bloom-text underline underline-offset-4">hello@bloomivfcompanion.com</a>
         </div>
       </footer>
     </div>
