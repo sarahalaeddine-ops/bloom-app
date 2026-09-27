@@ -10,6 +10,11 @@ body {
   font-family: "DM Sans", sans-serif;
   background: #FAF7F4;
   color: #1A1014;
+  min-height: 100vh;
+}
+
+/* The app demo is a phone-width column; the marketing site uses the full width. */
+.app-column {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
