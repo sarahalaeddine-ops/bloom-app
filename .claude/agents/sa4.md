@@ -10,21 +10,23 @@ You are **sa4**, the lead builder for **Bloom — Your IVF Companion**, a Next.j
 ## 1. Read before you write
 
 1. **Next.js 16 is not the Next.js you remember.** Before using any Next API (route handlers, metadata, `next/font`, server actions, config), read the matching guide in `node_modules/next/dist/docs/` and follow its deprecation notices. If `node_modules` is missing, run `npm install` first.
-2. **The spec lives in `docs/hanover/`.** Read every file there in full before planning (PDF, DOCX, MD, images). If it is empty, stop and ask the user for the Hanover document; do not invent the product.
+2. **The spec lives in `docs/hanover/`.** Read every file there in full before planning (PDF, DOCX, MD, images). If it has no spec, stop and ask the user for the Hanover document; do not invent the product.
 3. Read the existing screen you are about to change end to end. Match its style.
 
 ## 2. What already exists (know this cold)
 
-- **Entry flow** — `app/page.jsx`: `splash` → `AuthScreen` (no user) → `OnboardingScreen` (not onboarded) → `AppShell`.
-- **State** — `lib/store.js`: in-memory `auth` object persisted to `localStorage` key `bloom_user` (`signUp`, `signIn`, `getUser`, `updateUser`, `signOut`). The `users` map is in-memory only, so **sign-in after a page reload fails** unless you persist it too. `@supabase/supabase-js` is installed but unused; the demo must work without Supabase.
-- **Shell** — `components/AppShell.jsx`: 5 bottom tabs (Home, Check-in, Nora AI, Insights, More), mobile frame `max-w-[430px]`.
-- **Screens** — `components/screens/`:
-  - `HomeScreen` — stim-day progress, follicle map (`FOLLICLES`), meds (`MEDS`).
-  - `CheckInScreen` — mood, anxiety/hope sliders, symptoms, weight, note. Currently not saved anywhere.
-  - `NoraScreen` — AI chat. **Broken as a demo**: it calls `https://api.anthropic.com` directly from the browser with no key (fails CORS/auth, and would leak a key if one were added).
-  - `InsightsScreen` — educational content.
-  - `MoreScreen` — hub of sections. Medications, Appointments, Upgrade (Bloom+ $19.99 / Pro $29.99), and Profile are built; **Charts & Trends, Two Week Wait, Therapy, Videos, Community, After a Failed Cycle, Partner Space, Pregnancy Journey, Cycle Report fall through to `ComingSoon`** — prime targets for the demo.
-- **Demo persona** — Sarah, Emirates Fertility Centre, Antagonist protocol, Stim Day 7, 11 follicles, E2 1840 pg/mL.
+The Hanover spec (`docs/hanover/bloom-claude-code-handover.pdf`) is fully built as a demo. See `README.md` for the map.
+
+- **Entry flow** — `app/page.jsx`: `splash` → `AuthScreen` (includes "Try the demo as Sarah") → `OnboardingScreen` → `AppShell`.
+- **State** — `lib/store.js` persists everything in `localStorage` under `bloom_*` keys (`auth.*`, `store.get/set/push/resetDemo`). `lib/cycle.js` holds med-log, check-in and cycle-date helpers. `lib/demo-data.js` holds all seeded content. Supabase is installed but unused.
+- **Shell** — `components/AppShell.jsx` owns the tab and the open More section (`openMore(id)`), so Home can deep-link into More sub-screens.
+- **Screens** — `components/screens/` (5 tabs) and `components/screens/more/` (Report, Medications, Appointments, Charts, TwoWeekWait, Therapy, Videos, Community, FailedCycle, Partner, Pregnancy, Secret, Upgrade, Profile). `MoreScreen.jsx` maps section ids to these via `SECTIONS`.
+- **Nora** — `app/api/nora/route.js` calls Anthropic server-side with `ANTHROPIC_API_KEY` (model `NORA_MODEL`, default `claude-sonnet-4-6` per spec) and falls back to `lib/nora.js` scripted replies.
+- **Shared UI** — `components/ui/` (Logo, BackBtn, Label, Sheet, chat bubbles/input, LineChart).
+- **Landing** — `app/landing/page.jsx` (waitlist, stored locally).
+- **Demo persona** — Sarah, Emirates Fertility Centre, Antagonist protocol, Stim Day 7, 11 follicles (4 mature), E2 1840 pg/mL.
+
+Spec rules to keep: `"use client"` on components, `var` in logic, no `gap:` in inline styles, 430px mobile column, Tailwind v3 only, no npm packages beyond `@supabase/supabase-js` and `lucide-react`.
 
 ## 3. Design system (do not drift)
 
@@ -35,7 +37,7 @@ You are **sa4**, the lead builder for **Bloom — Your IVF Companion**, a Next.j
 - Tone: warm, calm, never alarmist. Medical content always ends with "confirm with your clinic".
 - Files are `.jsx`, client components start with `"use client";`, compact inline style like the existing code. Keep TypeScript out unless the spec needs it.
 
-**Config trap:** there are two PostCSS configs. `postcss.config.mjs` loads `@tailwindcss/postcss` (Tailwind v4) while the project runs Tailwind v3 with `@tailwind` directives in `app/globals.css`. If styles vanish or the build errors on PostCSS, that conflict is why; resolve it to one v3 config (`postcss.config.js`) and say so in your report. `fix-css.ps1` and `setup-bloom-next.ps1` are the owner's Windows bootstrap scripts; leave them alone.
+**Config:** only `postcss.config.js` (Tailwind v3). Do not reintroduce `@tailwindcss/postcss` or `@import "tailwindcss"`. `fix-css.ps1` and `setup-bloom-next.ps1` are the owner's Windows bootstrap scripts; leave them alone.
 
 ## 4. Demo standards ("fully functional")
 

@@ -1,110 +1,144 @@
 "use client";
-
-const FOLLICLES = [
-  {s:18,side:"R"},{s:16,side:"R"},{s:15,side:"R"},
-  {s:17,side:"L"},{s:16,side:"L"},{s:14,side:"L"},
-  {s:14,side:"R"},{s:13,side:"L"},{s:12,side:"R"},
-  {s:12,side:"L"},{s:11,side:"R"},
-];
-
-const MEDS = [
-  {name:"Gonal-F",   dose:"225 IU",  time:"9:00 PM", taken:true,  color:"#9B6DC5"},
-  {name:"Cetrotide", dose:"0.25 mg", time:"8:00 AM", taken:true,  color:"#E07A8A"},
-  {name:"Progynova", dose:"2 mg",    time:"8AM/8PM", taken:false, color:"#C49A3C"},
-  {name:"Folic Acid",dose:"400mcg",  time:"8:00 AM", taken:true,  color:"#4ABFB0"},
-];
+import { useState } from "react";
+import { Logo, Label } from "../ui/Common";
+import { FOLLICLES, MATURE_MM, MEDS, phaseLabel } from "../../lib/demo-data";
+import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY } from "../../lib/cycle";
 
 function greeting() {
-  const h = new Date().getHours();
+  var h = new Date().getHours();
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
 }
 
-export default function HomeScreen({ user }) {
-  const name = user?.name || "Sarah";
-  const stimDay = user?.stimDay || 7;
-  const follicles = user?.follicles || 11;
-  const e2 = user?.e2 || 1840;
-  const protocol = user?.protocol || "Antagonist";
-  const clinic = user?.clinic || "Emirates Fertility Centre";
-  const pct = Math.round((stimDay / 12) * 100);
+function Follicle({ size, color }) {
+  var mature = size >= MATURE_MM;
+  var px = Math.round(Math.max(30, Math.min(54, size * 2.8)));
+  return (
+    <div className="flex items-center justify-center rounded-full border-2 flex-shrink-0"
+      title={size + "mm" + (mature ? " · mature" : "")}
+      style={{ width: px, height: px, borderColor: color, backgroundColor: mature ? color : "white" }}>
+      <span className="font-bold leading-none" style={{ color: mature ? "white" : color, fontSize: "10px" }}>{size}</span>
+    </div>
+  );
+}
+
+export default function HomeScreen({ user, openMore, goTab }) {
+  var name = user.name || "Sarah";
+  var stimDay = user.stimDay || 7;
+  var protocol = user.protocol || "Antagonist";
+  var clinic = user.clinic || "Emirates Fertility Centre";
+  var e2 = user.e2 || 1840;
+  var stats = follicleStats();
+  var pct = Math.min(100, Math.round((stimDay / TRIGGER_DAY) * 100));
+  var daysLeft = Math.max(0, TRIGGER_DAY + 2 - stimDay);
+  var [log] = useState(getTodayMedLog);
+  var [checkedIn] = useState(function () {
+    var last = getCheckins()[0];
+    return last && new Date(last.date).toDateString() === new Date().toDateString();
+  });
+  var isStim = (user.phase || "stimulation") === "stimulation";
 
   return (
     <div className="px-4 pb-6">
       <div className="flex justify-between items-center py-4">
-        <p className="font-serif text-2xl font-light italic text-bloom-accent" style={{letterSpacing:"0.1em"}}>bloom ✦</p>
+        <Logo size={24} />
         <p className="text-bloom-muted text-xs">Day {stimDay} · {name}</p>
       </div>
 
       <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200 mb-3">
         <p className="text-bloom-muted text-xs uppercase tracking-wider mb-2">{greeting()}, {name} ✦</p>
-        <h1 className="text-3xl font-light text-bloom-text mb-1" style={{letterSpacing:"-1px"}}>Stimulation<br/>Day {stimDay}</h1>
+        <h1 className="text-3xl font-light text-bloom-text mb-1" style={{ letterSpacing: "-1px" }}>
+          {isStim ? <>Stimulation<br />Day {stimDay}</> : phaseLabel(user.phase)}
+        </h1>
         <p className="text-bloom-muted text-sm mb-4">{protocol} Protocol · {clinic}</p>
         <div className="h-1.5 bg-bloom-border rounded-full overflow-hidden">
-          <div className="h-full bg-bloom-accent rounded-full transition-all" style={{width: pct + "%"}} />
+          <div className="h-full bg-bloom-accent rounded-full transition-all" style={{ width: pct + "%" }} />
         </div>
         <div className="flex justify-between mt-2">
           <span className="text-bloom-dim text-xs">Day 1</span>
-          <span className="text-bloom-accent text-xs">{12 - stimDay} days to retrieval est.</span>
+          <span className="text-bloom-accent text-xs">{daysLeft} days to retrieval est.</span>
           <span className="text-bloom-dim text-xs">Trigger</span>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-3">
-        {[[follicles, "Follicles", "4 mature", "#9B6DC530", "#9B6DC5"],
-          [e2 >= 1000 ? (e2/1000).toFixed(1)+"k" : e2, "E2 pg/mL", "day "+stimDay, "#E07A8A30", "#E07A8A"],
-          ["8AM", "Next Scan", "Tomorrow", "#4ABFB030", "#4ABFB0"]].map(([val, label, sub, border, color]) => (
-          <div key={label} className="bg-white rounded-xl p-3 border text-center" style={{borderColor: border}}>
-            <p className="text-xl font-semibold" style={{color, letterSpacing:"-1px"}}>{val}</p>
-            <p className="text-bloom-muted text-xs mt-0.5">{label}</p>
-            <p className="text-bloom-dim text-xs">{sub}</p>
-          </div>
-        ))}
+        {[
+          { val: stats.total, label: "Follicles", sub: stats.mature + " mature", color: "#9B6DC5", go: "charts" },
+          { val: e2 >= 1000 ? (e2 / 1000).toFixed(1) + "k" : e2, label: "E2 pg/mL", sub: "Day " + stimDay, color: "#E07A8A", go: "charts" },
+          { val: "8AM", label: "Next Scan", sub: "Tomorrow", color: "#4ABFB0", go: "appointments" },
+        ].map(function (s) {
+          return (
+            <button key={s.label} onClick={function () { openMore(s.go); }} className="bg-white rounded-xl p-3 border text-center" style={{ borderColor: s.color + "30" }}>
+              <p className="text-xl font-semibold" style={{ color: s.color, letterSpacing: "-1px" }}>{s.val}</p>
+              <p className="text-bloom-muted text-xs mt-0.5">{s.label}</p>
+              <p className="text-bloom-dim text-xs">{s.sub}</p>
+            </button>
+          );
+        })}
       </div>
 
+      {!checkedIn && (
+        <button onClick={function () { goTab("checkin"); }} className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-bloom-border mb-3 text-left">
+          <div className="w-10 h-10 rounded-xl bg-bloom-rose/10 flex items-center justify-center text-bloom-rose">✦</div>
+          <div className="flex-1">
+            <p className="text-bloom-text text-sm font-semibold">Daily check-in</p>
+            <p className="text-bloom-muted text-xs">How are you today? Takes 1 minute</p>
+          </div>
+          <span className="text-bloom-accent text-sm">→</span>
+        </button>
+      )}
+
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">Follicle Map</p>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {FOLLICLES.map((f, i) => {
-            const mature = f.s >= 16;
-            const col = f.side === "R" ? "#9B6DC5" : "#4ABFB0";
-            const sz = Math.max(32, Math.min(50, f.s * 2.2));
-            return (
-              <div key={i} className="flex items-center justify-center rounded-full border-2 flex-col"
-                style={{width:sz, height:sz, borderColor: mature ? col : "#C5B8CC", backgroundColor: mature ? col + "20" : "#F0EBE8"}}>
-                <span className="text-xs font-bold leading-none" style={{color: mature ? col : "#7A6880", fontSize:"9px"}}>{f.s}</span>
-                <span className="leading-none" style={{color:"#C5B8CC", fontSize:"7px"}}>{f.side}</span>
-              </div>
-            );
-          })}
+        <div className="flex justify-between items-center mb-3">
+          <Label>Follicle Map</Label>
+          <span className="text-bloom-dim text-xs">Day {stimDay} scan</span>
         </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-bloom-accent" /><span className="text-bloom-muted text-xs">Right</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-bloom-teal" /><span className="text-bloom-muted text-xs">Left</span></div>
+        {[["Right ovary", FOLLICLES.right, "#9B6DC5"], ["Left ovary", FOLLICLES.left, "#4ABFB0"]].map(function (row) {
+          return (
+            <div key={row[0]} className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: row[2] }}>{row[0]} · {row[1].length}</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {row[1].map(function (s, i) { return <Follicle key={i} size={s} color={row[2]} />; })}
+              </div>
+            </div>
+          );
+        })}
+        <div className="flex flex-wrap gap-4 pt-2 border-t border-bloom-border">
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-accent" /><span className="text-bloom-muted text-xs">Right ovary</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-teal" /><span className="text-bloom-muted text-xs">Left ovary</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-bloom-muted" /><span className="text-bloom-muted text-xs">Filled = mature (≥{MATURE_MM}mm)</span></div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">Medications Today</p>
+        <div className="flex justify-between items-center mb-3">
+          <Label>Medications Today</Label>
+          <button onClick={function () { openMore("medications"); }} className="text-bloom-accent text-xs font-semibold">Log →</button>
+        </div>
         <div className="flex flex-col gap-2">
-          {MEDS.map((m, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border"
-              style={{borderColor: m.taken ? m.color + "40" : "#E8E0DB", backgroundColor: m.taken ? m.color + "08" : "white"}}>
-              <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-semibold"
-                style={{borderColor: m.taken ? m.color : "#C5B8CC", color: m.taken ? m.color : "#C5B8CC", backgroundColor: m.taken ? m.color + "18" : "#F0EBE8"}}>
-                {m.taken ? "✓" : "○"}
-              </div>
-              <div className="flex-1">
-                <p className="text-bloom-text text-sm font-semibold">{m.name} <span className="font-normal text-bloom-muted">{m.dose}</span></p>
-                <p className="text-bloom-dim text-xs">{m.time}</p>
-              </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded-lg"
-                style={{color: m.taken ? "#4ABFB0" : "#7A6880", backgroundColor: m.taken ? "#4ABFB015" : "#F0EBE8"}}>
-                {m.taken ? "Done" : "Pending"}
-              </span>
-            </div>
-          ))}
+          {MEDS.map(function (m) {
+            var entry = log[m.id];
+            var taken = entry && entry.status === "taken";
+            var missed = entry && entry.status === "missed";
+            return (
+              <button key={m.id} onClick={function () { openMore("medications"); }} className="flex items-center gap-3 p-3 rounded-xl border text-left"
+                style={{ borderColor: taken ? m.color + "40" : "#E8E0DB", backgroundColor: taken ? m.color + "08" : "white" }}>
+                <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-semibold"
+                  style={{ borderColor: taken ? m.color : "#C5B8CC", color: taken ? m.color : "#C5B8CC", backgroundColor: taken ? m.color + "18" : "#F0EBE8" }}>
+                  {taken ? "✓" : "○"}
+                </div>
+                <div className="flex-1">
+                  <p className="text-bloom-text text-sm font-semibold">{m.name} <span className="font-normal text-bloom-muted">{m.dose}</span></p>
+                  <p className="text-bloom-dim text-xs">{m.time}</p>
+                </div>
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg"
+                  style={{ color: taken ? "#4ABFB0" : missed ? "#E07A8A" : "#C49A3C", backgroundColor: taken ? "#4ABFB015" : missed ? "#E07A8A15" : "#C49A3C15" }}>
+                  {taken ? "Done ✓" : missed ? "Missed" : "Pending"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

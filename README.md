@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bloom — Your IVF Companion
 
-## Getting Started
+*You are not alone in this journey.* Bloom is an AI-powered IVF companion, built as a Next.js 16 PWA that installs on iPhone like a native app. The full product spec is in [`docs/hanover/`](docs/hanover/).
 
-First, run the development server:
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000  (app)
+                     # http://localhost:3000/landing  (waitlist landing page)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+On the sign-in screen, tap **✦ Try the demo as Sarah** to jump straight into a fully seeded account (Stim Day 7, Antagonist, 11 follicles, E2 1,840).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Nora AI
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Nora calls Claude through a server route (`app/api/nora/route.js`), so the API key never reaches the browser.
 
-## Learn More
+| Env var | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Enables live Nora replies. Without it Nora answers with scripted, cycle-aware demo replies. |
+| `NORA_MODEL` | Optional model override (defaults to `claude-sonnet-4-6`, as in the spec). |
 
-To learn more about Next.js, take a look at the following resources:
+Put them in `.env.local` locally, and in Vercel → Project → Settings → Environment Variables for deploys.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## What's in the demo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Entry:** Splash (2.5s) → Sign up / Sign in → 7-step onboarding (incl. mandatory free therapy booking) → app.
+- **Tabs:** Home (cycle hero, stats, follicle map by ovary, today's meds) · Check-in (mood, anxiety, hope, symptoms, OHSS weight alert, journal, history) · Nora AI · Insights (category filter, popular, articles) · More.
+- **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Therapy & Coaching · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
+- **Landing page** at `/landing` with waitlist form.
 
-## Deploy on Vercel
+All data persists in `localStorage` (`bloom_*` keys), so the demo survives reloads. **Profile → Reset demo data** clears it. No real payments are taken.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  layout.jsx, globals.css      fonts + PWA meta tags
+  page.jsx                     splash → auth → onboarding → app shell
+  landing/page.jsx             waitlist landing page
+  api/nora/route.js            Nora chat (server-side Anthropic call + demo fallback)
+components/
+  SplashScreen, AuthScreen, OnboardingScreen, AppShell
+  screens/                     Home, CheckIn, Nora, Insights, More
+  screens/more/                every More sub-screen (opened via state, no routing)
+  ui/                          Logo, BackBtn, Sheet, chat bubbles, LineChart
+lib/
+  store.js                     auth + localStorage persistence (swap for Supabase later)
+  cycle.js                     med log, check-ins, cycle dates
+  demo-data.js                 all seeded demo content
+  nora.js                      Nora system prompt + offline replies
+public/manifest.json, apple-touch-icon.png, icon.svg
+```
+
+Tailwind CSS v3 with the `bloom` palette in `tailwind.config.js`. Deploy on Vercel.
