@@ -1,6 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
+  metadataBase: new URL("https://bloomivfcompanion.com"),
   title: "Bloom — Your IVF Companion",
   description: "The world's first AI-powered IVF companion. You are not alone in this journey.",
 };

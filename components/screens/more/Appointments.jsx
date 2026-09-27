@@ -21,7 +21,7 @@ function downloadIcs(apt, clinic) {
   var end = new Date(start.getTime() + 60 * 60 * 1000);
   var ics = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Bloom//IVF//EN", "BEGIN:VEVENT",
-    "UID:bloom-" + apt.id + "-" + start.getTime() + "@bloomivf.app",
+    "UID:bloom-" + apt.id + "-" + start.getTime() + "@bloomivfcompanion.com",
     "DTSTAMP:" + icsDate(new Date()), "DTSTART:" + icsDate(start), "DTEND:" + icsDate(end),
     "SUMMARY:" + apt.type, "LOCATION:" + (apt.location === "Emirates Fertility Centre" ? clinic : apt.location),
     "DESCRIPTION:With " + apt.doctor + " · Added from Bloom", "END:VEVENT", "END:VCALENDAR",
