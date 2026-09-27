@@ -1,8 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { store } from "../../lib/store";
-
-var BASE_COUNT = 2847;
 
 // Email sign-up that posts to /api/waitlist. Used in the hero and the closing call to action.
 export default function WaitlistForm({ id, showCount }) {
@@ -10,12 +7,16 @@ export default function WaitlistForm({ id, showCount }) {
   var [error, setError] = useState("");
   var [joined, setJoined] = useState(false);
   var [submitting, setSubmitting] = useState(false);
-  var [count, setCount] = useState(BASE_COUNT);
+  var [count, setCount] = useState(null);
 
   useEffect(function () {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after hydration
-    setCount(BASE_COUNT + store.get("waitlist", []).length);
-  }, []);
+    if (!showCount) return;
+    // Real number of sign-ups; the line stays hidden if it can't be loaded.
+    fetch("/api/waitlist")
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) { if (data && typeof data.count === "number") setCount(data.count); })
+      .catch(function () {});
+  }, [showCount]);
 
   async function join(e) {
     e.preventDefault();
@@ -38,12 +39,6 @@ export default function WaitlistForm({ id, showCount }) {
     } finally {
       setSubmitting(false);
     }
-    var list = store.get("waitlist", []);
-    if (!list.includes(v)) {
-      list.push(v);
-      store.set("waitlist", list);
-      setCount(BASE_COUNT + list.length);
-    }
     setJoined(true);
   }
 
@@ -63,9 +58,9 @@ export default function WaitlistForm({ id, showCount }) {
         </form>
       )}
       {error && <p className="text-red-500 text-xs mt-2" role="alert">{error}</p>}
-      {showCount && (
+      {showCount && count > 0 && (
         <p className="text-bloom-muted text-sm mt-4">
-          <span className="font-serif text-bloom-accent" style={{ fontSize: "22px" }}>{count.toLocaleString()}</span> women already waiting
+          <span className="font-serif text-bloom-accent" style={{ fontSize: "22px" }}>{count.toLocaleString()}</span> {count === 1 ? "woman" : "women"} already waiting
         </p>
       )}
     </div>
