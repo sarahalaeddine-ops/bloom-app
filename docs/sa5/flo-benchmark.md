@@ -52,6 +52,28 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (p
 3. **Secure backend**: passwords hashed with salted PBKDF2 (legacy accounts migrate on sign-in), a hashed app-lock PIN, optional Supabase cloud accounts and sync with row-level security, and **end-to-end encrypted Secret Space** (AES-256-GCM with a passphrase).
 4. **Medical Review Board**: a "Medically reviewed by…" badge on articles and stories, sources on every article, and a board sheet with the editorial policy. The reviewers are demo placeholders until the real board is appointed.
 
+## Pass 4: from the owner's Flo screenshots (Sept 2026)
+
+Notes only. Flo's screenshots and artwork are not stored in this repo, and Bloom's graphics are drawn from scratch.
+
+| Flo screen | What Flo does well | What Bloom shipped |
+|---|---|---|
+| Log sheet ("Today · Cycle day 15") | ~16 moods and many symptoms, each a pill with its own illustrated icon, grouped into sections. Search at the top, and you can move between days | `LogChips` + `FeelingFace` (13 IVF feelings, e.g. "Envious of others' news", "Numb") + `SymptomIcon` (16 symptoms in Body and Injections groups, adding pelvic pressure, brain fog and bruising). Search, and logging up to 6 days back (saved to that day). Used in both Quick log and Check-in |
+| Settings: "Your Flo experience" | Big mode cards with a ring icon and a check on the selected one | `JourneyPicker` in Profile: Planning → Stims → Retrieval → Transfer → 2WW, plus "I'm pregnant" (opens Pregnancy Journey). `PhaseIcon` progress rings. A "Change phase" pill on Home. Home, stories and Insights adapt |
+| Flo for Partners | "You're always in control", a Stop sharing card, and "Your view / His view" phone mockups | Partner hero with control copy, a Stop sharing card with confirmation, and drawn *Your view / Their view* phones. **Beyond Flo:** per-item sharing toggles (phase, appointments, med times, tips) that update "their view" live, and a clear "never shared" list |
+| Insights | Search, bookmarks, themed carousels ("Most popular", "Later in your cycle"), large illustrated cards | Search, bookmarks with a Saved view and count, carousels "For Stimulation Day 7", "Most popular", "Coming up next: Post Retrieval" and "Saved for later", and larger cards |
+
+Still to borrow: Flo's "Doctor's story" video series (needs real clinicians and consent) and a notifications inbox.
+
+## Pass 5: Flo's Today screen (sleep score, daily insights, "My cycles")
+
+| Flo pattern | What Bloom shipped |
+|---|---|
+| Night-sky **sleep score** card: ring, "Great", hours asleep, one line of advice, "Show me" | `SleepCard`: dark sparkle card, score ring (check only for good nights), hours, a kind IVF-aware message, and a sheet with a 7-night bar chart, two-tap "last night" logging and IVF sleep tips (`lib/sleep.js`) |
+| **My daily insights** tiles (Cycle day in a drop, sleep tile, conversation starters) | Tiles before the stories: a **Stim day** drop, a **sleep score** tile, a **follicles** tile with mature dots, and **Talk tonight**, conversation starters for the couple |
+| **My cycles** stats with ⓘ and a chart with a "normal range" band | `CycleStats`: stim days, lead follicle, average growth, E2 change and doses taken, each with a reviewed ⓘ sheet. A lead-follicle chart with the **typical trigger zone (17–20 mm)** band, plus a banner that "every body responds at its own pace" |
+| Date header + calendar icon | Today's date on Home opens `CycleCalendar`: done and planned stim days, appointments, logged-day dots, and details for the tapped day (appointments, mood, feelings, symptoms, sleep) |
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |
@@ -64,7 +86,7 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (p
 | 6 | **Dark mode** night palette for 3am injections | Med | M |
 | 7 | **Follicle growth animation** between scans on the Ovary graphic | Med | M |
 | 8 | **2WW embryo development timeline** illustration, day by day | Med | M |
-| 9 | **Apple Health / Google Fit** sync for sleep, steps and weight | Med | M |
+| 9 | **Apple Health / Google Fit** sync for sleep (feeds the new Sleep card automatically), steps and weight | High | M |
 
 ## Sources
 
