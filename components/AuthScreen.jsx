@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { auth } from "../lib/store";
+import { BloomFlower, Blobs } from "./ui/Graphics";
 
 export default function AuthScreen({ onLogin }) {
   var [mode, setMode] = useState("signup");
@@ -23,11 +24,12 @@ export default function AuthScreen({ onLogin }) {
   var inputCls = "w-full bg-bloom-surface border border-bloom-border rounded-xl px-4 py-3 text-bloom-text text-sm outline-none focus:border-bloom-accent transition-colors";
 
   return (
-    <div className="min-h-screen bg-bloom-bg flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
+    <div className="relative min-h-screen bg-bloom-bg flex flex-col items-center justify-center px-6 py-10 overflow-hidden">
+      <Blobs />
+      <div className="relative w-full max-w-sm">
+        <div className="text-center mb-10 flex flex-col items-center">
+          <BloomFlower size={64} className="mb-3" />
           <p className="logo" style={{ fontSize: "52px", lineHeight: "1", marginBottom: "4px" }}>bloom</p>
-          <p style={{ color: "#9B6DC5", fontSize: "28px", marginBottom: "8px" }}>✦</p>
           <p className="text-bloom-muted text-sm font-light">Your IVF companion</p>
         </div>
 

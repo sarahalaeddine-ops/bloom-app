@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Logo, Label } from "../ui/Common";
+import { JourneyRing, JourneyLegend, journeyDay, Ovary, Blobs } from "../ui/Graphics";
+import Stories from "../ui/Stories";
 import { FOLLICLES, MATURE_MM, MEDS, phaseLabel } from "../../lib/demo-data";
 import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY } from "../../lib/cycle";
 
@@ -11,18 +13,6 @@ function greeting() {
   return "Good evening";
 }
 
-function Follicle({ size, color }) {
-  var mature = size >= MATURE_MM;
-  var px = Math.round(Math.max(30, Math.min(54, size * 2.8)));
-  return (
-    <div className="flex items-center justify-center rounded-full border-2 flex-shrink-0"
-      title={size + "mm" + (mature ? " · mature" : "")}
-      style={{ width: px, height: px, borderColor: color, backgroundColor: mature ? color : "white" }}>
-      <span className="font-bold leading-none" style={{ color: mature ? "white" : color, fontSize: "10px" }}>{size}</span>
-    </div>
-  );
-}
-
 export default function HomeScreen({ user, openMore, goTab }) {
   var name = user.name || "Sarah";
   var stimDay = user.stimDay || 7;
@@ -30,7 +20,6 @@ export default function HomeScreen({ user, openMore, goTab }) {
   var clinic = user.clinic || "Emirates Fertility Centre";
   var e2 = user.e2 || 1840;
   var stats = follicleStats();
-  var pct = Math.min(100, Math.round((stimDay / TRIGGER_DAY) * 100));
   var daysLeft = Math.max(0, TRIGGER_DAY + 2 - stimDay);
   var [log] = useState(getTodayMedLog);
   var [checkedIn] = useState(function () {
@@ -46,21 +35,23 @@ export default function HomeScreen({ user, openMore, goTab }) {
         <p className="text-bloom-muted text-xs">Day {stimDay} · {name}</p>
       </div>
 
-      <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200 mb-3">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider mb-2">{greeting()}, {name} ✦</p>
-        <h1 className="text-3xl font-light text-bloom-text mb-1" style={{ letterSpacing: "-1px" }}>
-          {isStim ? <>Stimulation<br />Day {stimDay}</> : phaseLabel(user.phase)}
-        </h1>
-        <p className="text-bloom-muted text-sm mb-4">{protocol} Protocol · {clinic}</p>
-        <div className="h-1.5 bg-bloom-border rounded-full overflow-hidden">
-          <div className="h-full bg-bloom-accent rounded-full transition-all" style={{ width: pct + "%" }} />
+      <div className="relative overflow-hidden rounded-3xl p-5 mb-3 border border-purple-200" style={{ background: "linear-gradient(160deg,#F6F0FC 0%,#FBF1F3 100%)" }}>
+        <Blobs />
+        <p className="relative text-bloom-muted text-xs uppercase tracking-wider mb-3 text-center">{greeting()}, {name} ✦</p>
+        <div className="relative flex justify-center">
+          <JourneyRing day={journeyDay(user.phase, stimDay)} size={220}>
+            <p className="text-bloom-muted text-[11px] uppercase tracking-wider">{isStim ? "Stimulation" : "Current phase"}</p>
+            <p className="font-serif italic text-bloom-text leading-none my-1" style={{ fontSize: isStim ? "44px" : "30px" }}>
+              {isStim ? "Day " + stimDay : phaseLabel(user.phase)}
+            </p>
+            {isStim && <p className="text-bloom-accent text-xs font-semibold">~{daysLeft} days to retrieval</p>}
+          </JourneyRing>
         </div>
-        <div className="flex justify-between mt-2">
-          <span className="text-bloom-dim text-xs">Day 1</span>
-          <span className="text-bloom-accent text-xs">{daysLeft} days to retrieval est.</span>
-          <span className="text-bloom-dim text-xs">Trigger</span>
-        </div>
+        <div className="relative mt-3"><JourneyLegend /></div>
+        <p className="relative text-bloom-muted text-xs text-center mt-2">{protocol} Protocol · {clinic}</p>
       </div>
+
+      <Stories />
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         {[
@@ -94,16 +85,10 @@ export default function HomeScreen({ user, openMore, goTab }) {
           <Label>Follicle Map</Label>
           <span className="text-bloom-dim text-xs">Day {stimDay} scan</span>
         </div>
-        {[["Right ovary", FOLLICLES.right, "#9B6DC5"], ["Left ovary", FOLLICLES.left, "#4ABFB0"]].map(function (row) {
-          return (
-            <div key={row[0]} className="mb-3">
-              <p className="text-xs font-semibold mb-2" style={{ color: row[2] }}>{row[0]} · {row[1].length}</p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {row[1].map(function (s, i) { return <Follicle key={i} size={s} color={row[2]} />; })}
-              </div>
-            </div>
-          );
-        })}
+        <div className="flex gap-2 mb-3">
+          <Ovary label="Right ovary" sizes={FOLLICLES.right} color="#9B6DC5" matureMm={MATURE_MM} />
+          <Ovary label="Left ovary" sizes={FOLLICLES.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
+        </div>
         <div className="flex flex-wrap gap-4 pt-2 border-t border-bloom-border">
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-accent" /><span className="text-bloom-muted text-xs">Right ovary</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-teal" /><span className="text-bloom-muted text-xs">Left ovary</span></div>

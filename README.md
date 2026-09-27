@@ -44,7 +44,8 @@ components/
   SplashScreen, AuthScreen, OnboardingScreen, AppShell
   screens/                     Home, CheckIn, Nora, Insights, More
   screens/more/                every More sub-screen (opened via state, no routing)
-  ui/                          Logo, BackBtn, Sheet, chat bubbles, LineChart
+  ui/                          Logo, BackBtn, Sheet, chat bubbles, LineChart,
+                               Graphics (SVG art, journey ring, ovaries), Stories
 lib/
   store.js                     auth + localStorage persistence (swap for Supabase later)
   cycle.js                     med log, check-ins, cycle dates
@@ -54,3 +55,8 @@ public/manifest.json, apple-touch-icon.png, icon.svg
 ```
 
 Tailwind CSS v3 with the `bloom` palette in `tailwind.config.js`. Deploy on Vercel.
+
+## Agents
+
+- **sa4** (`.claude/agents/sa4.md`) builds features and flows from the Hanover spec.
+- **sa5** (`.claude/agents/sa5.md`) is the designer and enhancement advisor. It benchmarks Bloom against Flo and owns the graphics. See `docs/sa5/flo-benchmark.md` for the recommendation backlog.

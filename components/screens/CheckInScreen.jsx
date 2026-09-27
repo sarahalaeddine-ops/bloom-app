@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Label } from "../ui/Common";
+import { Illustration } from "../ui/Graphics";
 import { MOODS, SYMPTOMS } from "../../lib/demo-data";
 import { getCheckins, saveCheckin, follicleStats } from "../../lib/cycle";
 
@@ -37,7 +38,7 @@ export default function CheckInScreen({ user }) {
 
   if (saved) return (
     <div className="min-h-[80vh] bg-bloom-bg flex flex-col items-center justify-center px-6 text-center">
-      <p className="text-5xl text-bloom-accent mb-4">✦</p>
+      <div className="mb-4"><Illustration name="bloom" size={150} /></div>
       <h2 className="text-2xl font-bold text-bloom-text mb-2">Check-in saved</h2>
       <p className="text-bloom-muted text-sm mb-6 leading-relaxed">Every data point helps us understand your journey better.</p>
       {saved.gain >= 2 && (

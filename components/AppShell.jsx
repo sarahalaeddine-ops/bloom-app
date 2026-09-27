@@ -5,13 +5,14 @@ import CheckInScreen from "./screens/CheckInScreen";
 import NoraScreen from "./screens/NoraScreen";
 import InsightsScreen from "./screens/InsightsScreen";
 import MoreScreen from "./screens/MoreScreen";
+import { House, HeartPulse, Sparkles, BookOpen, Ellipsis } from "lucide-react";
 
 var TABS = [
-  { id: "home",     label: "Home",     icon: "◉" },
-  { id: "checkin",  label: "Check-in", icon: "✦" },
-  { id: "nora",     label: "Nora AI",  icon: "☽" },
-  { id: "insights", label: "Insights", icon: "✺" },
-  { id: "more",     label: "More",     icon: "⋯" },
+  { id: "home",     label: "Home",     icon: House },
+  { id: "checkin",  label: "Check-in", icon: HeartPulse },
+  { id: "nora",     label: "Nora AI",  icon: Sparkles },
+  { id: "insights", label: "Insights", icon: BookOpen },
+  { id: "more",     label: "More",     icon: Ellipsis },
 ];
 
 export default function AppShell({ user, setUser }) {
@@ -38,10 +39,11 @@ export default function AppShell({ user, setUser }) {
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-bloom-border flex z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {TABS.map(function (t) {
           var on = tab === t.id;
+          var Icon = t.icon;
           return (
             <button key={t.id} onClick={function () { go(t.id); }} aria-current={on ? "page" : undefined}
               className={"flex-1 flex flex-col items-center py-3 gap-0.5 transition-colors " + (on ? "text-bloom-accent" : "text-bloom-dim")}>
-              <span className="text-lg leading-none">{t.icon}</span>
+              <span className={"flex items-center justify-center w-10 h-7 rounded-full transition-colors " + (on ? "bg-purple-50" : "")}><Icon size={20} strokeWidth={on ? 2.2 : 1.8} /></span>
               <span className="text-[10px] font-semibold tracking-wide">{t.label}</span>
             </button>
           );

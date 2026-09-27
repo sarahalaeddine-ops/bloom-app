@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { auth, store } from "../lib/store";
 import { PHASES, THERAPISTS } from "../lib/demo-data";
+import { BloomFlower, Illustration } from "./ui/Graphics";
 
 var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF", "Natural", "Not sure yet"];
 
@@ -44,6 +45,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "welcome" && (
           <div className="flex flex-col items-center text-center pt-8">
+            <BloomFlower size={96} className="mb-3" />
             <p className="font-serif text-5xl font-light italic text-bloom-accent mb-2" style={{ letterSpacing: "0.12em" }}>bloom ✦</p>
             <h1 className="text-2xl font-bold text-bloom-text mt-6 mb-3">Welcome, {user.name} 💜</h1>
             <p className="text-bloom-muted text-sm leading-relaxed mb-8">Bloom is your personal IVF companion. We will track your cycle, guide you through every phase, and be here when the anxiety peaks.</p>
@@ -60,7 +62,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "clinic" && (
           <div className="pt-4">
-            <p className="text-4xl mb-4">🏥</p>
+            <div className="mb-4"><Illustration name="clinic" size={88} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-2">Your clinic</h1>
             <p className="text-bloom-muted text-sm mb-6">Where are you doing your IVF?</p>
             <input value={clinic} onChange={(e) => setClinic(e.target.value)}
@@ -72,7 +74,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "protocol" && (
           <div className="pt-4">
-            <p className="text-4xl mb-4">💊</p>
+            <div className="mb-4"><Illustration name="protocol" size={88} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-2">Your protocol</h1>
             <p className="text-bloom-muted text-sm mb-6">What protocol are you on?</p>
             <div className="flex flex-col gap-3">
@@ -89,7 +91,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "phase" && (
           <div className="pt-4">
-            <p className="text-4xl mb-4">📍</p>
+            <div className="mb-4"><Illustration name="phase" size={88} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-2">Your current phase</h1>
             <p className="text-bloom-muted text-sm mb-6">Where are you in your cycle right now?</p>
             <div className="flex flex-col gap-3">
@@ -110,7 +112,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "day" && (
           <div className="pt-4">
-            <p className="text-4xl mb-4">📅</p>
+            <div className="mb-4"><Illustration name="calendar" size={88} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-2">Your stim day</h1>
             <p className="text-bloom-muted text-sm mb-8">What day of stimulation are you on?</p>
             <div className="flex items-center justify-center gap-6 mb-8">
@@ -136,7 +138,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "therapy" && (
           <div className="pt-4">
-            <p className="text-4xl mb-4">◇</p>
+            <div className="mb-4"><Illustration name="therapy" size={88} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-2">One free session. Mandatory.</h1>
             <p className="text-bloom-muted text-sm leading-relaxed mb-6">Every woman who joins Bloom gets one free session with an IVF-specialist therapist. We made it mandatory because most women who need it would never book it on their own.</p>
             <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
@@ -155,7 +157,7 @@ export default function OnboardingScreen({ user, onComplete }) {
 
         {current === "done" && (
           <div className="flex flex-col items-center text-center pt-8">
-            <p className="text-5xl mb-4">💜</p>
+            <div className="mb-4"><Illustration name="bloom" size={140} /></div>
             <h1 className="text-2xl font-bold text-bloom-text mb-3">Bloom is ready!</h1>
             <p className="text-bloom-muted text-sm leading-relaxed mb-6">Your cycle is set up. Nora is ready to guide you. You are not alone in this journey.</p>
             <div className="w-full bg-white rounded-2xl p-5 border border-bloom-border text-left">
