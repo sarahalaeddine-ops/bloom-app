@@ -4,6 +4,10 @@ import { Logo, Label } from "../ui/Common";
 import { JourneyRing, JourneyLegend, journeyDay, Ovary, Blobs, StreakFlower, MoodFace } from "../ui/Graphics";
 import Stories from "../ui/Stories";
 import { useT } from "../../lib/i18n";
+import SleepCard from "../ui/SleepCard";
+import CycleStats from "../ui/CycleStats";
+import CycleCalendar from "../ui/CycleCalendar";
+import { CalendarDays } from "lucide-react";
 import { FOLLICLES, MATURE_MM, MEDS, MOODS } from "../../lib/demo-data";
 import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
 
@@ -31,13 +35,17 @@ export default function HomeScreen({ user, openMore, goTab }) {
   });
   var [streak] = useState(checkinStreak);
   var [week] = useState(lastSevenDays);
+  var [cal, setCal] = useState(false);
   var isStim = (user.phase || "stimulation") === "stimulation";
 
   return (
     <div className="px-4 pb-6">
       <div className="flex justify-between items-center py-4">
         <Logo size={24} />
-        <p className="text-bloom-muted text-xs">{t("common.day", { n: stimDay })}{anon ? "" : " · "}{anon ? null : <bdi>{name}</bdi>}</p>
+        <button onClick={function () { setCal(true); }} aria-label={t("cal.open")} className="flex items-center gap-2 text-bloom-text">
+          <span className="text-sm font-semibold">{new Date().toLocaleDateString(locale, { day: "numeric", month: "long" })}</span>
+          <span className="w-10 h-10 rounded-xl border-2 border-bloom-text flex items-center justify-center"><CalendarDays size={20} /></span>
+        </button>
       </div>
 
       <div className="relative overflow-hidden rounded-3xl p-5 mb-3 border border-purple-200" style={{ background: "linear-gradient(160deg,#F6F0FC 0%,#FBF1F3 100%)" }}>
@@ -53,10 +61,13 @@ export default function HomeScreen({ user, openMore, goTab }) {
           </JourneyRing>
         </div>
         <div className="relative mt-3"><JourneyLegend /></div>
+        <div className="relative flex justify-center mt-2">
+          <button onClick={function () { openMore("profile"); }} className="text-bloom-accent text-xs font-semibold bg-white/70 rounded-full px-3 py-1">{t("home.changePhase")}</button>
+        </div>
         <p className="relative text-bloom-muted text-xs text-center mt-2">{t("home.protocol", { p: "\u2068" + protocol + "\u2069" })} · <bdi>{clinic}</bdi></p>
       </div>
 
-      <Stories user={user} />
+      <Stories user={user} openMore={openMore} />
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         {[
@@ -101,6 +112,10 @@ export default function HomeScreen({ user, openMore, goTab }) {
           })}
         </div>
       </button>
+
+      <div id="sleep-card"><SleepCard /></div>
+
+      <CycleStats user={user} />
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
         <div className="flex justify-between items-center mb-3">
@@ -148,6 +163,7 @@ export default function HomeScreen({ user, openMore, goTab }) {
           })}
         </div>
       </div>
+      {cal && <CycleCalendar user={user} onClose={function () { setCal(false); }} />}
     </div>
   );
 }

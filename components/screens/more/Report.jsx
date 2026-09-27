@@ -30,7 +30,7 @@ function buildText(user, checkins) {
   MEDS.forEach(function (m) { lines.push(m.name + " " + m.dose + " · " + m.freq + " · " + m.type + " · from Day " + m.startDay); });
   lines.push("", "CHECK-INS (Date / Mood / Anxiety / Hope / Symptoms)");
   checkins.forEach(function (c) {
-    lines.push(fmtDate(c.date) + " / " + (MOODS[c.mood] || MOODS[2]).l + " / " + c.anxiety + "/5 / " + c.hope + "/5 / " + (c.symptoms.join(", ") || "none"));
+    lines.push(fmtDate(c.date) + " / " + (MOODS[c.mood] || MOODS[2]).l + " / " + c.anxiety + "/5 / " + c.hope + "/5 / " + (c.symptoms.join(", ") || "none") + ((c.feelings || []).length ? " / Feelings: " + c.feelings.join(", ") : ""));
   });
   lines.push("", DISCLAIMER);
   return lines.join("\n");
@@ -176,7 +176,7 @@ export default function Report({ onBack, user }) {
                   <span className="text-bloom-text font-semibold flex items-center gap-1.5">{fmtDate(c.date)} · <MoodFace mood={c.mood} color={m.c} size={18} /> {m.l}</span>
                   <span className="text-bloom-muted">Anx {c.anxiety}/5 · Hope {c.hope}/5</span>
                 </div>
-                {c.symptoms.length > 0 && <p className="text-bloom-dim mt-0.5">{c.symptoms.join(", ")}</p>}
+                {(c.symptoms.length > 0 || (c.feelings || []).length > 0) && <p className="text-bloom-dim mt-0.5">{(c.feelings || []).concat(c.symptoms).join(", ")}</p>}
               </div>
             );
           })}

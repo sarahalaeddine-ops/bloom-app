@@ -405,3 +405,106 @@ export function Illustration({ name, size = 96 }) {
   );
   return <BaseIllustration name={name} size={size} />;
 }
+
+// ── Feeling faces (logging chips) ────────────────────────────────────────
+var FACE = { fill: "#F7C27B", ink: "#7A4A1E" };
+function Eyes({ type }) {
+  var k = FACE.ink;
+  if (type === "closed") return <path d="M-9 -3 q3 3 6 0 M3 -3 q3 3 6 0" stroke={k} strokeWidth="1.8" fill="none" strokeLinecap="round" />;
+  if (type === "sadClosed") return <path d="M-9 -1 q3 -3 6 0 M3 -1 q3 -3 6 0" stroke={k} strokeWidth="1.8" fill="none" strokeLinecap="round" />;
+  if (type === "wide") return <><circle cx="-6" cy="-3" r="3.4" fill="#fff" stroke={k} strokeWidth="1.2" /><circle cx="6" cy="-3" r="3.4" fill="#fff" stroke={k} strokeWidth="1.2" /><circle cx="-6" cy="-3" r="1.4" fill={k} /><circle cx="6" cy="-3" r="1.4" fill={k} /></>;
+  if (type === "line") return <path d="M-9 -3 h5 M4 -3 h5" stroke={k} strokeWidth="1.8" strokeLinecap="round" />;
+  if (type === "down") return <><circle cx="-6" cy="0" r="1.8" fill={k} /><circle cx="6" cy="0" r="1.8" fill={k} /></>;
+  if (type === "side") return <><circle cx="-4" cy="-3" r="1.8" fill={k} /><circle cx="8" cy="-3" r="1.8" fill={k} /><path d="M-9 -7 h6 M3 -7 h6" stroke={k} strokeWidth="1.4" strokeLinecap="round" /></>;
+  return <><circle cx="-6" cy="-3" r="1.9" fill={k} /><circle cx="6" cy="-3" r="1.9" fill={k} /></>;
+}
+var FEELING_ART = {
+  calm:        { eyes: "closed", mouth: "M-6 6 q6 5 12 0" },
+  hopeful:     { eyes: "dot", mouth: "M-6 5 q6 6 12 0", extra: "sprout" },
+  grateful:    { eyes: "closed", mouth: "M-7 5 q7 7 14 0", extra: "heart" },
+  happy:       { eyes: "dot", mouth: "M-8 4 q8 11 16 0 z", filled: true },
+  anxious:     { eyes: "dot", mouth: "M-7 8 q2 -3 4 0 q2 3 4 0 q2 -3 4 0", extra: "sweat" },
+  scared:      { eyes: "wide", mouth: "M-3 8 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0", filled: true },
+  overwhelmed: { eyes: "line", mouth: "M-6 8 q2 -2 4 0 q2 2 4 0 q2 -2 4 0", extra: "cloud" },
+  sad:         { eyes: "dot", mouth: "M-6 9 q6 -6 12 0", extra: "tear", brows: "M-10 -8 l5 -2 M10 -8 l-5 -2" },
+  irritable:   { eyes: "dot", mouth: "M-6 9 q6 -5 12 0", brows: "M-10 -9 l6 3 M10 -9 l-6 3" },
+  numb:        { eyes: "line", mouth: "M-6 7 h12" },
+  guilty:      { eyes: "sadClosed", mouth: "M-4 8 q4 -3 8 0", extra: "sweat" },
+  envious:     { eyes: "side", mouth: "M-5 8 l10 -2" },
+  lonely:      { eyes: "sadClosed", mouth: "M-5 8 h10", extra: "tear" },
+};
+export function FeelingFace({ id, size = 28 }) {
+  var a = FEELING_ART[id] || FEELING_ART.calm;
+  return (
+    <svg width={size} height={size} viewBox="-20 -20 40 40" aria-hidden="true">
+      <circle r="17" fill={FACE.fill} />
+      <Eyes type={a.eyes} />
+      {a.brows && <path d={a.brows} stroke={FACE.ink} strokeWidth="1.6" strokeLinecap="round" />}
+      <path d={a.mouth} stroke={FACE.ink} strokeWidth="1.9" fill={a.filled ? FACE.ink : "none"} strokeLinecap="round" strokeLinejoin="round" />
+      {a.extra === "sweat" && <path d="M11 -12 q-3 4 0 6 q3 -2 0 -6 z" fill="#7FB8E0" />}
+      {a.extra === "tear" && <path d="M-7 1 q-2 4 0 5 q2 -1 0 -5 z" fill="#7FB8E0" />}
+      {a.extra === "heart" && <path d="M11 -15 c-2 -2 -5 0 -3 2 l3 3 l3 -3 c2 -2 -1 -4 -3 -2 z" fill={C.rose} />}
+      {a.extra === "sprout" && <path d="M0 -17 q -5 -5 0 -8 q 5 3 0 8" fill={C.teal} />}
+      {a.extra === "cloud" && <path d="M-4 -15 a4 4 0 0 1 7 -3 a3.5 3.5 0 0 1 6 3 a3 3 0 0 1 -1 5 h-11 a3 3 0 0 1 -1 -5 z" fill="#fff" stroke={C.dim} strokeWidth="0.8" />}
+    </svg>
+  );
+}
+
+// ── Symptom icons (logging chips) ────────────────────────────────────────
+function Target({ x, y }) {
+  return <g><circle cx={x} cy={y} r="3.6" fill="#fff" stroke={C.rose} strokeWidth="1.6" /><circle cx={x} cy={y} r="1.3" fill={C.rose} /></g>;
+}
+export function SymptomIcon({ name, size = 28 }) {
+  var a = C.accent, r = C.rose;
+  var g;
+  switch (name) {
+    case "Feeling fine": g = <path d="M10 22 v-8 h3 l4 -6 c2 0 2 2 1.5 4 h5 c1.5 0 2 1.5 1.5 3 l-2 6 c-.4 1 -1 1.5 -2 1.5 h-8 z M7 14 h2.5 v8 h-2.5 z" fill={a} />; break;
+    case "Bloating": g = <><path d="M9 7 c-2 6 -3 12 1 18 M23 7 c2 6 3 12 -1 18" stroke={a} strokeWidth="1.8" fill="none" strokeLinecap="round" /><ellipse cx="16" cy="17" rx="6.5" ry="6" fill={r} opacity="0.75" /><circle cx="16" cy="18" r="1" fill="#fff" /></>; break;
+    case "Cramping": g = <><path d="M9 11 q7 -4 14 0 q-2 3 -4 3 v6 q-3 3 -6 0 v-6 q-2 0 -4 -3 z" fill={a} opacity="0.85" /><Target x={16} y={16} /></>; break;
+    case "Pelvic pressure": g = <><path d="M9 9 q7 -4 14 0 q-2 3 -4 3 v5 q-3 3 -6 0 v-5 q-2 0 -4 -3 z" fill={a} opacity="0.85" /><path d="M16 21 v5 m-3 -3 l3 3 l3 -3" stroke={r} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>; break;
+    case "Breast tenderness": g = <><path d="M6 13 q5 9 10 0 q5 9 10 0" stroke={a} strokeWidth="2" fill="none" strokeLinecap="round" /><Target x={11} y={16} /></>; break;
+    case "Back pain": g = <><g fill={a}>{[7, 11, 15, 19, 23].map(function (y) { return <rect key={y} x="13" y={y} width="6" height="3" rx="1.5" />; })}</g><Target x={21} y={17} /></>; break;
+    case "Headache": g = <><circle cx="15" cy="15" r="7" fill={a} opacity="0.85" /><path d="M11 24 q4 -3 8 0" stroke={a} strokeWidth="2" fill="none" /><Target x={20} y={11} /></>; break;
+    case "Nausea": g = <><circle cx="16" cy="16" r="8" fill="#9FD9C9" /><path d="M16 16 m-3 0 a3 3 0 1 1 3 3 a5 5 0 1 1 5 -5" stroke="#2E8C80" strokeWidth="1.5" fill="none" strokeLinecap="round" /></>; break;
+    case "Fatigue": g = <><rect x="7" y="11" width="16" height="10" rx="2.5" fill="#fff" stroke={a} strokeWidth="1.8" /><rect x="23.5" y="14" width="2" height="4" rx="1" fill={a} /><rect x="9" y="13" width="4" height="6" rx="1" fill={r} /></>; break;
+    case "Hot flashes": g = <path d="M16 6 c1 5 7 7 7 13 a7 7 0 0 1 -14 0 c0 -3 2 -5 3 -6 c0 2 1 4 3 4 c-1 -4 0 -8 1 -11 z" fill={r} />; break;
+    case "Spotting": g = <><path d="M13 8 q-5 7 -5 10 a5 5 0 0 0 10 0 q0 -3 -5 -10 z" fill={r} /><circle cx="22" cy="20" r="2.2" fill={r} opacity="0.7" /></>; break;
+    case "Insomnia": g = <><path d="M19 7 a9 9 0 1 0 6 14 a7 7 0 1 1 -6 -14 z" fill={a} /><path d="M20 10 h4 l-4 4 h4" stroke={C.gold} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>; break;
+    case "Brain fog": g = <><circle cx="14" cy="17" r="7" fill={a} opacity="0.85" /><path d="M13 12 a4 4 0 0 1 7 -3 a3.5 3.5 0 0 1 6 3 a3 3 0 0 1 -1 5 h-11 a3 3 0 0 1 -1 -5 z" fill="#fff" stroke={C.dim} strokeWidth="0.8" /></>; break;
+    case "Mood swings": g = <path d="M6 18 q3 -8 6 0 t6 0 t6 0" stroke={a} strokeWidth="2.2" fill="none" strokeLinecap="round" />; break;
+    case "Injection site pain": g = <><g transform="rotate(-40 16 16)"><rect x="13" y="7" width="6" height="14" rx="1.5" fill="#fff" stroke={a} strokeWidth="1.6" /><rect x="14" y="13" width="4" height="7" fill={a} opacity="0.4" /><path d="M16 21 v5 M13 5 h6 M16 5 v2" stroke={a} strokeWidth="1.6" strokeLinecap="round" /></g><Target x={23} y={23} /></>; break;
+    case "Bruising": g = <><ellipse cx="16" cy="17" rx="8" ry="6" fill="#B39DDB" opacity="0.6" /><ellipse cx="15" cy="17" rx="4.5" ry="3.5" fill="#7E57C2" opacity="0.7" /><circle cx="18" cy="15" r="1" fill="#fff" /></>; break;
+    default: g = <circle cx="16" cy="16" r="5" fill={a} />;
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="#EADFF5" />
+      {g}
+    </svg>
+  );
+}
+
+// ── Phase icons for the journey picker: a progress ring around a glyph ──
+var PHASE_GLYPH = {
+  planning:    <g><rect x="-9" y="-7" width="18" height="16" rx="3" fill="#fff" stroke={C.accent} strokeWidth="2" /><path d="M-9 -2 h18 M-5 -10 v5 M5 -10 v5" stroke={C.accent} strokeWidth="2" strokeLinecap="round" /><circle cx="2" cy="4" r="2" fill={C.rose} /></g>,
+  stimulation: <g transform="rotate(-40)"><rect x="-3.5" y="-10" width="7" height="16" rx="2" fill="#fff" stroke={C.accent} strokeWidth="2" /><rect x="-2" y="-3" width="4" height="8" fill={C.rose} opacity="0.6" /><path d="M0 6 v6 M-4 -12 h8 M0 -12 v2" stroke={C.accent} strokeWidth="2" strokeLinecap="round" /></g>,
+  retrieval:   <g><circle r="9" fill="#fff" stroke={C.gold} strokeWidth="2" /><circle cx="-2" cy="-2" r="4" fill={C.gold} opacity="0.7" /></g>,
+  transfer:    <g><circle r="10" fill="#fff" stroke={C.accent} strokeWidth="2" />{[[-3.5, -3.5], [3.5, -3.5], [-3.5, 3.5], [3.5, 3.5]].map(function (p, i) { return <circle key={i} cx={p[0]} cy={p[1]} r="3.6" fill={i % 2 ? C.rose : C.accent} opacity="0.7" />; })}</g>,
+  tww:         <g><path d="M-7 -10 h14 M-7 10 h14 M-6 -10 q0 8 6 10 q6 -2 6 -10 M-6 10 q0 -8 6 -10 q6 2 6 10" stroke={C.teal} strokeWidth="2" fill="none" strokeLinecap="round" /><path d="M-3 7 q3 -3 6 0 z" fill={C.teal} /></g>,
+  pregnant:    <path d="M0 9 C -12 1, -10 -9, -4 -9 C -1 -9, 0 -6, 0 -5 C 0 -6, 1 -9, 4 -9 C 10 -9, 12 1, 0 9 z" fill={C.rose} />,
+};
+var PHASE_PROGRESS = { planning: 0.1, stimulation: 0.35, retrieval: 0.5, transfer: 0.65, tww: 0.85, pregnant: 1 };
+
+export function PhaseIcon({ phase, size = 64 }) {
+  var r = 26, circ = 2 * Math.PI * r, v = PHASE_PROGRESS[phase] || 0.2;
+  var ang = v * 2 * Math.PI - Math.PI / 2;
+  return (
+    <svg width={size} height={size} viewBox="-32 -32 64 64" aria-hidden="true">
+      <circle r="31" fill={C.accent} opacity="0.08" />
+      <circle r={r} fill="none" stroke={C.border} strokeWidth="3" />
+      <circle r={r} fill="none" stroke={C.rose} strokeWidth="3" strokeLinecap="round" strokeDasharray={v * circ + " " + circ} transform="rotate(-90)" />
+      <circle cx={r * Math.cos(ang)} cy={r * Math.sin(ang)} r="4" fill={C.teal} stroke="#fff" strokeWidth="1.5" />
+      {PHASE_GLYPH[phase]}
+    </svg>
+  );
+}
