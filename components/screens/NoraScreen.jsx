@@ -34,7 +34,8 @@ export default function NoraScreen({ user }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user: { name: user.name, stimDay: user.stimDay, protocol: user.protocol, clinic: user.clinic, e2: user.e2 },
+          // Only what Nora needs: first name (never in anonymous mode) and cycle context. See docs/sa6/architecture.md.
+          user: { name: user.anonymous ? "" : (user.name || "").trim().split(" ")[0], stimDay: user.stimDay, protocol: user.protocol, clinic: user.clinic, e2: user.e2 },
           messages: next,
           lang: lang,
         }),

@@ -35,6 +35,13 @@ Put them in `.env.local` locally (see `.env.example`), and in Vercel → Project
 
 Nora replies in the user's language (English, Arabic or French), both live and in demo mode.
 
+Safety and cost controls (details in [`docs/sa6/architecture.md`](docs/sa6/architecture.md)):
+- The system prompt (`buildSystemPrompt` in `lib/nora.js`, versioned by `NORA_PROMPT_VERSION`) never diagnoses or changes doses and puts an immediate clinic referral first for emergency signs (heavy bleeding, severe pain, OHSS signs, fainting, fever, thoughts of self-harm). The scripted fallback detects the same signs in all three languages, and the API returns `urgent: true` for them.
+- Nora only receives the first name (none in anonymous mode) and cycle context. Profile fields are sanitised on the server. Secret Space never leaves the device.
+- Per-IP rate limit (10/minute, 200/day). It is in memory, so it applies per server instance. Emergencies are never blocked.
+- Automatic prompt caching, `max_tokens` 500, 20 s timeout with scripted fallback, and one log line per call with token counts only (no content).
+- Prompt or model changes: re-run the evals in [`docs/sa6/nora-evals.md`](docs/sa6/nora-evals.md).
+
 ### Accounts, sync and security
 
 Bloom runs in one of two modes:
