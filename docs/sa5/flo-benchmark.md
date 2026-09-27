@@ -52,6 +52,19 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (p
 3. **Secure backend**: passwords hashed with salted PBKDF2 (legacy accounts migrate on sign-in), a hashed app-lock PIN, optional Supabase cloud accounts and sync with row-level security, and **end-to-end encrypted Secret Space** (AES-256-GCM with a passphrase).
 4. **Medical Review Board**: a "Medically reviewed by…" badge on articles and stories, sources on every article, and a board sheet with the editorial policy. The reviewers are demo placeholders until the real board is appointed.
 
+## Pass 4: from the owner's Flo screenshots (Sept 2026)
+
+Notes only. Flo's screenshots and artwork are not stored in this repo, and Bloom's graphics are drawn from scratch.
+
+| Flo screen | What Flo does well | What Bloom shipped |
+|---|---|---|
+| Log sheet ("Today · Cycle day 15") | ~16 moods and many symptoms, each a pill with its own illustrated icon, grouped into sections. Search at the top, and you can move between days | `LogChips` + `FeelingFace` (13 IVF feelings, e.g. "Envious of others' news", "Numb") + `SymptomIcon` (16 symptoms in Body and Injections groups, adding pelvic pressure, brain fog and bruising). Search, and logging up to 6 days back (saved to that day). Used in both Quick log and Check-in |
+| Settings: "Your Flo experience" | Big mode cards with a ring icon and a check on the selected one | `JourneyPicker` in Profile: Planning → Stims → Retrieval → Transfer → 2WW, plus "I'm pregnant" (opens Pregnancy Journey). `PhaseIcon` progress rings. A "Change phase" pill on Home. Home, stories and Insights adapt |
+| Flo for Partners | "You're always in control", a Stop sharing card, and "Your view / His view" phone mockups | Partner hero with control copy, a Stop sharing card with confirmation, and drawn *Your view / Their view* phones. **Beyond Flo:** per-item sharing toggles (phase, appointments, med times, tips) that update "their view" live, and a clear "never shared" list |
+| Insights | Search, bookmarks, themed carousels ("Most popular", "Later in your cycle"), large illustrated cards | Search, bookmarks with a Saved view and count, carousels "For Stimulation Day 7", "Most popular", "Coming up next: Post Retrieval" and "Saved for later", and larger cards |
+
+Still to borrow: Flo's "Doctor's story" video series (needs real clinicians and consent) and a notifications inbox.
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |

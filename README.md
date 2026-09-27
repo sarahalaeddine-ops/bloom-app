@@ -54,7 +54,10 @@ English, **Arabic (full right-to-left layout)** and French. Users can switch on 
 - **Entry:** Splash (2.5s) → Sign up / Sign in → 7-step onboarding (incl. mandatory free therapy booking) → app.
 - **Tabs:** Home (cycle hero, stats, follicle map by ovary, today's meds) · Check-in (mood, anxiety, hope, symptoms, OHSS weight alert, journal, history) · Nora AI · Insights (category filter, popular, articles) · More.
 - **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Therapy & Coaching · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
-- **Quick log (+):** tick a dose, or log mood, symptoms and weight from any main tab. Home shows a check-in streak flower and personalised daily stories.
+- **Quick log (+):** tick a dose, or log mood, 13 illustrated feelings, 16 illustrated IVF symptoms and weight from any main tab, with search and logging for earlier days.
+- **Your Bloom journey** (Profile, or "Change phase" on Home): switch IVF phase any time, and Home, stories and Insights adapt.
+- **Insights:** search, bookmarks and carousels for your phase and what's coming next.
+- **Partner Space:** you choose exactly what your partner sees, with a live "your view / their view" preview and Stop sharing. Home shows a check-in streak flower and personalised daily stories.
 - **Privacy Centre:** anonymous mode, PIN app lock, download my data, delete everything.
 - **Medical Review Board:** every article and story shows who reviewed it, with sources and the editorial policy. The board members are placeholders until the real board is appointed.
 - **Reminders** and **three languages** (see above).

@@ -3,16 +3,18 @@ import { useState } from "react";
 import { BackBtn } from "../../ui/Common";
 import { auth, store } from "../../../lib/store";
 import { useT, LANGS } from "../../../lib/i18n";
+import JourneyPicker from "../../ui/JourneyPicker";
 
 var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF"];
 
-export default function Profile({ onBack, user, setUser }) {
+export default function Profile({ onBack, user, setUser, openSection }) {
   var { t, lang, setLang } = useT();
   var [name, setName] = useState(user.name || "");
   var [clinic, setClinic] = useState(user.clinic || "");
   var [protocol, setProtocol] = useState(user.protocol || "Antagonist");
   var [saved, setSaved] = useState(false);
   var [confirmReset, setConfirmReset] = useState(false);
+  var [note, setNote] = useState("");
 
   function save() {
     if (!name.trim()) return;
@@ -37,6 +39,11 @@ export default function Profile({ onBack, user, setUser }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
+        <div className="mb-6">
+          <JourneyPicker user={user} setUser={setUser} onPregnant={function () { openSection("pregnant"); }}
+            onChanged={function (m) { setNote(m); setTimeout(function () { setNote(""); }, 2500); }} />
+          {note && <p className="text-bloom-teal text-sm font-semibold text-center mt-3" role="status">{note}</p>}
+        </div>
         <h1 className="text-2xl font-bold text-bloom-text mb-5">My Profile</h1>
         <div className="bg-white rounded-2xl p-5 border border-bloom-border mb-4">
           <div className="flex flex-col items-center mb-5">

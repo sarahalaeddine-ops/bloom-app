@@ -53,6 +53,9 @@ export default function HomeScreen({ user, openMore, goTab }) {
           </JourneyRing>
         </div>
         <div className="relative mt-3"><JourneyLegend /></div>
+        <div className="relative flex justify-center mt-2">
+          <button onClick={function () { openMore("profile"); }} className="text-bloom-accent text-xs font-semibold bg-white/70 rounded-full px-3 py-1">{t("home.changePhase")}</button>
+        </div>
         <p className="relative text-bloom-muted text-xs text-center mt-2">{t("home.protocol", { p: "\u2068" + protocol + "\u2069" })} · <bdi>{clinic}</bdi></p>
       </div>
 
