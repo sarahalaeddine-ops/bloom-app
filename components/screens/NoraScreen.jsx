@@ -3,6 +3,7 @@ import { useState } from "react";
 import { store } from "../../lib/store";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
+import { BloomFlower, Blobs } from "../ui/Graphics";
 
 function welcome(user, t) {
   return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
@@ -56,8 +57,8 @@ export default function NoraScreen({ user }) {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-bloom-border">
-        <div className="w-9 h-9 rounded-full bg-bloom-accent flex items-center justify-center">
-          <span className="text-white text-sm">✦</span>
+        <div className="w-10 h-10 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center">
+          <BloomFlower size={30} animate={false} />
         </div>
         <div className="flex-1">
           <p className="text-bloom-text text-sm font-semibold">Nora</p>
@@ -67,6 +68,14 @@ export default function NoraScreen({ user }) {
       </div>
 
       <div className="flex-1 px-4 py-4 pb-36 bg-bloom-bg">
+        {msgs.length <= 1 && (
+          <div className="relative overflow-hidden rounded-3xl p-5 mb-4 flex flex-col items-center text-center" style={{ background: "linear-gradient(150deg,#EEE6FA 0%,#FBEFF2 100%)" }}>
+            <Blobs />
+            <BloomFlower size={84} className="relative mb-2" />
+            <p className="relative font-serif italic text-bloom-accent" style={{ fontSize: "28px" }}>Nora</p>
+            <p className="relative text-bloom-muted text-sm">{t("nora.status")}</p>
+          </div>
+        )}
         {msgs.map(function (m, i) { return <ChatBubble key={i} role={m.role} content={m.content} />; })}
 
         {msgs.length <= 1 && (

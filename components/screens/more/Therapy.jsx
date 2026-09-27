@@ -1,4 +1,6 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
+import { PersonAvatar } from "../../ui/Graphics";
 import { useState } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
 import { store } from "../../../lib/store";
@@ -30,8 +32,7 @@ export default function Therapy({ onBack }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">Therapy & Coaching</h1>
-        <p className="text-bloom-muted text-sm mb-4">IVF-specialist therapists, online</p>
+        <ScreenHero art="therapy" title="Therapy & Coaching" sub="IVF-specialist therapists, online" tint="teal" />
 
         {!usedFree && (
           <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 mb-4">
@@ -64,7 +65,7 @@ export default function Therapy({ onBack }) {
           return (
             <div key={t.id} className="bg-white rounded-2xl p-4 border border-bloom-border mb-2">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: t.color }}>{t.initials}</div>
+                <PersonAvatar seed={t.name + t.id} size={52} />
                 <div className="flex-1">
                   <p className="text-bloom-text text-sm font-bold">{t.name}</p>
                   <p className="text-bloom-muted text-xs">{t.title} · {t.years} yrs IVF support</p>

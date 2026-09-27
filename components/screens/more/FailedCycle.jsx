@@ -1,4 +1,5 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import { FAILED_STEPS, WTF_QUESTIONS } from "../../../lib/demo-data";
@@ -17,11 +18,8 @@ export default function FailedCycle({ onBack, openSection }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <div className="rounded-2xl p-6 mb-4 text-center" style={{ backgroundColor: "#5BADD415" }}>
-          <p className="text-3xl mb-3" style={{ color: "#5BADD4" }}>◈</p>
-          <h1 className="text-2xl font-bold text-bloom-text mb-2">After a Failed Cycle</h1>
-          <p className="text-bloom-muted text-sm leading-relaxed">We are so sorry. Whatever you are feeling right now is allowed. You do not have to decide anything today.</p>
-        </div>
+        <ScreenHero art="rainbow" title="After a Failed Cycle" tint="blue"
+          sub="We are so sorry. Whatever you are feeling right now is allowed. You do not have to decide anything today." />
 
         <Label className="mb-2">Gentle next steps</Label>
         {FAILED_STEPS.map(function (s, i) {

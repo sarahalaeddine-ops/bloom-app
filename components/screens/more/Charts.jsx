@@ -1,4 +1,5 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import LineChart from "../../ui/LineChart";
@@ -19,8 +20,7 @@ export default function Charts({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">Charts & Trends</h1>
-        <p className="text-bloom-muted text-sm mb-4">Stimulation Day {stimDay} · tap a point for values</p>
+        <ScreenHero art="chart" title="Charts & Trends" sub={"Stimulation Day " + stimDay + " · tap a point for values"} tint="rose" />
 
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="bg-white rounded-2xl p-4 border border-bloom-border">

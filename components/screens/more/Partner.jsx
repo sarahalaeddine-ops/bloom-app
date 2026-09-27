@@ -90,7 +90,7 @@ export default function Partner({ onBack, user }) {
         {PARTNER_FEATURES.map(function (f) {
           return (
             <div key={f.title} className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-bloom-border mb-2">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: f.color + "18", color: f.color }}>{f.mark}</div>
+              <Illustration name={f.art} size={48} />
               <div>
                 <p className="text-bloom-text text-sm font-bold">{f.title}</p>
                 <p className="text-bloom-muted text-xs">{f.desc}</p>
