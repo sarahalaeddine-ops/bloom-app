@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { store } from "../../lib/store";
 
 var BASE_COUNT = 2847;
@@ -78,7 +77,6 @@ export default function Landing() {
           <span className="font-serif text-bloom-accent" style={{ fontSize: "22px" }}>{count.toLocaleString()}</span> women already waiting
         </p>
 
-        <Link href="/" className="text-bloom-accent text-xs font-semibold mt-6 underline underline-offset-4">Preview the app →</Link>
       </main>
 
       <footer className="relative z-10 mt-12 text-bloom-dim text-xs">© 2025 Bloom · <a href="mailto:hello@bloomivf.app" className="underline">hello@bloomivf.app</a></footer>
