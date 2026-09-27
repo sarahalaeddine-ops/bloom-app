@@ -1,0 +1,13 @@
+{
+  "name": "Bloom",
+  "short_name": "Bloom",
+  "description": "Your IVF companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F4",
+  "theme_color": "#9B6DC5",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

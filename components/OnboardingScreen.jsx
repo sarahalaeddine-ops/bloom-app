@@ -1,15 +1,9 @@
 "use client";
 import { useState } from "react";
-import { auth } from "../lib/store";
+import { auth, store } from "../lib/store";
+import { PHASES, THERAPISTS } from "../lib/demo-data";
 
-const PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF", "Natural", "Not sure yet"];
-const PHASES = [
-  { id: "stimulation", label: "Stimulation",    icon: "💉", desc: "Daily injections, monitoring scans" },
-  { id: "tww",         label: "Two Week Wait",  icon: "⏳", desc: "After transfer, waiting for beta" },
-  { id: "retrieval",   label: "Post Retrieval", icon: "🥚", desc: "Eggs retrieved, waiting for embryos" },
-  { id: "transfer",    label: "Pre Transfer",   icon: "💜", desc: "Preparing for embryo transfer" },
-  { id: "planning",    label: "Planning",        icon: "📋", desc: "Planning my first or next cycle" },
-];
+var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF", "Natural", "Not sure yet"];
 
 export default function OnboardingScreen({ user, onComplete }) {
   const [step, setStep] = useState(0);
@@ -17,10 +11,17 @@ export default function OnboardingScreen({ user, onComplete }) {
   const [protocol, setProtocol] = useState("");
   const [phase, setPhase] = useState("");
   const [stimDay, setStimDay] = useState(7);
+  const [booked, setBooked] = useState(false);
 
   const steps = ["welcome", "clinic", "protocol", "phase", "day", "therapy", "done"];
   const current = steps[step];
   const progress = (step / (steps.length - 1)) * 100;
+
+  function book() {
+    var t = THERAPISTS[0];
+    store.push("bookings", { id: Date.now(), therapist: t.name, when: t.next, free: true });
+    setBooked(true);
+  }
 
   function finish() {
     const updated = auth.updateUser({ clinic: clinic || "My Clinic", protocol: protocol || "Antagonist", phase: phase || "stimulation", stimDay, onboarded: true });
@@ -119,7 +120,7 @@ export default function OnboardingScreen({ user, onComplete }) {
                 <p className="text-7xl font-bold text-bloom-accent" style={{ letterSpacing: "-3px" }}>{stimDay}</p>
                 <p className="text-bloom-muted text-sm mt-1">Day of Stimulation</p>
               </div>
-              <button onClick={() => setStimDay(Math.min(20, stimDay + 1))}
+              <button onClick={() => setStimDay(Math.min(14, stimDay + 1))}
                 className="w-14 h-14 rounded-full border border-bloom-border bg-white text-bloom-accent text-2xl font-light">+</button>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -142,7 +143,11 @@ export default function OnboardingScreen({ user, onComplete }) {
               <p className="font-semibold text-bloom-accent text-base mb-1">Dr. Sarah Mitchell</p>
               <p className="text-bloom-muted text-sm mb-1">Reproductive Psychiatry · 12 years IVF support</p>
               <p className="text-bloom-muted text-sm mb-4">Next available: Tomorrow 2:00 PM</p>
-              <button className="w-full bg-bloom-accent text-white font-semibold py-3 rounded-xl">Book my free session</button>
+              <button onClick={book} disabled={booked}
+                className="w-full text-white font-semibold py-3 rounded-xl transition-colors"
+                style={{ backgroundColor: booked ? "#4ABFB0" : "#9B6DC5" }}>
+                {booked ? "Booked ✓ Tomorrow 2:00 PM" : "Book my free session"}
+              </button>
               <p className="text-bloom-dim text-xs text-center mt-3">You can also book later from the Therapy screen</p>
             </div>
           </div>
@@ -154,7 +159,7 @@ export default function OnboardingScreen({ user, onComplete }) {
             <h1 className="text-2xl font-bold text-bloom-text mb-3">Bloom is ready!</h1>
             <p className="text-bloom-muted text-sm leading-relaxed mb-6">Your cycle is set up. Nora is ready to guide you. You are not alone in this journey.</p>
             <div className="w-full bg-white rounded-2xl p-5 border border-bloom-border text-left">
-              {[["Name", user.name], ["Clinic", clinic || "My Clinic"], ["Protocol", protocol || "Antagonist"], ["Phase", PHASES.find(p => p.id === phase)?.label || "Stimulation"], ["Stim Day", "Day " + stimDay]].map(([label, value]) => (
+              {[["Name", user.name], ["Clinic", clinic || "My Clinic"], ["Protocol", protocol || "Antagonist"], ["Phase", PHASES.find(p => p.id === phase)?.label || "Stimulation"], ["Stim Day", "Day " + stimDay], ["Free therapy", booked ? "Booked ✓" : "Book later"]].map(([label, value]) => (
                 <div key={label} className="flex justify-between py-3 border-b border-bloom-border last:border-0">
                   <span className="text-bloom-muted text-sm">{label}</span>
                   <span className="text-bloom-text text-sm font-semibold">{value}</span>
@@ -169,7 +174,7 @@ export default function OnboardingScreen({ user, onComplete }) {
         <button onClick={current === "done" ? finish : () => setStep(step + 1)}
           disabled={!canNext}
           className="w-full bg-bloom-accent text-white font-semibold py-4 rounded-2xl disabled:opacity-40 transition-opacity text-base">
-          {current === "done" ? "Open Bloom 💜" : current === "welcome" ? "Get Started →" : "Continue →"}
+          {current === "done" ? "Open Bloom ✦" : current === "welcome" ? "Get Started →" : "Continue →"}
         </button>
       </div>
     </div>

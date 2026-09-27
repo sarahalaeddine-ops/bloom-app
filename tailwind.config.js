@@ -21,6 +21,10 @@ module.exports = {
           dim:     "#C5B8CC",
         },
       },
+      fontFamily: {
+        serif: ["Cormorant Garamond", "Georgia", "serif"],
+        sans:  ["DM Sans", "sans-serif"],
+      },
     },
   },
   plugins: [],

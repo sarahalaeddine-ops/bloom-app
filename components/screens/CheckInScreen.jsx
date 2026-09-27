@@ -1,28 +1,52 @@
 "use client";
 import { useState } from "react";
+import { Label } from "../ui/Common";
+import { MOODS, SYMPTOMS } from "../../lib/demo-data";
+import { getCheckins, saveCheckin, follicleStats } from "../../lib/cycle";
 
-const MOODS = [{mark:"🥺",l:"Hard",c:"#E07A8A"},{mark:"😔",l:"Low",c:"#C49A3C"},{mark:"😶",l:"Okay",c:"#7A6880"},{mark:"🌱",l:"Hopeful",c:"#9B6DC5"},{mark:"🌸",l:"Good",c:"#4ABFB0"}];
-const SYMPTOMS = ["Bloating","Cramping","Headache","Nausea","Breast tenderness","Hot flashes","Fatigue","Injection site pain","Back pain","Mood swings","Spotting","Insomnia"];
-
-export default function CheckInScreen() {
-  const [mood, setMood] = useState(null);
-  const [symptoms, setSymptoms] = useState([]);
-  const [anxiety, setAnxiety] = useState(3);
-  const [hope, setHope] = useState(3);
-  const [weight, setWeight] = useState("");
-  const [note, setNote] = useState("");
-  const [done, setDone] = useState(false);
+export default function CheckInScreen({ user }) {
+  var [mood, setMood] = useState(null);
+  var [symptoms, setSymptoms] = useState([]);
+  var [anxiety, setAnxiety] = useState(3);
+  var [hope, setHope] = useState(3);
+  var [weight, setWeight] = useState("");
+  var [note, setNote] = useState("");
+  var [history, setHistory] = useState(getCheckins);
+  var [saved, setSaved] = useState(null);
+  var [error, setError] = useState("");
+  var follicles = follicleStats().total;
+  var lastWeight = (history.find(function (c) { return c.weight; }) || {}).weight;
 
   function toggle(s) {
-    setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+    setSymptoms(function (prev) { return prev.includes(s) ? prev.filter(function (x) { return x !== s; }) : prev.concat(s); });
   }
 
-  if (done) return (
-    <div className="min-h-screen bg-bloom-bg flex flex-col items-center justify-center px-6 text-center">
+  function save() {
+    if (mood === null) { setError("Pick how you are feeling to save your check-in."); return; }
+    var w = weight ? parseFloat(weight) : null;
+    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || 7, mood: mood, anxiety: anxiety, hope: hope, symptoms: symptoms, weight: w, note: note.trim() };
+    var gain = w && lastWeight ? +(w - lastWeight).toFixed(1) : 0;
+    setHistory(saveCheckin(entry));
+    setSaved({ gain: gain });
+    setError("");
+  }
+
+  function reset() {
+    setMood(null); setSymptoms([]); setAnxiety(3); setHope(3); setWeight(""); setNote(""); setSaved(null);
+  }
+
+  if (saved) return (
+    <div className="min-h-[80vh] bg-bloom-bg flex flex-col items-center justify-center px-6 text-center">
       <p className="text-5xl text-bloom-accent mb-4">✦</p>
       <h2 className="text-2xl font-bold text-bloom-text mb-2">Check-in saved</h2>
-      <p className="text-bloom-muted text-sm mb-8 leading-relaxed">Every data point helps us understand your journey better.</p>
-      <button onClick={() => setDone(false)} className="bg-bloom-accent text-white font-semibold px-8 py-3 rounded-xl">Check in again</button>
+      <p className="text-bloom-muted text-sm mb-6 leading-relaxed">Every data point helps us understand your journey better.</p>
+      {saved.gain >= 2 && (
+        <div className="w-full bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 text-left" role="alert">
+          <p className="text-red-500 text-sm font-bold mb-1">OHSS alert: +{saved.gain} kg since last check-in</p>
+          <p className="text-bloom-muted text-xs leading-relaxed">A gain of 2 kg or more in 24 hours can be a sign of OHSS. Please call your clinic today, especially if you feel short of breath or very bloated.</p>
+        </div>
+      )}
+      <button onClick={reset} className="bg-bloom-accent text-white font-semibold px-8 py-3 rounded-xl">Check in again</button>
     </div>
   );
 
@@ -34,69 +58,98 @@ export default function CheckInScreen() {
       </div>
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-4">Overall mood</p>
+        <Label className="mb-4">Overall mood</Label>
         <div className="flex gap-1">
-          {MOODS.map((m, i) => (
-            <button key={i} onClick={() => setMood(i)}
-              className="flex-1 flex flex-col items-center py-2.5 rounded-xl border-2 transition-all"
-              style={{borderColor: mood === i ? m.c : "transparent", backgroundColor: mood === i ? m.c + "12" : "transparent"}}>
-              <span className="text-2xl mb-1">{m.mark}</span>
-              <span className="text-xs font-semibold" style={{color: mood === i ? m.c : "#C5B8CC"}}>{m.l}</span>
-            </button>
-          ))}
+          {MOODS.map(function (m, i) {
+            var on = mood === i;
+            return (
+              <button key={i} onClick={function () { setMood(i); setError(""); }} aria-pressed={on}
+                className="flex-1 flex flex-col items-center py-2.5 rounded-xl border-2 transition-all"
+                style={{ borderColor: on ? m.c : "transparent", backgroundColor: on ? m.c + "12" : "transparent" }}>
+                <span className="text-2xl mb-1">{m.mark}</span>
+                <span className="text-xs font-semibold" style={{ color: on ? m.c : "#7A6880" }}>{m.l}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {[["Anxiety level", anxiety, setAnxiety, "#E07A8A"], ["Hopefulness", hope, setHope, "#9B6DC5"]].map(([label, val, setVal, color]) => (
-        <div key={label} className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-bloom-text text-sm font-medium">{label}</p>
-            <p className="text-lg font-bold" style={{color}}>{val} / 5</p>
+      {[["Anxiety level", anxiety, setAnxiety, "#E07A8A"], ["Hopefulness", hope, setHope, "#9B6DC5"]].map(function (row) {
+        var label = row[0], val = row[1], setVal = row[2], color = row[3];
+        return (
+          <div key={label} className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-bloom-text text-sm font-medium">{label}</p>
+              <p className="text-lg font-bold" style={{ color: color }}>{val} / 5</p>
+            </div>
+            <div className="flex justify-between items-center h-10">
+              {[1, 2, 3, 4, 5].map(function (n) {
+                var on = n <= val;
+                return (
+                  <button key={n} onClick={function () { setVal(n); }} aria-label={label + " " + n}
+                    className="rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    style={{ width: on ? 40 : 30, height: on ? 40 : 30, backgroundColor: on ? color : "#E8E0DB", color: on ? "white" : "#7A6880" }}>
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            {[1,2,3,4,5].map(n => (
-              <button key={n} onClick={() => setVal(n)}
-                className="rounded-full flex items-center justify-center text-white text-xs font-bold transition-all"
-                style={{width: n <= val ? 40 : 30, height: n <= val ? 40 : 30, backgroundColor: n <= val ? color : "#E8E0DB", color: n <= val ? "white" : "#7A6880"}}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">Symptoms today</p>
+        <Label className="mb-3">Symptoms today</Label>
         <div className="flex flex-wrap gap-2">
-          {SYMPTOMS.map((s, i) => (
-            <button key={i} onClick={() => toggle(s)}
-              className="px-3 py-1.5 rounded-full border text-xs transition-all"
-              style={{borderColor: symptoms.includes(s) ? "#E07A8A" : "#E8E0DB", backgroundColor: symptoms.includes(s) ? "#E07A8A12" : "transparent", color: symptoms.includes(s) ? "#E07A8A" : "#7A6880"}}>
-              {s}
-            </button>
-          ))}
+          {SYMPTOMS.map(function (s) {
+            var on = symptoms.includes(s);
+            return (
+              <button key={s} onClick={function () { toggle(s); }} aria-pressed={on}
+                className="px-3 py-1.5 rounded-full border text-xs transition-all"
+                style={{ borderColor: on ? "#E07A8A" : "#E8E0DB", backgroundColor: on ? "#E07A8A12" : "transparent", color: on ? "#E07A8A" : "#7A6880" }}>
+                {s}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-4 border border-amber-200 mb-3" style={{backgroundColor:"#FFFDF0"}}>
-        <p className="text-xs uppercase tracking-wider font-semibold mb-2" style={{color:"#C49A3C"}}>OHSS Watch · Daily Weight</p>
-        <p className="text-bloom-muted text-xs mb-3">With 11 follicles, track daily. Alert if +2kg in 24hrs.</p>
+      <div className="rounded-2xl p-4 border border-amber-200 mb-3" style={{ backgroundColor: "#FFFDF0" }}>
+        <p className="text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: "#C49A3C" }}>OHSS Watch · Daily Weight</p>
+        <p className="text-bloom-muted text-xs mb-3">⚠ With {follicles} follicles, track daily. Alert if +2kg in 24hrs.</p>
         <div className="flex items-center gap-2">
-          <input value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g. 62.4" type="number"
-            className="flex-1 bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none" />
+          <input value={weight} onChange={function (e) { setWeight(e.target.value); }} placeholder={lastWeight ? "Last: " + lastWeight : "e.g. 62.4"} type="number" inputMode="decimal" step="0.1" aria-label="Weight in kg"
+            className="flex-1 bg-white border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none focus:border-bloom-gold" />
           <span className="text-bloom-muted text-sm">kg</span>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-4">
-        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">Journal note</p>
-        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="How are you really feeling today?"
-          className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20" />
+        <Label className="mb-3">Journal note</Label>
+        <textarea value={note} onChange={function (e) { setNote(e.target.value); }} placeholder="How are you really feeling today?" aria-label="Journal note"
+          className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20 focus:border-bloom-accent" />
       </div>
 
-      <button onClick={() => setDone(true)} className="w-full bg-bloom-accent text-white font-semibold py-4 rounded-2xl">
+      {error && <p className="text-red-500 text-sm text-center mb-3" role="alert">{error}</p>}
+
+      <button onClick={save} className="w-full bg-bloom-accent hover:bg-bloom-deep text-white font-semibold py-4 rounded-2xl mb-6 transition-colors">
         Save today check-in
       </button>
+
+      <Label className="mb-3">Recent check-ins</Label>
+      {history.slice(0, 5).map(function (c, i) {
+        var m = MOODS[c.mood] || MOODS[2];
+        return (
+          <div key={i} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-bloom-border mb-2">
+            <span className="text-xl">{m.mark}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-bloom-text text-sm font-semibold">{new Date(c.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · <span style={{ color: m.c }}>{m.l}</span></p>
+              <p className="text-bloom-dim text-xs truncate">Anxiety {c.anxiety}/5 · Hope {c.hope}/5{c.symptoms.length ? " · " + c.symptoms.join(", ") : ""}</p>
+            </div>
+            {c.weight && <span className="text-bloom-muted text-xs">{c.weight} kg</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
