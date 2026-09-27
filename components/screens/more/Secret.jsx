@@ -92,7 +92,7 @@ export default function Secret({ onBack }) {
     <div className="min-h-screen bg-bloom-bg flex flex-col">
       <BackBtn onBack={onBack} />
       <form onSubmit={vault ? unlock : create} className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
-        <Illustration name="shield" size={96} />
+        <Illustration name="journal" size={110} />
         <h2 className="text-xl font-bold text-bloom-text mt-3 mb-2">Secret Space</h2>
         <p className="text-bloom-muted text-sm mb-6 leading-relaxed">
           {vault ? "Enter your passphrase to unlock." : "Choose a passphrase. Your entries are encrypted with it on this device, so only you can read them."}

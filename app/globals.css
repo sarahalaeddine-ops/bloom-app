@@ -101,3 +101,11 @@ html[lang="ar"] .font-serif { font-family: "Noto Naskh Arabic", "Cormorant Garam
 html[lang="ar"] .tracking-wider, html[lang="ar"] .tracking-wide, html[lang="ar"] .uppercase { letter-spacing: 0; }
 html[dir="rtl"] .flip-rtl { display: inline-block; transform: scaleX(-1); }
 .logo { direction: ltr; unicode-bidi: isolate; }
+
+@keyframes breathe { 0%, 100% { transform: scale(0.82); } 50% { transform: scale(1.08); } }
+.breathe { animation: breathe 8s ease-in-out infinite; }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.08); } 30% { transform: scale(1); } }
+.heartbeat { animation: heartbeat 2.4s ease-in-out infinite; }
+@keyframes breath-guide { 0% { transform: scale(0.55); } 50% { transform: scale(1); } 100% { transform: scale(0.55); } }
+.breath-guide { animation: breath-guide 8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .breathe, .heartbeat, .breath-guide { animation: none; } }

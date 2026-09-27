@@ -1,6 +1,8 @@
 "use client";
 import { PLANS } from "../../lib/demo-data";
 import { useT } from "../../lib/i18n";
+import { Illustration } from "../ui/Graphics";
+import ScreenHero from "../ui/ScreenHero";
 import { follicleStats } from "../../lib/cycle";
 import Medications from "./more/Medications";
 import Appointments from "./more/Appointments";
@@ -18,24 +20,23 @@ import Upgrade from "./more/Upgrade";
 import Profile from "./more/Profile";
 import Privacy from "./more/Privacy";
 import Reminders from "./more/Reminders";
-import { FileText, Pill, CalendarDays, TrendingUp, Hourglass, MessageCircleHeart, CirclePlay, Users, HeartCrack, HeartHandshake, Baby, LockKeyhole, Crown, ShieldCheck, BellRing } from "lucide-react";
 
 var SECTIONS = [
-  { id: "report",       mark: FileText, label: "My Cycle Report",      color: "#9B6DC5", desc: "Download and share with clinic",    Screen: Report },
-  { id: "medications",  mark: Pill, label: "Medications",          color: "#9B6DC5", desc: "Injection tracker and log",         Screen: Medications },
-  { id: "appointments", mark: CalendarDays, label: "Appointments",         color: "#E07A8A", desc: "Scans, retrieval, transfer",        Screen: Appointments },
-  { id: "charts",       mark: TrendingUp, label: "Charts & Trends",      color: "#E07A8A", desc: "Hormone trends, follicle progress", Screen: Charts },
-  { id: "tww",          mark: Hourglass, label: "Two Week Wait",        color: "#C49A3C", desc: "Countdown and daily science",       Screen: TwoWeekWait },
-  { id: "therapy",      mark: MessageCircleHeart, label: "Therapy & Coaching",   color: "#4ABFB0", desc: "Book IVF-specialist therapists",    Screen: Therapy },
-  { id: "videos",       mark: CirclePlay, label: "Wellbeing Videos",     color: "#4ABFB0", desc: "Movement, breathwork, meditation",  Screen: Videos },
-  { id: "community",    mark: Users, label: "Community",            color: "#9B6DC5", desc: "Anonymous rooms by IVF phase",      Screen: Community },
-  { id: "failed",       mark: HeartCrack, label: "After a Failed Cycle", color: "#5BADD4", desc: "Grief support and next steps",      Screen: FailedCycle },
-  { id: "partner",      mark: HeartHandshake, label: "Partner Space",        color: "#FDBA74", desc: "Invite and connect your partner",   Screen: Partner },
-  { id: "pregnant",     mark: Baby, label: "Pregnancy Journey",    color: "#E07A8A", desc: "Week-by-week pregnancy guide",      Screen: Pregnancy },
-  { id: "secret",       mark: LockKeyhole, label: "Secret Space",         color: "#8B7AC5", desc: "Private journal, only you can see", Screen: Secret },
-  { id: "reminders",    mark: BellRing, label: "Reminders",           color: "#C49A3C", desc: "Dose and appointment alerts",       Screen: Reminders },
-  { id: "privacy",      mark: ShieldCheck, label: "Privacy Centre",   color: "#4ABFB0", desc: "App lock, anonymous mode, your data", Screen: Privacy },
-  { id: "upgrade",      mark: Crown, label: "Upgrade to Bloom+",    color: "#9B6DC5", desc: "Unlock all features",               Screen: Upgrade },
+  { id: "report", art: "report",       label: "My Cycle Report",      color: "#9B6DC5", desc: "Download and share with clinic",    Screen: Report },
+  { id: "medications", art: "pill",  label: "Medications",          color: "#9B6DC5", desc: "Injection tracker and log",         Screen: Medications },
+  { id: "appointments", art: "scan", label: "Appointments",         color: "#E07A8A", desc: "Scans, retrieval, transfer",        Screen: Appointments },
+  { id: "charts", art: "chart",       label: "Charts & Trends",      color: "#E07A8A", desc: "Hormone trends, follicle progress", Screen: Charts },
+  { id: "tww", art: "hourglass",          label: "Two Week Wait",        color: "#C49A3C", desc: "Countdown and daily science",       Screen: TwoWeekWait },
+  { id: "therapy", art: "therapy",      label: "Therapy & Coaching",   color: "#4ABFB0", desc: "Book IVF-specialist therapists",    Screen: Therapy },
+  { id: "videos", art: "leaf",       label: "Wellbeing Videos",     color: "#4ABFB0", desc: "Movement, breathwork, meditation",  Screen: Videos },
+  { id: "community", art: "community",    label: "Community",            color: "#9B6DC5", desc: "Anonymous rooms by IVF phase",      Screen: Community },
+  { id: "failed", art: "rainbow",       label: "After a Failed Cycle", color: "#5BADD4", desc: "Grief support and next steps",      Screen: FailedCycle },
+  { id: "partner", art: "couple",      label: "Partner Space",        color: "#FDBA74", desc: "Invite and connect your partner",   Screen: Partner },
+  { id: "pregnant", art: "baby",     label: "Pregnancy Journey",    color: "#E07A8A", desc: "Week-by-week pregnancy guide",      Screen: Pregnancy },
+  { id: "secret", art: "journal",       label: "Secret Space",         color: "#8B7AC5", desc: "Private journal, only you can see", Screen: Secret },
+  { id: "reminders", art: "bell",    label: "Reminders",           color: "#C49A3C", desc: "Dose and appointment alerts",       Screen: Reminders },
+  { id: "privacy", art: "shield",      label: "Privacy Centre",   color: "#4ABFB0", desc: "App lock, anonymous mode, your data", Screen: Privacy },
+  { id: "upgrade", art: "crown",      label: "Upgrade to Bloom+",    color: "#9B6DC5", desc: "Unlock all features",               Screen: Upgrade },
   { id: "profile",      hidden: true,                                                                                           Screen: Profile },
 ];
 
@@ -60,9 +61,8 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
 
   return (
     <div className="px-4 pb-6">
-      <div className="py-5">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("more.title")}</h1>
-        <p className="text-bloom-muted text-sm">{t("more.sub")}{plan ? " · " + plan.name : ""}</p>
+      <div className="pt-5">
+        <ScreenHero art="menu" title={t("more.title")} sub={t("more.sub") + (plan ? " · " + plan.name : "")} />
       </div>
 
       <button onClick={function () { setActive("profile"); }}
@@ -80,16 +80,11 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
       <div className="grid grid-cols-2 gap-3 mb-4">
         {SECTIONS.filter(function (s) { return !s.hidden; }).map(function (sec) {
           var label = sec.id === "upgrade" && plan ? t("more.plan", { p: plan.name }) : t("sec." + sec.id);
-          var Mark = sec.mark;
           return (
             <button key={sec.id} onClick={function () { setActive(sec.id); }}
               className="bg-white rounded-2xl p-4 border text-start transition-all active:scale-[0.98]"
               style={{ borderColor: sec.color + "30" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: sec.color + "18" }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: sec.color }}>
-                  <Mark size={16} color="white" strokeWidth={2.2} />
-                </div>
-              </div>
+              <div className="mb-2 -ms-1"><Illustration name={sec.art} size={60} /></div>
               <p className="text-bloom-text text-sm font-bold mb-0.5">{label}</p>
               <p className="text-bloom-muted text-xs leading-tight">{t("sec." + sec.id + ".d")}</p>
             </button>
