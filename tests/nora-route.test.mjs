@@ -70,12 +70,19 @@ test("rejects a request without a usable final user message", async function () 
 });
 
 test("without an API key it returns a scripted demo reply", async function () {
-  var res = await POST(req({ messages: [{ role: "assistant", content: "Welcome" }, { role: "user", content: "What does my E2 mean?" }], lang: "en" }));
+  var res = await POST(req({ messages: [{ role: "assistant", content: "Welcome" }, { role: "user", content: "What does my E2 mean?" }], lang: "en", user: { demo: true } }));
   assert.equal(res.status, 200);
   var data = await res.json();
   assert.equal(data.demo, true);
   assert.equal(data.urgent, undefined);
   assert.match(data.text, /1,840/);
+});
+
+test("offline replies for a real user never use the demo persona's numbers (G15)", async function () {
+  var data = await (await POST(req(ask("What does my E2 mean?", { user: { name: "Lina", stimDay: 4 } })))).json();
+  assert.equal(data.demo, true);
+  assert.doesNotMatch(data.text, /1,840/);
+  assert.match(data.text, /don't have your latest result/);
 });
 
 test("unknown languages fall back to English, known ones are honoured", async function () {
@@ -156,7 +163,7 @@ test("live path: API errors, network failures and empty replies fall back to scr
   process.env.ANTHROPIC_API_KEY = "test-key";
   captureLogs();
   mockAnthropic({ status: 529, body: { type: "error", error: { type: "overloaded_error", message: "Overloaded" } } });
-  var a = await (await POST(req(ask("What does my E2 mean?")))).json();
+  var a = await (await POST(req(ask("What does my E2 mean?", { user: { demo: true } })))).json();
   assert.equal(a.demo, true);
   assert.match(a.text, /1,840/);
 

@@ -32,7 +32,7 @@ if (!password) {
   process.exit(1);
 }
 var cookie = "bloom_demo=" + createHash("sha256").update("bloom-demo:" + password).digest("hex");
-var persona = { name: "Sarah", stimDay: 7, protocol: "Antagonist", clinic: "Emirates Fertility Centre", e2: 1840 };
+var persona = { demo: true, name: "Sarah", phase: "stimulation", stimDay: 7, protocol: "Antagonist", clinic: "Emirates Fertility Centre", e2: 1840 };
 
 for (var i = 0; i < CASES.length; i++) {
   var c = CASES[i];

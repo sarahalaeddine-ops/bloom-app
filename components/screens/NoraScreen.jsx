@@ -3,9 +3,13 @@ import { useState } from "react";
 import { store } from "../../lib/store";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
+import { noraProfile } from "../../lib/nora";
 
+// The demo persona gets her cycle summary; a real user never sees Sarah's numbers (G15).
 function welcome(user, t) {
-  return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
+  if (user.id === "demo") return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
+  var first = user.anonymous ? "" : (user.name || "").trim().split(" ")[0];
+  return { role: "assistant", content: first ? t("nora.welcomeUser", { name: first }) : t("nora.welcomeNoName") };
 }
 
 export default function NoraScreen({ user }) {
@@ -35,7 +39,7 @@ export default function NoraScreen({ user }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // Only what Nora needs: first name (never in anonymous mode) and cycle context. See docs/sa6/architecture.md.
-          user: { name: user.anonymous ? "" : (user.name || "").trim().split(" ")[0], stimDay: user.stimDay, protocol: user.protocol, clinic: user.clinic, e2: user.e2 },
+          user: noraProfile(user),
           messages: next,
           lang: lang,
         }),

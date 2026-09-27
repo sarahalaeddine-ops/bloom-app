@@ -1,4 +1,4 @@
-import { buildSystemPrompt, demoReply, detectEmergency, emergencyReply, rateLimitedReply, NORA_PROMPT_VERSION } from "../../../lib/nora";
+import { buildSystemPrompt, demoReply, detectEmergency, emergencyReply, rateLimitedReply, sanitizeUser, NORA_PROMPT_VERSION } from "../../../lib/nora";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
 
 // Nora chat. Calls the Anthropic Messages API server-side so the key never reaches the browser.
@@ -65,8 +65,13 @@ export async function POST(request) {
     );
   }
 
+  // Demo persona values only when the client asks for the demo persona; a real user's unknown
+  // fields stay unknown (G15).
+  var profile = sanitizeUser(body.user);
+  var offline = function () { return demoReply(last, lang, { persona: profile.persona }); };
+
   var key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return Response.json({ text: demoReply(last, lang), demo: true, ...flags });
+  if (!key) return Response.json({ text: offline(), demo: true, ...flags });
 
   var model = process.env.NORA_MODEL || DEFAULT_MODEL;
   var started = Date.now();
@@ -99,11 +104,11 @@ export async function POST(request) {
       cache_creation_input_tokens: usage.cache_creation_input_tokens, cache_read_input_tokens: usage.cache_read_input_tokens,
     });
     var text = (data.content || []).filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("\n").trim();
-    if (!text) return Response.json({ text: demoReply(last, lang), demo: true, ...flags });
+    if (!text) return Response.json({ text: offline(), demo: true, ...flags });
     return Response.json({ text: text, ...flags });
   } catch (err) {
     console.error("Nora API error:", err.name === "TimeoutError" ? "timeout" : err.message);
     logUsage({ model: model, lang: lang, turns: messages.length, urgent: urgent, ms: Date.now() - started, fallback: true });
-    return Response.json({ text: demoReply(last, lang), demo: true, ...flags });
+    return Response.json({ text: offline(), demo: true, ...flags });
   }
 }
