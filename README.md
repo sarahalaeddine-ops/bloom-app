@@ -28,6 +28,8 @@ Put them in `.env.local` locally, and in Vercel → Project → Settings → Env
 - **Entry:** Splash (2.5s) → Sign up / Sign in → 7-step onboarding (incl. mandatory free therapy booking) → app.
 - **Tabs:** Home (cycle hero, stats, follicle map by ovary, today's meds) · Check-in (mood, anxiety, hope, symptoms, OHSS weight alert, journal, history) · Nora AI · Insights (category filter, popular, articles) · More.
 - **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Therapy & Coaching · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
+- **Quick log (+):** tick a dose, or log mood, symptoms and weight from any main tab. Home shows a check-in streak flower and personalised daily stories.
+- **Privacy Centre:** anonymous mode, PIN app lock, download my data, delete everything.
 - **Landing page** at `/landing` with waitlist form.
 
 All data persists in `localStorage` (`bloom_*` keys), so the demo survives reloads. **Profile → Reset demo data** clears it. No real payments are taken.

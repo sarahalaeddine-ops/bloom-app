@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { store } from "../../lib/store";
-import { STORIES } from "../../lib/demo-data";
+import { storiesFor } from "../../lib/demo-data";
+import { getCheckins } from "../../lib/cycle";
 import { Illustration } from "./Graphics";
 
 // Flo-style "daily insights": a row of story bubbles that open a tap-through viewer.
-export default function Stories() {
+export default function Stories({ user }) {
+  var [list] = useState(function () { return storiesFor(user, getCheckins()[0]); });
   var [seen, setSeen] = useState(function () { return store.get("stories_seen", []); });
   var [open, setOpen] = useState(null);
 
@@ -19,35 +21,36 @@ export default function Stories() {
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto -mx-4 px-4 pb-1 mb-3">
-        {STORIES.map(function (s, i) {
+      <div className="flex items-start gap-3 overflow-x-auto -mx-4 px-4 pb-1 mb-3">
+        {list.map(function (s, i) {
           var done = seen.includes(s.id);
           return (
-            <button key={s.id} onClick={function () { setOpen(i); markSeen(s.id); }} className="flex-shrink-0 w-[92px] text-left">
+            <button key={s.id} onClick={function () { setOpen(i); markSeen(s.id); }} className="flex-shrink-0 w-[92px] text-left flex flex-col justify-start">
               <div className="rounded-2xl p-[2px] mb-1.5" style={{ background: done ? "#E8E0DB" : "linear-gradient(135deg,#9B6DC5,#E07A8A)" }}>
                 <div className="rounded-[14px] h-[112px] flex items-center justify-center" style={{ backgroundColor: s.color }}>
                   <Illustration name={s.art} size={70} />
                 </div>
               </div>
               <p className={"text-xs leading-tight " + (done ? "text-bloom-muted" : "text-bloom-text font-semibold")}>{s.title}</p>
+              {s.why && <p className="text-[10px] leading-tight text-bloom-accent mt-0.5">{s.why}</p>}
             </button>
           );
         })}
       </div>
       {open !== null && (
-        <StoryViewer index={open} onChange={function (i) { setOpen(i); markSeen(STORIES[i].id); }} onClose={function () { setOpen(null); }} />
+        <StoryViewer list={list} index={open} onChange={function (i) { setOpen(i); markSeen(list[i].id); }} onClose={function () { setOpen(null); }} />
       )}
     </>
   );
 }
 
-function StoryViewer({ index, onChange, onClose }) {
-  var story = STORIES[index];
+function StoryViewer({ list, index, onChange, onClose }) {
+  var story = list[index];
   var [slide, setSlide] = useState(0);
 
   function next() {
     if (slide < story.slides.length - 1) setSlide(slide + 1);
-    else if (index < STORIES.length - 1) { setSlide(0); onChange(index + 1); }
+    else if (index < list.length - 1) { setSlide(0); onChange(index + 1); }
     else onClose();
   }
   function prev() {

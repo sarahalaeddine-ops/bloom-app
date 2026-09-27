@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { Logo, Label } from "../ui/Common";
-import { JourneyRing, JourneyLegend, journeyDay, Ovary, Blobs } from "../ui/Graphics";
+import { JourneyRing, JourneyLegend, journeyDay, Ovary, Blobs, StreakFlower, MoodFace } from "../ui/Graphics";
 import Stories from "../ui/Stories";
-import { FOLLICLES, MATURE_MM, MEDS, phaseLabel } from "../../lib/demo-data";
-import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY } from "../../lib/cycle";
+import { FOLLICLES, MATURE_MM, MEDS, MOODS, phaseLabel } from "../../lib/demo-data";
+import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
 
 function greeting() {
   var h = new Date().getHours();
@@ -15,6 +15,7 @@ function greeting() {
 
 export default function HomeScreen({ user, openMore, goTab }) {
   var name = user.name || "Sarah";
+  var anon = !!user.anonymous;
   var stimDay = user.stimDay || 7;
   var protocol = user.protocol || "Antagonist";
   var clinic = user.clinic || "Emirates Fertility Centre";
@@ -26,18 +27,20 @@ export default function HomeScreen({ user, openMore, goTab }) {
     var last = getCheckins()[0];
     return last && new Date(last.date).toDateString() === new Date().toDateString();
   });
+  var [streak] = useState(checkinStreak);
+  var [week] = useState(lastSevenDays);
   var isStim = (user.phase || "stimulation") === "stimulation";
 
   return (
     <div className="px-4 pb-6">
       <div className="flex justify-between items-center py-4">
         <Logo size={24} />
-        <p className="text-bloom-muted text-xs">Day {stimDay} · {name}</p>
+        <p className="text-bloom-muted text-xs">Day {stimDay}{anon ? "" : " · " + name}</p>
       </div>
 
       <div className="relative overflow-hidden rounded-3xl p-5 mb-3 border border-purple-200" style={{ background: "linear-gradient(160deg,#F6F0FC 0%,#FBF1F3 100%)" }}>
         <Blobs />
-        <p className="relative text-bloom-muted text-xs uppercase tracking-wider mb-3 text-center">{greeting()}, {name} ✦</p>
+        <p className="relative text-bloom-muted text-xs uppercase tracking-wider mb-3 text-center">{greeting()}{anon ? "" : ", " + name} ✦</p>
         <div className="relative flex justify-center">
           <JourneyRing day={journeyDay(user.phase, stimDay)} size={220}>
             <p className="text-bloom-muted text-[11px] uppercase tracking-wider">{isStim ? "Stimulation" : "Current phase"}</p>
@@ -51,7 +54,7 @@ export default function HomeScreen({ user, openMore, goTab }) {
         <p className="relative text-bloom-muted text-xs text-center mt-2">{protocol} Protocol · {clinic}</p>
       </div>
 
-      <Stories />
+      <Stories user={user} />
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         {[
@@ -69,16 +72,33 @@ export default function HomeScreen({ user, openMore, goTab }) {
         })}
       </div>
 
-      {!checkedIn && (
-        <button onClick={function () { goTab("checkin"); }} className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-bloom-border mb-3 text-left">
-          <div className="w-10 h-10 rounded-xl bg-bloom-rose/10 flex items-center justify-center text-bloom-rose">✦</div>
-          <div className="flex-1">
-            <p className="text-bloom-text text-sm font-semibold">Daily check-in</p>
-            <p className="text-bloom-muted text-xs">How are you today? Takes 1 minute</p>
+      <button onClick={function () { goTab("checkin"); }} className="w-full bg-white rounded-2xl p-4 border border-bloom-border mb-3 text-left">
+        <div className="flex items-center gap-3">
+          <StreakFlower days={streak} size={68} />
+          <div className="flex-1 min-w-0">
+            <Label>Your week</Label>
+            <p className="text-bloom-text text-sm font-semibold mt-1">
+              {streak > 0 ? streak + "-day check-in streak" : "Start your streak today"}
+            </p>
+            <p className="text-bloom-muted text-xs">{checkedIn ? "Checked in today ✓ Your flower is growing." : "Check in to grow a new petal. Takes 1 minute."}</p>
           </div>
-          <span className="text-bloom-accent text-sm">→</span>
-        </button>
-      )}
+          {!checkedIn && <span className="text-bloom-accent text-sm">→</span>}
+        </div>
+        <div className="flex justify-between mt-3 pt-3 border-t border-bloom-border">
+          {week.map(function (d, i) {
+            var c = d.checkin;
+            return (
+              <div key={i} className="flex flex-col items-center gap-1">
+                {c ? <MoodFace mood={c.mood} color={(MOODS[c.mood] || MOODS[2]).c} size={28} />
+                   : <span className="w-7 h-7 rounded-full border-2 border-dashed border-bloom-border" />}
+                <span className={"text-[10px] " + (i === 6 ? "text-bloom-accent font-bold" : "text-bloom-dim")}>
+                  {i === 6 ? "Today" : d.date.toLocaleDateString("en-GB", { weekday: "narrow" })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </button>
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
         <div className="flex justify-between items-center mb-3">

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Label } from "../ui/Common";
-import { Illustration } from "../ui/Graphics";
+import { Illustration, MoodFace, PetalBurst } from "../ui/Graphics";
 import { MOODS, SYMPTOMS } from "../../lib/demo-data";
 import { getCheckins, saveCheckin, follicleStats } from "../../lib/cycle";
 
@@ -38,6 +38,7 @@ export default function CheckInScreen({ user }) {
 
   if (saved) return (
     <div className="min-h-[80vh] bg-bloom-bg flex flex-col items-center justify-center px-6 text-center">
+      <PetalBurst show />
       <div className="mb-4"><Illustration name="bloom" size={150} /></div>
       <h2 className="text-2xl font-bold text-bloom-text mb-2">Check-in saved</h2>
       <p className="text-bloom-muted text-sm mb-6 leading-relaxed">Every data point helps us understand your journey better.</p>
@@ -67,7 +68,7 @@ export default function CheckInScreen({ user }) {
               <button key={i} onClick={function () { setMood(i); setError(""); }} aria-pressed={on}
                 className="flex-1 flex flex-col items-center py-2.5 rounded-xl border-2 transition-all"
                 style={{ borderColor: on ? m.c : "transparent", backgroundColor: on ? m.c + "12" : "transparent" }}>
-                <span className="text-2xl mb-1">{m.mark}</span>
+                <span className="mb-1"><MoodFace mood={i} color={m.c} size={40} active={mood === null || on} /></span>
                 <span className="text-xs font-semibold" style={{ color: on ? m.c : "#7A6880" }}>{m.l}</span>
               </button>
             );
@@ -142,7 +143,7 @@ export default function CheckInScreen({ user }) {
         var m = MOODS[c.mood] || MOODS[2];
         return (
           <div key={i} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-bloom-border mb-2">
-            <span className="text-xl">{m.mark}</span>
+            <MoodFace mood={c.mood} color={m.c} size={32} />
             <div className="flex-1 min-w-0">
               <p className="text-bloom-text text-sm font-semibold">{new Date(c.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · <span style={{ color: m.c }}>{m.l}</span></p>
               <p className="text-bloom-dim text-xs truncate">Anxiety {c.anxiety}/5 · Hope {c.hope}/5{c.symptoms.length ? " · " + c.symptoms.join(", ") : ""}</p>

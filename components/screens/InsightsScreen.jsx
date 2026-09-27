@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { store } from "../../lib/store";
 import { CATS, ARTICLES, phaseLabel } from "../../lib/demo-data";
+import { Illustration } from "../ui/Graphics";
 
 function catOf(a) {
   return CATS.find(function (c) { return c.id === a.cat; }) || CATS[0];
@@ -37,11 +38,11 @@ export default function InsightsScreen({ user }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <button onClick={function () { setSelected(null); }} className="px-4 py-4 text-bloom-accent font-semibold text-sm">← Back</button>
       <div className="px-5 py-8 rounded-2xl mx-4 mb-5 relative overflow-hidden" style={{ backgroundColor: selected.color }}>
-        <span className="absolute -right-4 -bottom-6 text-9xl opacity-10" style={{ color: selected.textColor }}>{catOf(selected).mark}</span>
+        <span className="absolute -right-6 -bottom-6 opacity-60"><Illustration name={catOf(selected).art} size={150} /></span>
         <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: selected.textColor }}>
           {selected.tag}{selected.type === "video" ? " · Video" : ""}
         </p>
-        <h1 className="text-2xl font-bold text-bloom-text leading-tight relative">{selected.title}</h1>
+        <h1 className="text-2xl font-bold text-bloom-text leading-tight relative pr-20">{selected.title}</h1>
       </div>
       <div className="px-4">
         {selected.body.split("\n\n").map(function (p, i) {
@@ -86,8 +87,8 @@ export default function InsightsScreen({ user }) {
                   className="flex-shrink-0 rounded-2xl overflow-hidden relative text-left"
                   style={{ width: 200, height: 240, backgroundColor: a.color }}>
                   {a.type === "video" && <VideoBadge />}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                    <span className="text-7xl" style={{ color: a.textColor }}>{catOf(a).mark}</span>
+                  <div className="absolute inset-x-0 top-6 flex justify-center">
+                    <Illustration name={catOf(a).art} size={130} />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: a.textColor }}>{a.tag}</p>
@@ -109,8 +110,8 @@ export default function InsightsScreen({ user }) {
               style={{ backgroundColor: a.color }}>
               {a.type === "video" && <VideoBadge small />}
               {read.includes(a.id) && <span className="absolute top-2 right-2 text-[10px] font-bold" style={{ color: a.textColor }}>✓ Read</span>}
-              <div className="flex items-center justify-center h-14 opacity-20 mb-2 mt-3">
-                <span className="text-4xl" style={{ color: a.textColor }}>{catOf(a).mark}</span>
+              <div className="flex items-center justify-center h-20 mb-2 mt-3">
+                <Illustration name={catOf(a).art} size={76} />
               </div>
               <p className="font-bold uppercase tracking-wider mb-1" style={{ color: a.textColor, fontSize: "9px" }}>{a.tag}</p>
               <p className="text-bloom-text text-xs font-bold leading-tight">{a.title}</p>

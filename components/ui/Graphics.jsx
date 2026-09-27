@@ -154,7 +154,7 @@ function Frame({ size, children, bg }) {
   );
 }
 
-export function Illustration({ name, size = 96 }) {
+function BaseIllustration({ name, size }) {
   if (name === "clinic") return (
     <Frame size={size}>
       <rect x="30" y="40" width="60" height="50" rx="6" fill="#fff" stroke={C.accent} strokeWidth="2.5" />
@@ -263,4 +263,135 @@ function BloomPetals() {
       <circle cx="50" cy="50" r="7" fill={C.gold} />
     </g>
   );
+}
+
+// ── Mood faces (replace emoji in check-in and quick log) ─────────────────
+var MOUTHS = [
+  "M-9 9 Q 0 2, 9 9",   // hard
+  "M-8 8 Q 0 4, 8 8",   // low
+  "M-8 6 L 8 6",        // okay
+  "M-8 4 Q 0 10, 8 4",  // hopeful
+  "M-10 3 Q 0 14, 10 3", // good
+];
+export function MoodFace({ mood, color, size = 36, active = true }) {
+  var fill = active ? color : C.dim;
+  return (
+    <svg width={size} height={size} viewBox="-20 -20 40 40" aria-hidden="true">
+      <circle r="18" fill={fill} opacity={active ? 0.18 : 0.25} />
+      <circle r="18" fill="none" stroke={fill} strokeWidth="1.5" opacity="0.6" />
+      {mood === 0 ? (
+        <>
+          <path d="M-9 -4 q3 -3 6 0 M3 -4 q3 -3 6 0" stroke={fill} strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M-7 1 q-1.5 3 0 4 q1.5 -1 0 -4 z" fill="#7FB8E0" />
+        </>
+      ) : (
+        <>
+          <circle cx="-6" cy="-4" r="2" fill={fill} /><circle cx="6" cy="-4" r="2" fill={fill} />
+        </>
+      )}
+      <path d={MOUTHS[mood] || MOUTHS[2]} stroke={fill} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      {mood === 4 && <><circle cx="-11" cy="3" r="2.5" fill={C.rose} opacity="0.35" /><circle cx="11" cy="3" r="2.5" fill={C.rose} opacity="0.35" /></>}
+      {mood === 3 && <path d="M0 -18 q -5 -6 0 -9 q 5 3 0 9" fill={C.teal} />}
+    </svg>
+  );
+}
+
+// ── Petal burst: small celebration when a dose or check-in is saved ──────
+export function PetalBurst({ show }) {
+  if (!show) return null;
+  var colors = [C.accent, C.rose, C.gold, C.teal];
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[90] flex items-center justify-center" aria-hidden="true">
+      {Array.from({ length: 14 }, function (_, i) {
+        var a = (i / 14) * Math.PI * 2;
+        var d = 90 + (i % 3) * 30;
+        return (
+          <span key={i} className="petal-burst absolute w-3 h-4 rounded-full"
+            style={{ backgroundColor: colors[i % 4], "--dx": Math.round(Math.cos(a) * d) + "px", "--dy": Math.round(Math.sin(a) * d) + "px", "--rot": i * 47 + "deg", animationDelay: (i % 4) * 30 + "ms" }} />
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Streak flower: one petal per check-in day this week (max 7) ──────────
+export function StreakFlower({ days, size = 72 }) {
+  var n = Math.max(0, Math.min(7, days));
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={n + " of 7 petals"}>
+      <path d="M50 96 C 50 84, 49 76, 50 64" stroke={C.teal} strokeWidth="3" fill="none" strokeLinecap="round" />
+      <path d="M50 84 C 40 82, 36 76, 36 72 C 43 72, 49 77, 50 84 z" fill={C.teal} opacity="0.7" />
+      {Array.from({ length: 7 }, function (_, i) {
+        var a = (i / 7) * 360;
+        var on = i < n;
+        return (
+          <g key={i} transform={"rotate(" + a + " 50 40)"}>
+            <ellipse cx="50" cy="22" rx="8" ry="15" fill={on ? (i % 2 ? C.rose : C.accent) : C.border} opacity={on ? 0.9 : 0.8}
+              className={on ? "petal-open" : ""} style={{ transformOrigin: "50px 40px", animationDelay: i * 80 + "ms" }} />
+          </g>
+        );
+      })}
+      <circle cx="50" cy="40" r="8" fill={n ? C.gold : C.dim} />
+    </svg>
+  );
+}
+
+// ── Donut for adherence and progress stats ───────────────────────────────
+export function Donut({ value, size = 72, color = C.teal, label }) {
+  var r = 30, circ = 2 * Math.PI * r, v = Math.max(0, Math.min(1, value));
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox="0 0 80 80" role="img" aria-label={(label || "Progress") + " " + Math.round(v * 100) + "%"}>
+        <circle cx="40" cy="40" r={r} fill="none" stroke={C.border} strokeWidth="9" />
+        <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round"
+          strokeDasharray={v * circ + " " + circ} transform="rotate(-90 40 40)" className="ring-draw" style={{ "--ring-len": v * circ }} />
+      </svg>
+      <span className={"absolute inset-0 flex items-center justify-center font-bold " + (size < 64 ? "text-[11px]" : "text-sm")} style={{ color: color }}>{Math.round(v * 100)}%</span>
+    </div>
+  );
+}
+
+// ── Extra spot illustrations ─────────────────────────────────────────────
+export function Illustration({ name, size = 96 }) {
+  if (name === "shield") return (
+    <Frame size={size} bg={C.teal}>
+      <path d="M60 20 L90 32 V58 C 90 78, 76 92, 60 100 C 44 92, 30 78, 30 58 V32 Z" fill="#fff" stroke={C.teal} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M60 30 L82 39 V58 C 82 73, 72 84, 60 90 Z" fill={C.teal} opacity="0.2" />
+      <rect x="49" y="56" width="22" height="18" rx="3" fill={C.accent} />
+      <path d="M53 56 v-5 a7 7 0 0 1 14 0 v5" fill="none" stroke={C.accent} strokeWidth="3" />
+      <circle cx="60" cy="64" r="2.5" fill="#fff" />
+    </Frame>
+  );
+  if (name === "embryo") return (
+    <Frame size={size} bg={C.accent}>
+      <circle cx="60" cy="60" r="32" fill="#fff" stroke={C.accent} strokeWidth="2.5" />
+      {[[50, 50], [70, 50], [50, 70], [70, 70]].map(function (p, i) {
+        return <circle key={i} cx={p[0]} cy={p[1]} r="11" fill={i % 2 ? C.rose : C.accent} opacity="0.55" />;
+      })}
+    </Frame>
+  );
+  if (name === "plate") return (
+    <Frame size={size} bg={C.gold}>
+      <circle cx="60" cy="62" r="32" fill="#fff" stroke={C.gold} strokeWidth="2.5" />
+      <circle cx="60" cy="62" r="22" fill="none" stroke={C.border} strokeWidth="2" />
+      <path d="M48 56 q6 -12 14 -2 q-6 8 -14 2 z" fill={C.teal} />
+      <circle cx="68" cy="68" r="6" fill={C.rose} /><circle cx="54" cy="70" r="4" fill={C.gold} />
+      <path d="M22 40 v44 M18 40 v10 a4 4 0 0 0 8 0 v-10" stroke={C.muted} strokeWidth="2" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+  if (name === "leaf") return (
+    <Frame size={size} bg={C.teal}>
+      <circle cx="60" cy="34" r="7" fill={C.accent} />
+      <path d="M60 42 v26 M60 50 l-18 -8 M60 50 l18 -8 M60 68 l-14 20 M60 68 l14 20" stroke={C.accent} strokeWidth="4" strokeLinecap="round" fill="none" />
+      <path d="M24 96 C 40 86, 80 86, 96 96" stroke={C.teal} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+  if (name === "couple") return (
+    <Frame size={size} bg={C.rose}>
+      <circle cx="46" cy="44" r="10" fill={C.accent} opacity="0.85" /><circle cx="74" cy="44" r="10" fill={C.rose} opacity="0.85" />
+      <path d="M30 86 a16 18 0 0 1 32 0 z" fill={C.accent} opacity="0.5" /><path d="M58 86 a16 18 0 0 1 32 0 z" fill={C.rose} opacity="0.5" />
+      <path d="M60 30 c-4 -4 -9 -2 -7 2 c1 2 7 6 7 6 c0 0 6 -4 7 -6 c2 -4 -3 -6 -7 -2 z" fill={C.rose} />
+    </Frame>
+  );
+  return <BaseIllustration name={name} size={size} />;
 }

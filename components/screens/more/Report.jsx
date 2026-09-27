@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { BackBtn, Label, Logo } from "../../ui/Common";
 import { HORMONES, FOLLICLES, MATURE_MM, MEDS, MOODS, DEMO_USER } from "../../../lib/demo-data";
-import { getCheckins, dateForStimDay, cycleStartDate, fmtDate, follicleStats } from "../../../lib/cycle";
+import { getCheckins, dateForStimDay, cycleStartDate, fmtDate, follicleStats, medAdherence } from "../../../lib/cycle";
+import { JourneyRing, journeyDay, Ovary, Donut, MoodFace } from "../../ui/Graphics";
+import LineChart from "../../ui/LineChart";
 
 var DISCLAIMER = "This report is generated from information entered in Bloom. It is not a medical record and does not replace your clinic's own records or advice.";
 
@@ -73,7 +75,7 @@ export default function Report({ onBack, user }) {
 
   return (
     <div className="min-h-screen bg-bloom-bg pb-6">
-      <BackBtn onBack={onBack} />
+      <div className="no-print"><BackBtn onBack={onBack} /></div>
       <div className="px-4">
         <div className="flex justify-between items-end mb-4">
           <div>
@@ -90,6 +92,32 @@ export default function Report({ onBack, user }) {
               return <div key={r[0]}><p className="text-bloom-dim text-[10px] uppercase">{r[0]}</p><p className="text-bloom-text text-sm font-semibold">{r[1]}</p></div>;
             })}
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
+          <Label className="mb-3">Cycle at a glance</Label>
+          <div className="flex items-center gap-4 mb-4">
+            <JourneyRing day={journeyDay(user.phase, stimDay)} size={130}>
+              <p className="font-serif italic text-bloom-text leading-none" style={{ fontSize: "26px" }}>Day {stimDay}</p>
+              <p className="text-bloom-muted text-[10px]">of stims</p>
+            </JourneyRing>
+            <div className="flex-1 grid grid-cols-1 gap-3">
+              <div className="flex items-center gap-3">
+                <Donut value={medAdherence()} size={56} label="Doses taken" />
+                <div><p className="text-bloom-text text-sm font-semibold">Doses taken</p><p className="text-bloom-dim text-xs">logged in Bloom</p></div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Donut value={s.total ? s.mature / s.total : 0} size={56} color="#9B6DC5" label="Mature follicles" />
+                <div><p className="text-bloom-text text-sm font-semibold">{s.mature} of {s.total} mature</p><p className="text-bloom-dim text-xs">≥{MATURE_MM} mm</p></div>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-4">
+            <Ovary label="Right" sizes={FOLLICLES.right} color="#9B6DC5" matureMm={MATURE_MM} />
+            <Ovary label="Left" sizes={FOLLICLES.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
+          </div>
+          <p className="text-bloom-muted text-xs font-semibold mb-1">E2 (pg/mL) by stim day</p>
+          <LineChart series={[{ name: "E2", color: "#E07A8A", values: HORMONES.map(function (h) { return h.e2; }) }]} labels={HORMONES.map(function (h) { return "D" + h.day; })} unit=" pg/mL" height={130} />
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3 overflow-x-auto">
@@ -145,7 +173,7 @@ export default function Report({ onBack, user }) {
             return (
               <div key={i} className="py-2 border-t border-bloom-border first:border-0 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-bloom-text font-semibold">{fmtDate(c.date)} · {m.mark} {m.l}</span>
+                  <span className="text-bloom-text font-semibold flex items-center gap-1.5">{fmtDate(c.date)} · <MoodFace mood={c.mood} color={m.c} size={18} /> {m.l}</span>
                   <span className="text-bloom-muted">Anx {c.anxiety}/5 · Hope {c.hope}/5</span>
                 </div>
                 {c.symptoms.length > 0 && <p className="text-bloom-dim mt-0.5">{c.symptoms.join(", ")}</p>}
@@ -156,9 +184,14 @@ export default function Report({ onBack, user }) {
 
         <p className="text-bloom-dim text-xs leading-relaxed mb-4">{DISCLAIMER}</p>
 
+        <div className="no-print">
         {status && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{status}</p>}
         <button onClick={share} className="w-full py-4 rounded-2xl bg-bloom-accent text-white font-semibold mb-2">Share with my clinic →</button>
-        <button onClick={copy} className="w-full py-3.5 rounded-2xl bg-white border border-bloom-border text-bloom-text font-semibold text-sm">Copy as text</button>
+        <div className="flex gap-2">
+          <button onClick={function () { window.print(); }} className="flex-1 py-3.5 rounded-2xl bg-white border border-bloom-border text-bloom-text font-semibold text-sm">Save as PDF</button>
+          <button onClick={copy} className="flex-1 py-3.5 rounded-2xl bg-white border border-bloom-border text-bloom-text font-semibold text-sm">Copy as text</button>
+        </div>
+        </div>
       </div>
     </div>
   );

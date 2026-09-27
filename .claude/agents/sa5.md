@@ -22,7 +22,9 @@ You are **sa5**, the **designer and enhancement advisor** for **Bloom — Your I
   - `JourneyRing` + `JourneyLegend` + `journeyDay()`: Bloom's version of Flo's cycle circle, with IVF phases (Stims → Retrieval → Embryos → 2WW) and a marker for today.
   - `Ovary`: follicles drawn to scale inside each ovary. Mature follicles are filled.
   - `Illustration name=…`: spot art (`clinic`, `protocol`, `phase`, `calendar`, `therapy`, `moon`, `drop`, `heart`, `egg`, `bloom`).
-- `components/ui/Stories.jsx` holds Flo-style daily stories (bubbles + tap-through viewer). The content is `STORIES` in `lib/demo-data.js`.
+  - `MoodFace`, `StreakFlower`, `Donut`, `PetalBurst`, plus extra spot art (`shield`, `embryo`, `plate`, `leaf`, `couple`).
+- `components/ui/Stories.jsx` holds Flo-style daily stories (bubbles + tap-through viewer). The content is `STORIES` in `lib/demo-data.js`, ranked per user by `storiesFor()`.
+- `components/QuickLog.jsx` is the "+" quick log, opened from `AppShell`. `components/ui/PinPad.jsx` + `components/LockScreen.jsx` are the app lock. `components/screens/more/Privacy.jsx` is the Privacy Centre.
 - Animation classes live at the bottom of `app/globals.css` (`petal-open`, `blob-drift`, `ring-draw`, `pulse-dot`, `follicle-pop`, `twinkle`, `story-fill`). They are all turned off under `prefers-reduced-motion`.
 
 When you add graphics, add them to `Graphics.jsx`. Use the palette constants `C`, a 120×120 viewBox for spot art, and `useSvgId()` for gradient ids. Give meaningful graphics a `role="img"` and `aria-label`, and mark decorative ones `aria-hidden`.

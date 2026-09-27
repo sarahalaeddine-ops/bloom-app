@@ -1,6 +1,6 @@
 # Bloom vs Flo: design benchmark & enhancement backlog
 
-Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27.
+Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (pass 2).
 
 ## What Flo does well
 
@@ -32,20 +32,33 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27.
 6. Tab bar uses lucide icons with an active pill instead of unicode glyphs.
 7. All motion respects `prefers-reduced-motion`.
 
+## Shipped in pass 2 (going for #1)
+
+1. **Quick log "+" button** on every main tab: mark a dose, mood (illustrated faces), symptoms and weight in one sheet. Weight gains of 2 kg or more still trigger the OHSS alert. Saving plays a petal burst and shows a toast (`components/QuickLog.jsx`).
+2. **Streak flower + "Your week"** on Home: one petal per check-in day and a 7-day mood strip (`StreakFlower`, `MoodFace`, `checkinStreak()`, `lastSevenDays()`).
+3. **Personalised stories**: `storiesFor()` ranks stories by phase and the last check-in (symptoms, anxiety, mood) and shows why ("Because you logged bloating"). Added phase stories for retrieval, transfer and 2WW.
+4. **Visual Cycle Report**: journey ring, dose-adherence and maturity donuts, ovary graphic, E2 chart, mood faces, plus **Save as PDF** (print stylesheet).
+5. **Privacy Centre** (More): anonymous mode (hides the name everywhere), **PIN app lock** with a lock screen and a forgot-PIN path, "what Bloom holds", **download my data** (JSON, password stripped), delete everything, and privacy promises.
+6. **Illustrated mood faces** replace emoji in check-in and history.
+7. **Insights covers**: each category has its own illustration (heart, plate, embryo, couple, leaf).
+8. **More grid** uses lucide icons instead of glyphs.
+9. **Landing page**: flower mark and an illustrated three-feature section.
+10. Accessibility: sheets are `role="dialog"`, toasts are `role="status"`, and all new motion is off under reduced-motion.
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |
 |---|---|---|---|
-| 1 | **Quick-log "+" floating button** on Home: mood, symptom, weight and dose in one sheet (Flo's core loop) | High | S |
-| 2 | **Split check-in into 3 swipeable cards** (mood → body → notes) with an illustrated mood picker instead of emoji | High | M |
-| 3 | **Visual Cycle Report**: journey ring, follicle growth sparkline per ovary, E2 curve vs typical range, med adherence donut | High | M |
-| 4 | **Personalised stories** driven by phase, stim day and today's logged symptoms (Flo's tailoring) | High | M |
-| 5 | **Privacy centre** screen: what is stored, export/delete, "Anonymous mode" toggle, with a shield illustration | High | S |
-| 6 | **2WW day-by-day illustration** (embryo development timeline) | Med | M |
-| 7 | **Follicle growth animation** between scans (Day 5 → Day 7 → today) on the Ovary graphic | Med | M |
-| 8 | **Insights article covers**: per-category illustration instead of flat colour blocks | Med | S |
-| 9 | **Dark mode** with a night palette for 3am injection and anxiety moments | Med | M |
-| 10 | **Haptic-style micro-interactions**: dose "taken" confetti petals, streak flower that grows with daily check-ins | Med | S |
+| 1 | **Arabic + RTL** (and French, Spanish, Hindi): Bloom's launch market is the UAE; Flo's reach comes from 20+ languages | Very high | L |
+| 2 | **Clinic connect**: import scan and bloods results from the clinic (or photo-OCR a results sheet) so data isn't typed by hand | Very high | L |
+| 3 | **Push reminders** for doses and appointments (PWA notifications) | High | M |
+| 4 | **Real backend** (Supabase auth + encrypted storage, end-to-end encrypted Secret Space) | High | L |
+| 5 | **Split check-in into 3 swipeable cards** (mood → body → notes) | High | M |
+| 6 | **Dark mode** night palette for 3am injections | Med | M |
+| 7 | **Follicle growth animation** between scans on the Ovary graphic | Med | M |
+| 8 | **2WW embryo development timeline** illustration, day by day | Med | M |
+| 9 | **Apple Health / Google Fit** sync for sleep, steps and weight | Med | M |
+| 10 | **Clinical review board** badge on content (Flo's credibility lever) | High | S (content) |
 
 ## Sources
 
