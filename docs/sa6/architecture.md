@@ -74,6 +74,7 @@ Design principles:
 |---|---|---|---|---|
 | `POST /api/nora` | Nora chat. Server-side Anthropic call. | Demo cookie (proxy). Cloud mode: `Authorization: Bearer <Supabase access token>` verified server-side; per-account limits | Body ≤ 64 KB, ≤ 20 turns, ≤ 4,000 chars/turn, profile fields sanitised, `max_tokens` 500, 20 s timeout, per-IP rate limit | `lib/nora.js` scripted replies (no key, API error, timeout) |
 | `GET /api/waitlist` | Waitlist count (cached 60 s at the edge) | Public | Paged, max 50 pages | `503/502` generic error |
+| `POST /api/account/delete` | Full erasure of a cloud account (G4) | Bearer token verified server-side; body `{ "confirm": true }`; not behind the demo gate | Body ≤ 1 KB, per-IP 5 / 10 min | `404` when cloud mode is off, `503` without the service-role key, `502` if the admin delete fails (nothing deleted on the device) |
 | `POST /api/waitlist` | Save an email as a private blob `waitlist/<email>.json` | Public | Body ≤ 2 KB, strict email check (`lib/validate.js`, no path characters), per-IP rate limit 5 / 10 min | `503/502` generic error |
 
 ### 3.4 Data layer: `lib/store.js`
@@ -82,7 +83,7 @@ Design principles:
 - **`LOCAL_ONLY`** (never synced): `users`, `lock_pin`, `secret` (legacy plaintext), `lang`, `reminders_fired`.
 - **Secret Space:** `secret_vault` holds AES-256-GCM ciphertext with a PBKDF2-derived, non-extractable key from the user's passphrase. It syncs as ciphertext only.
 - **Sign-out (cloud):** pushes, signs out and wipes the user's `bloom_*` keys from the device.
-- **Delete everything:** deletes the `user_state` row and all local keys. The Supabase `auth.users` row is **not** deleted yet (gap G4).
+- **Delete everything** (`store.eraseAccount()`): cloud mode calls `/api/account/delete` (account + synced data erased on the server), then clears the local session and all `bloom_*` keys except `lang`; on failure nothing local is deleted. Local mode wipes the device (`resetDemo`).
 
 ### 3.5 Schema: `supabase/schema.sql`
 - `public.user_state(user_id uuid pk → auth.users on delete cascade, data jsonb, updated_at)`.
@@ -116,7 +117,7 @@ Local: `auth.signUp/signIn` hash and compare on the device. Cloud: Supabase Auth
 Client-side scheduler + service worker notifications while Bloom is open or backgrounded; `.ics` export with alarms for when the app is closed. No server push yet (R5).
 
 ### 4.5 Export and delete
-Privacy Centre → **Download my data** builds a JSON file on the device (no password hashes). **Delete everything** calls `store.resetDemo()` (cloud row + local keys).
+Privacy Centre → **Download my data** builds a JSON file on the device (no password hashes). **Delete everything** calls `store.eraseAccount()`: cloud → `POST /api/account/delete` with her token → server verifies, deletes `user_state` (her token) and `auth.users` (service key, cascades) → client clears the session and device. Local → device wipe.
 
 ---
 
@@ -131,7 +132,8 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | `NORA_MODEL` | `app/api/nora/route.js` | No | Default `claude-sonnet-4-6`. |
 | `BLOB_READ_WRITE_TOKEN` | `app/api/waitlist/route.js` | Yes | Set automatically when a Vercel Blob store is connected. |
 | `NEXT_PUBLIC_SUPABASE_URL` | `lib/supabase.js` | No (public) | Enables cloud mode with the key below. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) | `lib/supabase.js` | No (public, RLS protects data) | Never put the service-role key in a `NEXT_PUBLIC_` var. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) | `lib/supabase.js`, `lib/supabase-server.js` | No (public, RLS protects data) | Never put the service-role key in a `NEXT_PUBLIC_` var. |
+| `SUPABASE_SERVICE_ROLE_KEY` | `app/api/account/delete/route.js` only | **Yes, server-only** | Bypasses RLS: used for one call, the Admin API user delete, after the user's own token is verified. Legacy JWT keys are sent as `apikey` + Bearer, new `sb_secret_…` keys as `apikey` only. |
 
 ---
 
@@ -186,7 +188,7 @@ Severity: **High** = fix before real users / real health data. **Med** = fix bef
 | G1 | `/api/nora` had no user auth and trusted client-supplied profile context. | High (for launch) | **Closed 2026-09-27** for cloud mode: Supabase access token verified server-side (`/auth/v1/user`), context read from her own `user_state` row with her token (RLS), per-account limits. Local/demo mode unchanged behind the demo gate. Remaining: the demo gate still fronts `/api/nora` (the app build needs it removed, see `app-store.md`), and limits are per instance (G2). |
 | G2 | Rate limiting is in-memory per instance. | Med | Shipped as a first line of defence. Durable store in R1. |
 | G3 | No Content-Security-Policy. | Med | Basic security headers shipped (`nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, HSTS). A nonce-based CSP needs dynamic rendering and testing with Supabase and Google Fonts; do it with G10. |
-| G4 | "Delete everything" doesn't delete the Supabase `auth.users` row (email stays). | High (GDPR erasure) | Needs a server route using the service-role key (never exposed) that verifies the session and calls the admin delete-user API; `on delete cascade` removes `user_state`. |
+| G4 | "Delete everything" didn't delete the Supabase `auth.users` row (email stayed). | High (GDPR erasure) | **Closed 2026-09-27.** `POST /api/account/delete` verifies her token, deletes her `user_state` row with her token (RLS), then hard-deletes her `auth.users` row via the Admin API with `SUPABASE_SERVICE_ROLE_KEY` (server-only); `on delete cascade` covers every other table. The client wipes the device only after the server confirms. Needs a real Supabase project to verify end to end. Open: whether to keep a minimal proof-of-consent/deletion record (lawyer), Supabase backups retain data until they roll off (disclose in the privacy policy). |
 | G5 | Supabase session tokens live in `localStorage` (supabase-js default), so an XSS could steal them. | Med | Keep XSS surface small (no `dangerouslySetInnerHTML` with user data today), add CSP (G3). Cookie-based SSR auth is possible later. |
 | G6 | Demo gate cookie is a deterministic hash of the password; comparison is not constant-time. | Low | Acceptable for a demo gate. Rotating `DEMO_PASSWORD` invalidates all cookies. Replace with real auth at launch. |
 | G7 | Local-mode accounts are only as safe as the device (hashes are in `localStorage`). | Low | By design for the demo; cloud mode is the production path. |

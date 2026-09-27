@@ -59,3 +59,24 @@ test("store.push prepends to a list", function () {
   store.push("things", 2);
   assert.deepEqual(store.get("things", []), [2, 1]);
 });
+
+test("eraseAccount in local mode wipes the device without calling the server", async function () {
+  var realFetch = globalThis.fetch;
+  var called = false;
+  globalThis.fetch = async function () { called = true; return new Response("{}"); };
+  await auth.signUp("Lina", "lina@example.com", "s3cret-pass");
+  store.set("checkins", [{ mood: 2 }]);
+  var res = await store.eraseAccount();
+  globalThis.fetch = realFetch;
+  assert.deepEqual(res, { ok: true });
+  assert.equal(called, false);
+  assert.equal(localStorage.length, 0);
+  assert.equal(auth.getUser(), null);
+});
+
+test("new real profiles carry no demo E2 or follicle values (G15)", async function () {
+  var res = await auth.signUp("Lina", "lina2@example.com", "s3cret-pass");
+  assert.equal(res.data.e2, undefined);
+  assert.equal(res.data.follicles, undefined);
+  assert.equal(res.data.onboarded, false);
+});

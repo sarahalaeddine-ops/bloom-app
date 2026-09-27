@@ -53,6 +53,7 @@ All optional: with none set, Bloom builds and runs as an offline demo (the priva
 | `NORA_MODEL` | No | Nora model id (default `claude-sonnet-4-6`). |
 | `BLOB_READ_WRITE_TOKEN` | Yes | Waitlist storage in Vercel Blob. Added automatically when a Blob store is connected. |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No (public) | Turn on cloud accounts and sync. Row-level security protects the data. Never expose the service-role key. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes, server-only** | Lets `/api/account/delete` erase a cloud account (her `auth.users` row) after verifying her session. Supabase → Project Settings → API keys (legacy `service_role` JWT or a new `sb_secret_…` key). **Never** prefix it with `NEXT_PUBLIC_`, never use it in client code. Without it, "Delete everything" in cloud mode shows an error and deletes nothing. |
 
 To run the private demo locally: `DEMO_PASSWORD=anything npm run dev`, open http://localhost:3000/demo-7q4x and enter that password.
 
@@ -65,12 +66,14 @@ Bloom runs in one of two modes:
 | **Local** (default) | No Supabase env vars | This browser only. Passwords are stored as salted PBKDF2-SHA256 hashes (210k iterations), never in plain text. |
 | **Cloud** | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` set | Supabase Auth handles accounts. App data syncs to the `user_state` table, which has row-level security so each user can only reach her own row. |
 
-To turn on cloud mode: create a Supabase project, run [`supabase/schema.sql`](supabase/schema.sql) in the SQL editor, then set the two env vars. Signing out of a cloud account clears that user's health data from the device.
+To turn on cloud mode: create a Supabase project, run [`supabase/schema.sql`](supabase/schema.sql) in the SQL editor, then set the two public env vars, plus `SUPABASE_SERVICE_ROLE_KEY` (server-only) so account deletion works. Signing out of a cloud account clears that user's health data from the device.
+
+Server routes that act for a signed-in user (`/api/nora`, `/api/account/delete`) take her Supabase access token as `Authorization: Bearer …` and verify it with Supabase Auth on the server; they never trust a user id sent by the browser.
 
 Whichever mode is used:
 - **Secret Space is end-to-end encrypted.** Entries are encrypted in the browser with AES-256-GCM, using a key derived from the user's passphrase. Only ciphertext is stored or synced, and nobody (including Bloom) can recover it without the passphrase.
 - **The app-lock PIN** is stored as a salted hash and never leaves the device.
-- **Privacy Centre** lets her download her data (JSON, no password) or delete everything, which also deletes her cloud row.
+- **Privacy Centre** lets her download her data (JSON, no password) or delete everything. In cloud mode that erases her Supabase account (email and sign-in) and synced data on the server (`/api/account/delete`), then wipes the device.
 
 ### Reminders
 
@@ -102,6 +105,7 @@ app/
   demo-7q4x/page.jsx           the app: splash → auth → onboarding → app shell (password-protected)
   api/nora/route.js            Nora chat (server-side Anthropic call + scripted fallback)
   api/waitlist/route.js        waitlist sign-ups and count (Vercel Blob)
+  api/account/delete/route.js  full erasure of a cloud account (verifies her session, service-role key)
 proxy.js                       password gate for the demo and the Nora API (DEMO_PASSWORD)
 components/
   SplashScreen, AuthScreen, OnboardingScreen, AppShell
@@ -113,6 +117,8 @@ lib/
   store.js                     auth (hashed local / Supabase cloud) + storage + sync
   crypto.js                    PBKDF2 hashing, AES-GCM encryption (Web Crypto)
   supabase.js                  Supabase client (cloud mode only when env vars are set)
+  supabase-server.js           server-only Supabase Auth/REST calls (verify token, own row, admin delete)
+  api.js                       browser calls to Bloom's API routes with the user's access token
   reminders.js                 reminder scheduler, notifications, .ics dose alarms
   i18n.js, stories-i18n.js     English / Arabic / French
   cycle.js                     med log, check-ins, cycle dates

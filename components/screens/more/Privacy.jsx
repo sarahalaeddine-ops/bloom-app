@@ -7,12 +7,9 @@ import { getCheckins, getMedHistory } from "../../../lib/cycle";
 import PinPad from "../../ui/PinPad";
 import { hashSecret } from "../../../lib/crypto";
 import { cloudEnabled } from "../../../lib/supabase";
+import { useT } from "../../../lib/i18n";
 
-var PLEDGES = [
-  ["Never sold", "Your health data is never sold or used for advertising."],
-  ["Never shared without you", "Your clinic and partner only see what you choose to share."],
-  ["Secret Space is end-to-end encrypted", "Encrypted on your device with your passphrase (AES-256). We can't read it."],
-];
+var PLEDGES = ["priv.p1", "priv.p2", "priv.p3"];
 
 function Toggle({ on, onChange, label }) {
   return (
@@ -24,37 +21,41 @@ function Toggle({ on, onChange, label }) {
 }
 
 export default function Privacy({ onBack, user, setUser }) {
+  var { t } = useT();
+  var cloud = cloudEnabled() && !!user.cloud;
   var [hasPin, setHasPin] = useState(function () { return !!store.get("lock_pin", null); });
   var [pinSheet, setPinSheet] = useState(false);
   var [confirmDelete, setConfirmDelete] = useState(false);
   var [msg, setMsg] = useState("");
+  var [deleting, setDeleting] = useState(false);
+  var [deleteError, setDeleteError] = useState("");
 
   var counts = [
-    ["Check-ins", getCheckins().length],
-    ["Medication logs", getMedHistory().length],
-    ["Secret Space", store.get("secret_vault", null) ? "Encrypted 🔒" : "Not set up"],
-    ["Nora messages", store.get("nora", []).length],
+    [t("priv.cCheckins"), getCheckins().length],
+    [t("priv.cMeds"), getMedHistory().length],
+    [t("priv.cSecret"), store.get("secret_vault", null) ? t("priv.encrypted") : t("priv.notSet")],
+    [t("priv.cNora"), store.get("nora", []).length],
   ];
 
-  function flash(t) { setMsg(t); setTimeout(function () { setMsg(""); }, 2500); }
+  function flash(text) { setMsg(text); setTimeout(function () { setMsg(""); }, 2500); }
 
   function setAnon(on) {
     setUser(auth.updateUser({ anonymous: on }));
-    flash(on ? "Anonymous mode on. Your name is hidden." : "Anonymous mode off.");
+    flash(on ? t("priv.anonOn") : t("priv.anonOff"));
   }
 
   function setLock(on) {
     if (on) { setPinSheet(true); return; }
     store.remove("lock_pin");
     setHasPin(false);
-    flash("App lock off.");
+    flash(t("priv.lockOff"));
   }
 
   async function savePin(pin) {
     store.set("lock_pin", await hashSecret(pin));
     setHasPin(true);
     setPinSheet(false);
-    flash("App lock on. You'll need your PIN to open Bloom.");
+    flash(t("priv.lockOn"));
   }
 
   function exportData() {
@@ -71,12 +72,18 @@ export default function Privacy({ onBack, user, setUser }) {
     a.download = "bloom-my-data.json";
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    flash("Your data was downloaded ✓");
+    flash(t("priv.downloaded"));
   }
 
+  // Cloud: the server deletes her account and synced data, then the device is wiped (G4).
+  // Local: wipes this device. On failure nothing is deleted and she can try again.
   async function deleteAll() {
-    await store.resetDemo();
-    setUser(null);
+    setDeleting(true);
+    setDeleteError("");
+    var res = await store.eraseAccount();
+    setDeleting(false);
+    if (res.ok) { setUser(null); return; }
+    setDeleteError(res.error === "session" ? t("priv.deleteSession") : t("priv.deleteFailed"));
   }
 
   return (
@@ -85,41 +92,39 @@ export default function Privacy({ onBack, user, setUser }) {
       <div className="px-4">
         <div className="flex flex-col items-center text-center mb-5">
           <Illustration name="shield" size={110} />
-          <h1 className="text-2xl font-bold text-bloom-text mt-3 mb-1">Privacy Centre</h1>
-          <p className="text-bloom-muted text-sm">Your journey is yours. You decide who sees what.</p>
+          <h1 className="text-2xl font-bold text-bloom-text mt-3 mb-1">{t("priv.title")}</h1>
+          <p className="text-bloom-muted text-sm">{t("priv.sub")}</p>
         </div>
 
         {msg && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{msg}</p>}
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-          <Label className="mb-3">Controls</Label>
+          <Label className="mb-3">{t("priv.controls")}</Label>
           <div className="flex items-center gap-3 py-2">
             <div className="flex-1">
-              <p className="text-bloom-text text-sm font-semibold">Anonymous mode</p>
-              <p className="text-bloom-muted text-xs">Hide your name across the app, handy for screenshots and shared screens.</p>
+              <p className="text-bloom-text text-sm font-semibold">{t("priv.anon")}</p>
+              <p className="text-bloom-muted text-xs">{t("priv.anon.d")}</p>
             </div>
-            <Toggle on={!!user.anonymous} onChange={setAnon} label="Anonymous mode" />
+            <Toggle on={!!user.anonymous} onChange={setAnon} label={t("priv.anon")} />
           </div>
           <div className="flex items-center gap-3 py-2 border-t border-bloom-border">
             <div className="flex-1">
-              <p className="text-bloom-text text-sm font-semibold">App lock</p>
-              <p className="text-bloom-muted text-xs">Ask for a 4-digit PIN every time Bloom opens.</p>
+              <p className="text-bloom-text text-sm font-semibold">{t("priv.lock")}</p>
+              <p className="text-bloom-muted text-xs">{t("priv.lock.d")}</p>
             </div>
-            <Toggle on={hasPin} onChange={setLock} label="App lock" />
+            <Toggle on={hasPin} onChange={setLock} label={t("priv.lock")} />
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-          <Label className="mb-3">What Bloom holds about you</Label>
+          <Label className="mb-3">{t("priv.holds")}</Label>
           <div className="flex items-center gap-2 mb-2 p-2.5 rounded-xl bg-bloom-surface">
-            <span className={"w-2 h-2 rounded-full " + (cloudEnabled() && user.cloud ? "bg-bloom-teal" : "bg-bloom-gold")} />
-            <p className="text-bloom-muted text-xs">
-              {cloudEnabled() && user.cloud ? "Synced securely to your Bloom account (row-level secured, encrypted in transit)." : "Stored only on this device."}
-            </p>
+            <span className={"w-2 h-2 rounded-full flex-shrink-0 " + (cloud ? "bg-bloom-teal" : "bg-bloom-gold")} />
+            <p className="text-bloom-muted text-xs">{cloud ? t("priv.synced") : t("priv.device")}</p>
           </div>
           <p className="text-bloom-muted text-xs mb-2 px-1">
-            <span className="text-bloom-text font-semibold">Nora: </span>
-            the messages you send her, your first name (never in anonymous mode) and your cycle details (stim day, protocol, clinic, E2) go to Anthropic (Claude) to write her replies. Secret Space, your PIN and your check-in journal never do.
+            <span className="text-bloom-text font-semibold">{t("priv.noraLabel")}</span>
+            {t("priv.noraBody")}
           </p>
           {counts.map(function (c) {
             return (
@@ -128,29 +133,30 @@ export default function Privacy({ onBack, user, setUser }) {
               </div>
             );
           })}
-          <button onClick={exportData} className="w-full mt-3 py-3 rounded-xl bg-bloom-surface text-bloom-text font-semibold text-sm">Download my data</button>
+          <button onClick={exportData} className="w-full mt-3 py-3 rounded-xl bg-bloom-surface text-bloom-text font-semibold text-sm">{t("priv.download")}</button>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-4">
-          <Label className="mb-3">Our promises</Label>
+          <Label className="mb-3">{t("priv.promises")}</Label>
           {PLEDGES.map(function (p) {
             return (
-              <div key={p[0]} className="flex gap-3 mb-3 last:mb-0">
+              <div key={p} className="flex gap-3 mb-3 last:mb-0">
                 <span className="w-6 h-6 rounded-full bg-bloom-teal/15 text-bloom-teal flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
-                <div><p className="text-bloom-text text-sm font-semibold">{p[0]}</p><p className="text-bloom-muted text-xs">{p[1]}</p></div>
+                <div><p className="text-bloom-text text-sm font-semibold">{t(p)}</p><p className="text-bloom-muted text-xs">{t(p + ".d")}</p></div>
               </div>
             );
           })}
         </div>
 
         {!confirmDelete ? (
-          <button onClick={function () { setConfirmDelete(true); }} className="w-full py-3.5 rounded-2xl border border-red-300 text-red-500 font-semibold text-sm">Delete all my data</button>
+          <button onClick={function () { setConfirmDelete(true); }} className="w-full py-3.5 rounded-2xl border border-red-300 text-red-500 font-semibold text-sm">{t("priv.delete")}</button>
         ) : (
           <div className="bg-white rounded-2xl p-4 border border-red-200 text-center">
-            <p className="text-bloom-text text-sm mb-3">{cloudEnabled() && user.cloud ? "This permanently deletes your check-ins, logs and journal from this device and from your synced Bloom data." : "This permanently deletes your account, check-ins, logs and journal from this device."}</p>
+            <p className="text-bloom-text text-sm mb-3">{cloud ? t("priv.deleteCloud") : t("priv.deleteLocal")}</p>
+            {deleteError && <p className="text-red-500 text-xs mb-3" role="alert">{deleteError}</p>}
             <div className="flex gap-2">
-              <button onClick={function () { setConfirmDelete(false); }} className="flex-1 py-2.5 rounded-xl bg-bloom-surface text-bloom-muted text-sm font-semibold">Cancel</button>
-              <button onClick={deleteAll} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Delete everything</button>
+              <button onClick={function () { setConfirmDelete(false); setDeleteError(""); }} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-bloom-surface text-bloom-muted text-sm font-semibold">{t("common.cancel")}</button>
+              <button onClick={deleteAll} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-60">{deleting ? t("priv.deleting") : t("priv.deleteConfirm")}</button>
             </div>
           </div>
         )}
@@ -158,7 +164,7 @@ export default function Privacy({ onBack, user, setUser }) {
 
       {pinSheet && (
         <Sheet onClose={function () { setPinSheet(false); }}>
-          <PinPad title="Choose a 4-digit PIN" confirm onDone={savePin} />
+          <PinPad title={t("priv.pinTitle")} confirm onDone={savePin} />
         </Sheet>
       )}
     </div>
