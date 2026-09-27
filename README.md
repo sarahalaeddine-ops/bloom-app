@@ -55,6 +55,7 @@ English, **Arabic (full right-to-left layout)** and French. Users can switch on 
 - **Tabs:** Home (cycle hero, stats, follicle map by ovary, today's meds) · Check-in (mood, anxiety, hope, symptoms, OHSS weight alert, journal, history) · Nora AI · Insights (category filter, popular, articles) · More.
 - **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Therapy & Coaching · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
 - **Quick log (+):** tick a dose, or log mood, 13 illustrated feelings, 16 illustrated IVF symptoms and weight from any main tab, with search and logging for earlier days.
+- **Home, Flo-style:** date header with a cycle calendar, daily insight tiles (stim day, sleep score, follicles, "Talk tonight"), a Sleep & rest score card with a 7-night chart, and a "My cycle" card with ⓘ explanations and a lead-follicle chart showing the typical trigger zone.
 - **Your Bloom journey** (Profile, or "Change phase" on Home): switch IVF phase any time, and Home, stories and Insights adapt.
 - **Insights:** search, bookmarks and carousels for your phase and what's coming next.
 - **Partner Space:** you choose exactly what your partner sees, with a live "your view / their view" preview and Stop sharing. Home shows a check-in streak flower and personalised daily stories.

@@ -65,6 +65,15 @@ Notes only. Flo's screenshots and artwork are not stored in this repo, and Bloom
 
 Still to borrow: Flo's "Doctor's story" video series (needs real clinicians and consent) and a notifications inbox.
 
+## Pass 5: Flo's Today screen (sleep score, daily insights, "My cycles")
+
+| Flo pattern | What Bloom shipped |
+|---|---|
+| Night-sky **sleep score** card: ring, "Great", hours asleep, one line of advice, "Show me" | `SleepCard`: dark sparkle card, score ring (check only for good nights), hours, a kind IVF-aware message, and a sheet with a 7-night bar chart, two-tap "last night" logging and IVF sleep tips (`lib/sleep.js`) |
+| **My daily insights** tiles (Cycle day in a drop, sleep tile, conversation starters) | Tiles before the stories: a **Stim day** drop, a **sleep score** tile, a **follicles** tile with mature dots, and **Talk tonight**, conversation starters for the couple |
+| **My cycles** stats with ⓘ and a chart with a "normal range" band | `CycleStats`: stim days, lead follicle, average growth, E2 change and doses taken, each with a reviewed ⓘ sheet. A lead-follicle chart with the **typical trigger zone (17–20 mm)** band, plus a banner that "every body responds at its own pace" |
+| Date header + calendar icon | Today's date on Home opens `CycleCalendar`: done and planned stim days, appointments, logged-day dots, and details for the tapped day (appointments, mood, feelings, symptoms, sleep) |
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |
@@ -77,7 +86,7 @@ Still to borrow: Flo's "Doctor's story" video series (needs real clinicians and 
 | 6 | **Dark mode** night palette for 3am injections | Med | M |
 | 7 | **Follicle growth animation** between scans on the Ovary graphic | Med | M |
 | 8 | **2WW embryo development timeline** illustration, day by day | Med | M |
-| 9 | **Apple Health / Google Fit** sync for sleep, steps and weight | Med | M |
+| 9 | **Apple Health / Google Fit** sync for sleep (feeds the new Sleep card automatically), steps and weight | High | M |
 
 ## Sources
 
