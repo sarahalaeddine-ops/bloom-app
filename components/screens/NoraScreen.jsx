@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { store } from "../../lib/store";
+import { store, consent } from "../../lib/store";
 import { askNora } from "../../lib/api";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
@@ -20,6 +20,7 @@ export default function NoraScreen({ user }) {
   var [input, setInput] = useState("");
   var [loading, setLoading] = useState(false);
   var [demo, setDemo] = useState(false);
+  var [aiOff, setAiOff] = useState(false);
   var bottomRef = useScrollToBottom([msgs, loading]);
 
   function update(next) {
@@ -41,10 +42,13 @@ export default function NoraScreen({ user }) {
         user: noraProfile(user),
         messages: next,
         lang: lang,
+        // Her consent to AI processing (G11). Cloud accounts: the server checks her stored consent too.
+        ai: consent.aiAllowed(user),
       });
       // Her cloud session is no longer valid (the route's 401, not the demo gate's): ask her to sign in again.
       var reply = res.status === 401 && res.data.error === "Not signed in" ? t("nora.signInAgain") : res.data.text || t("nora.error");
       setDemo(!!res.data.demo);
+      setAiOff(!!res.data.aiOff);
       update(next.concat({ role: "assistant", content: reply }));
     } catch {
       update(next.concat({ role: "assistant", content: t("nora.error") }));
@@ -87,7 +91,8 @@ export default function NoraScreen({ user }) {
         )}
 
         {loading && <Typing />}
-        {demo && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
+        {aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.aiOff")}</p>}
+        {demo && !aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
         <p className="text-bloom-dim text-[10px] text-center mt-3">{t("nora.notDoctor")}</p>
         <div ref={bottomRef} />
       </div>

@@ -2,12 +2,12 @@
 import { useState } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
 import { Illustration } from "../../ui/Graphics";
-import { auth, store } from "../../../lib/store";
+import { auth, store, consent } from "../../../lib/store";
 import { getCheckins, getMedHistory } from "../../../lib/cycle";
 import PinPad from "../../ui/PinPad";
 import { hashSecret } from "../../../lib/crypto";
 import { cloudEnabled } from "../../../lib/supabase";
-import { useT } from "../../../lib/i18n";
+import { useT, langInfo } from "../../../lib/i18n";
 
 var PLEDGES = ["priv.p1", "priv.p2", "priv.p3"];
 
@@ -15,14 +15,17 @@ function Toggle({ on, onChange, label }) {
   return (
     <button role="switch" aria-checked={on} aria-label={label} onClick={function () { onChange(!on); }}
       className="w-12 h-7 rounded-full relative transition-colors flex-shrink-0" style={{ backgroundColor: on ? "#4ABFB0" : "#E8E0DB" }}>
-      <span className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: on ? 24 : 4 }} />
+      <span className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ insetInlineStart: on ? 24 : 4 }} />
     </button>
   );
 }
 
 export default function Privacy({ onBack, user, setUser }) {
-  var { t } = useT();
+  var { t, lang } = useT();
   var cloud = cloudEnabled() && !!user.cloud;
+  var isDemo = user.id === "demo";
+  var [rec, setRec] = useState(function () { return consent.get(); });
+  var [savingConsent, setSavingConsent] = useState(false);
   var [hasPin, setHasPin] = useState(function () { return !!store.get("lock_pin", null); });
   var [pinSheet, setPinSheet] = useState(false);
   var [confirmDelete, setConfirmDelete] = useState(false);
@@ -42,6 +45,22 @@ export default function Privacy({ onBack, user, setUser }) {
   function setAnon(on) {
     setUser(auth.updateUser({ anonymous: on }));
     flash(on ? t("priv.anonOn") : t("priv.anonOff"));
+  }
+
+  // Grant or withdraw one consent (G11). Withdrawing cloud sync removes her health data from the
+  // cloud copy (it stays on this device); withdrawing AI makes Nora answer offline.
+  async function setConsentChoice(key, on) {
+    var next = { cloud: !!(rec && rec.cloud), ai: !!(rec && rec.ai) };
+    next[key] = on;
+    setSavingConsent(true);
+    var saved = await consent.set(next);
+    setSavingConsent(false);
+    setRec(saved);
+    flash(key === "cloud" ? (on ? t("priv.cloudOn") : t("priv.cloudOff")) : (on ? t("priv.aiOn") : t("priv.aiOff")));
+  }
+
+  function consentDate(iso) {
+    try { return new Date(iso).toLocaleString(langInfo(lang).locale, { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; }
   }
 
   function setLock(on) {
@@ -116,11 +135,35 @@ export default function Privacy({ onBack, user, setUser }) {
           </div>
         </div>
 
+        {!isDemo && (
+          <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
+            <Label className="mb-3">{t("priv.consent")}</Label>
+            {cloud && (
+              <div className="flex items-center gap-3 py-2">
+                <div className="flex-1">
+                  <p className="text-bloom-text text-sm font-semibold">{t("cons.cloud")}</p>
+                  <p className="text-bloom-muted text-xs">{t("cons.cloud.d")}</p>
+                </div>
+                <Toggle on={!!(rec && rec.cloud)} onChange={function (on) { if (!savingConsent) setConsentChoice("cloud", on); }} label={t("cons.cloud")} />
+              </div>
+            )}
+            <div className={"flex items-center gap-3 py-2" + (cloud ? " border-t border-bloom-border" : "")}>
+              <div className="flex-1">
+                <p className="text-bloom-text text-sm font-semibold">{t("cons.ai")}</p>
+                <p className="text-bloom-muted text-xs">{t("cons.ai.d")}</p>
+              </div>
+              <Toggle on={!!(rec && rec.ai)} onChange={function (on) { if (!savingConsent) setConsentChoice("ai", on); }} label={t("cons.ai")} />
+            </div>
+            <p className="text-bloom-muted text-xs mt-2">{t("cons.abroad")} {t("cons.withdraw")}</p>
+            <p className="text-bloom-dim text-[10px] mt-2"><bdi>{rec ? t("cons.version", { v: rec.version, date: consentDate(rec.at) }) : t("cons.none")}</bdi></p>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
           <Label className="mb-3">{t("priv.holds")}</Label>
           <div className="flex items-center gap-2 mb-2 p-2.5 rounded-xl bg-bloom-surface">
-            <span className={"w-2 h-2 rounded-full flex-shrink-0 " + (cloud ? "bg-bloom-teal" : "bg-bloom-gold")} />
-            <p className="text-bloom-muted text-xs">{cloud ? t("priv.synced") : t("priv.device")}</p>
+            <span className={"w-2 h-2 rounded-full flex-shrink-0 " + (cloud && consent.syncing() ? "bg-bloom-teal" : "bg-bloom-gold")} />
+            <p className="text-bloom-muted text-xs">{cloud ? (consent.syncing() ? t("priv.synced") : t("priv.syncOff")) : t("priv.device")}</p>
           </div>
           <p className="text-bloom-muted text-xs mb-2 px-1">
             <span className="text-bloom-text font-semibold">{t("priv.noraLabel")}</span>

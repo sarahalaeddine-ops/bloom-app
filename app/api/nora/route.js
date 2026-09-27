@@ -12,6 +12,10 @@ import { supabaseServerConfig, bearerToken, verifyUser, readUserState } from "..
 //   applies). Client-sent profile fields are ignored when her synced profile exists.
 // - Local / demo mode (no token): the client-sent profile is used after sanitising, behind the
 //   proxy.js demo gate.
+//
+// Consent (G11): the Anthropic call only happens with her consent to Nora's AI processing. Cloud:
+// user_state.data.consent.ai must be true (and the client must not have opted out). Local/demo:
+// the client sends ai: true (the demo persona always does). Otherwise Nora answers offline.
 var DEFAULT_MODEL = "claude-sonnet-4-6";
 var MAX_BODY_CHARS = 64000;
 var MAX_TURNS = 20;
@@ -121,6 +125,10 @@ export async function POST(request) {
   // fields stay unknown (G15).
   var profile = sanitizeUser(input);
   var offline = function () { return demoReply(last, lang, { persona: profile.persona }); };
+
+  var consent = caller.mode === "user" ? caller.stored.consent : null;
+  var aiAllowed = caller.mode === "user" ? !!consent && consent.ai === true && body.ai !== false : body.ai === true;
+  if (!aiAllowed) return Response.json({ text: offline(), demo: true, aiOff: true, ...flags });
 
   var key = process.env.ANTHROPIC_API_KEY;
   if (!key) return Response.json({ text: offline(), demo: true, ...flags });

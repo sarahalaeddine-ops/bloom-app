@@ -79,7 +79,7 @@ Design principles:
 
 ### 3.4 Data layer: `lib/store.js`
 - **Local mode (default):** everything in `localStorage` under `bloom_*`. Local accounts store salted PBKDF2-SHA256 hashes (210k iterations) in `bloom_users`.
-- **Cloud mode** (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`): Supabase Auth (email + password). Every write schedules a debounced (1.5 s) upsert of a snapshot of all non-`LOCAL_ONLY` keys into `public.user_state.data` (one jsonb row per user). Sign-in pulls the row back.
+- **Cloud mode** (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`): Supabase Auth (email + password). **Only with her consent to cloud sync** (G11, section 3.6), every write schedules a debounced (1.5 s) upsert of a snapshot of all non-`LOCAL_ONLY` keys into `public.user_state.data` (one jsonb row per user). Without it, the row holds only her consent record. Sign-in pulls the row back (including the consent record).
 - **`LOCAL_ONLY`** (never synced): `users`, `lock_pin`, `secret` (legacy plaintext), `lang`, `reminders_fired`.
 - **Secret Space:** `secret_vault` holds AES-256-GCM ciphertext with a PBKDF2-derived, non-extractable key from the user's passphrase. It syncs as ciphertext only.
 - **Sign-out (cloud):** pushes, signs out and wipes the user's `bloom_*` keys from the device.
@@ -87,9 +87,24 @@ Design principles:
 
 ### 3.5 Schema: `supabase/schema.sql`
 - `public.user_state(user_id uuid pk → auth.users on delete cascade, data jsonb, updated_at)`.
+- `public.consent_events(id, user_id → auth.users on delete cascade, version, cloud, ai, created_at)`: append-only consent log. RLS: select and insert own rows only, no update/delete policies; a trigger sets `created_at = now()` so the client can't back-date a consent.
 - RLS enabled; four policies (select/insert/update/delete) `to authenticated` with `(select auth.uid()) = user_id`.
 - Size guard: `data` capped at 2 MB (check constraint added `not valid`, so existing rows aren't re-checked).
 - Idempotent (safe to re-run).
+
+### 3.6 Consent (G11)
+
+> **DRAFT: the consent wording is not legally reviewed.** The copy (`cons.*` keys in `lib/i18n.js`, en/ar/fr) and the consent model below must be reviewed by a lawyer for GDPR Art. 9(2)(a) and UAE PDPL / health-data rules before real patients use cloud sync or live Nora. Version `2026-09-27-draft1` (`CONSENT_VERSION` in `lib/store.js`); bump it when the text changes and everyone is asked again.
+
+- **Granular, opt-in, never a condition of use.** Two separate choices, both unticked by default: (1) *sync my health data to my Bloom account* (Supabase; shown only for cloud accounts) and (2) *let Nora answer with AI* (Anthropic). Saying no keeps Bloom fully usable on the device with offline Nora answers.
+- **What the screen says:** what stays on the device; what goes to Supabase and why; what goes to Anthropic for Nora (messages, first name except in anonymous mode, phase, stim day, protocol, clinic, E2); that providers may process data outside her country; that she can withdraw at any time in the Privacy Centre, withdrawal stops future processing and doesn't affect earlier processing.
+- **Where it is asked:** onboarding step 2 (before any cycle details are collected, after sign-up), and a one-time `ConsentScreen` for onboarded users who haven't answered the current version (existing accounts). The demo persona (fictional data) is never asked and always uses the AI path.
+- **Record:** `bloom_consent = { version, cloud, ai, at, history[≤20] }` on the device (synced as a record even without cloud consent, so the server can see her AI choice) and, for cloud accounts, one `consent_events` row per change with a database timestamp.
+- **Enforcement:**
+  - Sync: `schedulePush`/`pushNow` run only when `consent.cloud === true`.
+  - Withdrawing cloud sync: the cloud row is replaced by `{ consent }` alone (health data removed from Supabase, kept on the device) and syncing stops. Her account (email) remains; full erasure is "Delete everything".
+  - Nora AI: the route calls Anthropic only if consent allows. Cloud: `user_state.data.consent.ai === true` read server-side with her token (and the client didn't send `ai: false`). Local/demo: the client sends `ai: true`. Otherwise the scripted reply with `aiOff: true`, and the Nora screen explains how to turn AI on. Emergencies are answered either way.
+- **Privacy Centre → Your consent:** both toggles (grant/withdraw), the consent version and the time of the last change.
 
 ---
 
@@ -116,8 +131,11 @@ Local: `auth.signUp/signIn` hash and compare on the device. Cloud: Supabase Auth
 ### 4.4 Reminders
 Client-side scheduler + service worker notifications while Bloom is open or backgrounded; `.ics` export with alarms for when the app is closed. No server push yet (R5).
 
+### 4.6 Consent
+Onboarding / `ConsentScreen` / Privacy Centre toggle → `consent.set({ cloud, ai })` → `bloom_consent` on the device → cloud accounts: insert into `consent_events` (her token, RLS) and upsert `user_state` (full snapshot if cloud consent, else `{ consent }` only). `/api/nora` reads `data.consent.ai` from her row when she is signed in.
+
 ### 4.5 Export and delete
-Privacy Centre → **Download my data** builds a JSON file on the device (no password hashes). **Delete everything** calls `store.eraseAccount()`: cloud → `POST /api/account/delete` with her token → server verifies, deletes `user_state` (her token) and `auth.users` (service key, cascades) → client clears the session and device. Local → device wipe.
+Privacy Centre → **Download my data** builds a JSON file on the device (no password hashes). **Delete everything** calls `store.eraseAccount()`: cloud → `POST /api/account/delete` with her token → server verifies, deletes `auth.users` (service key; cascades to `user_state` and `consent_events`), then any leftover row with her token → client clears the session and device. Local → device wipe.
 
 ---
 
@@ -145,9 +163,10 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Profile (name, clinic, protocol, stim day, E2, follicles) | `bloom_user` | Cloud sync; Nora gets first name (not in anonymous mode), stim day, protocol, clinic, E2 | Supabase; Anthropic (per message) |
 | Check-ins (mood, anxiety, symptoms, weight, journal text) | `bloom_checkins` | Cloud sync only | Supabase |
 | Medication logs, appointments/bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
-| Nora chat history | `bloom_nora` | Cloud sync; last 20 turns sent to Anthropic per message | Supabase; Anthropic |
+| Nora chat history | `bloom_nora` | Cloud sync (with consent); last 20 turns sent to Anthropic per message (with AI consent) | Supabase; Anthropic |
 | Secret Space | `bloom_secret_vault` (ciphertext) | Cloud sync as ciphertext only. **Never sent to Anthropic.** | Supabase (cannot read it) |
 | App-lock PIN hash, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
+| Consent record (version, choices, time) | `bloom_consent`; `consent_events` and `user_state.data.consent` for cloud accounts | Cloud accounts only (also without cloud-sync consent: it is the record of that choice) | Supabase |
 | Waitlist email | Vercel Blob (private) | Yes | Vercel |
 | Server logs | Vercel function logs | n/a | Vercel. Nora logs hold token counts only. |
 
@@ -188,7 +207,7 @@ Severity: **High** = fix before real users / real health data. **Med** = fix bef
 | G1 | `/api/nora` had no user auth and trusted client-supplied profile context. | High (for launch) | **Closed 2026-09-27** for cloud mode: Supabase access token verified server-side (`/auth/v1/user`), context read from her own `user_state` row with her token (RLS), per-account limits. Local/demo mode unchanged behind the demo gate. Remaining: the demo gate still fronts `/api/nora` (the app build needs it removed, see `app-store.md`), and limits are per instance (G2). |
 | G2 | Rate limiting is in-memory per instance. | Med | Shipped as a first line of defence. Durable store in R1. |
 | G3 | No Content-Security-Policy. | Med | Basic security headers shipped (`nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, HSTS). A nonce-based CSP needs dynamic rendering and testing with Supabase and Google Fonts; do it with G10. |
-| G4 | "Delete everything" didn't delete the Supabase `auth.users` row (email stayed). | High (GDPR erasure) | **Closed 2026-09-27.** `POST /api/account/delete` verifies her token, deletes her `user_state` row with her token (RLS), then hard-deletes her `auth.users` row via the Admin API with `SUPABASE_SERVICE_ROLE_KEY` (server-only); `on delete cascade` covers every other table. The client wipes the device only after the server confirms. Needs a real Supabase project to verify end to end. Open: whether to keep a minimal proof-of-consent/deletion record (lawyer), Supabase backups retain data until they roll off (disclose in the privacy policy). |
+| G4 | "Delete everything" didn't delete the Supabase `auth.users` row (email stayed). | High (GDPR erasure) | **Closed 2026-09-27.** `POST /api/account/delete` verifies her token, hard-deletes her `auth.users` row via the Admin API with `SUPABASE_SERVICE_ROLE_KEY` (server-only), whose `on delete cascade` removes `user_state` and `consent_events` in the same transaction, then deletes any leftover `user_state` row with her own token (RLS) as a safety net. The client wipes the device only after the server confirms. Needs a real Supabase project to verify end to end. Open: whether to keep a minimal proof-of-consent/deletion record (lawyer), Supabase backups retain data until they roll off (disclose in the privacy policy). |
 | G5 | Supabase session tokens live in `localStorage` (supabase-js default), so an XSS could steal them. | Med | Keep XSS surface small (no `dangerouslySetInnerHTML` with user data today), add CSP (G3). Cookie-based SSR auth is possible later. |
 | G6 | Demo gate cookie is a deterministic hash of the password; comparison is not constant-time. | Low | Acceptable for a demo gate. Rotating `DEMO_PASSWORD` invalidates all cookies. Replace with real auth at launch. |
 | G7 | Local-mode accounts are only as safe as the device (hashes are in `localStorage`). | Low | By design for the demo; cloud mode is the production path. |
@@ -215,7 +234,7 @@ Reviewed and fine: RLS policies (all four operations, `to authenticated`, `(sele
 |---|---|---|---|
 | G9 | Nora sends the last 20 turns plus profile context to Anthropic (US). | Med | Minimised (first name only, none in anonymous mode; sanitised fields; no Secret Space; no check-in journal). Privacy Centre now says what goes to Anthropic. Consent wording before launch is a founder/lawyer decision. |
 | G10 | Google Fonts loaded from Google's CDN exposes visitor IPs to Google (an issue under GDPR in some EU rulings). | Med | Self-host fonts with `next/font` (no new package) in a design-safe pass with sa5. |
-| G11 | No explicit consent capture (health data is special-category data under GDPR Art. 9 and sensitive data under UAE PDPL). | High (launch) | Add an explicit consent step in onboarding with versioned consent records. Wording needs a lawyer. |
+| G11 | No explicit consent capture (health data is special-category data under GDPR Art. 9 and sensitive data under UAE PDPL). | High (launch) | **Closed (technically) 2026-09-27; wording is DRAFT.** Granular opt-in consent in onboarding and a gate for existing users, versioned + timestamped records (`bloom_consent`, `consent_events`), grant/withdraw in the Privacy Centre, withdrawal stops cloud sync (and removes synced health data from the cloud) and Nora's AI path. See 3.6. **Needs legal review of the text and model before launch.** |
 | G12 | Chat history and journals sync in plaintext jsonb (encrypted at rest by Supabase, readable by the operator). | Med | Option: extend device-side encryption to journals/Nora history (breaks server-side tools and RAG over user data). Founder trade-off. |
 
 ### Compliance (flag for a lawyer; not decided here)
@@ -232,7 +251,7 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 
 | Rank | Item | What | Effort | Cost | Founder decisions |
 |---|---|---|---|---|---|
-| R1 | **Real auth on server routes + erasure** | Verify the Supabase JWT in `/api/nora` (and future routes), read cycle context from the user's own row instead of trusting the client, durable per-user rate limits/quotas, full account deletion (G4), consent step (G11). | M | ~$0 (Supabase free/pro tier) | Consent wording (lawyer); whether Nora needs an account (demo stays open?); free-tier message quota. |
+| R1 | **Real auth on server routes + erasure** (mostly shipped 2026-09-27: G1, G4, G11, G15 closed; durable limits G2 still open) | Verify the Supabase JWT in `/api/nora` (and future routes), read cycle context from the user's own row instead of trusting the client, durable per-user rate limits/quotas, full account deletion (G4), consent step (G11). | M | ~$0 (Supabase free/pro tier) | Consent wording (lawyer); whether Nora needs an account (demo stays open?); free-tier message quota. |
 | R2 | **Nora model upgrade + live evals** | Run `docs/sa6/nora-evals.md` against a live key, then try `claude-sonnet-5` with thinking disabled and compare. | S | Eval run < $1; production cost ~−30% vs Sonnet 4.6 | Approve an API key and a monthly budget cap in the Anthropic Console. |
 | R3 | **Nora tool use (read-only)** | Tools: `get_today_meds`, `get_next_appointment`, `get_checkin_trends(days)`. Server runs them for the signed-in user (cloud: reads `user_state` with the user's JWT under RLS; local mode: client sends a minimal, explicit snapshot). Bounded loop (max 3 tool rounds). | M | +~500 tokens/request for tool definitions (cacheable) | Which data Nora may read (journals? weight?), and how that is shown in the Privacy Centre. |
 | R4 | **Grounded answers (RAG)** | Phase 0: vetted content (protocol guides, med instructions, FAQs) small enough to put in the cached system prompt, with citations; no new vendor. Phase 1 (content > ~50k tokens): pgvector in Supabase, ingestion script in `scripts/`, chunk sources + citations shown in the UI. **Needs an embeddings provider: Anthropic has no embeddings API.** Options: Voyage AI, OpenAI, Cohere, Google; or Supabase's built-in `gte-small` model in Edge Functions (no new vendor, weaker in Arabic; verify). | M (phase 0) / L (phase 1) | Phase 0: cache writes/reads only. Phase 1: embeddings are cents per thousand docs; pgvector is included in Supabase. | **Embeddings provider (new vendor + DPA)**; who on the Medical Review Board signs off content; languages covered. |
@@ -247,6 +266,10 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 3. Consent and Privacy Centre wording for AI processing (lawyer review).
 4. Anthropic API budget cap and whether to move Nora to `claude-sonnet-5` after evals.
 5. Should Nora require a signed-in account at launch (enables per-user quotas and tools)?
+6. Consent (G11): lawyer review of the draft wording and model (granular opt-in; withdrawal removes synced health data from the cloud but keeps the account; whether to keep consent/deletion proof after erasure, which the cascade currently deletes).
+7. Sign-out with cloud sync off wipes the device, so unsynced data is lost. Warn first, or keep data on sign-out when sync is off (shared-device privacy vs data loss)?
+8. App store: whether the app build keeps the demo gate in front of `/api/nora` (it can't, see `app-store.md`) and whether signed-in users get Nora without the demo password on the web too.
 
 ## 12. Change log
+- 2026-09-27 (R1): Server-side Supabase token checks for `/api/nora` (G1), full account erasure route (G4), health-data consent with versioned records and enforcement (G11, draft wording), no demo persona values for real users (G15, prompt `2026-09-27.2`), Privacy Centre in en/ar/fr, `consent_events` table, `SUPABASE_SERVICE_ROLE_KEY`. App Store plan in `docs/sa6/app-store.md`.
 - 2026-09-27: Record created (sa6). Added tests, CI, Nora hardening (rate limit, caching, usage logs, emergency handling, input sanitising), evals, security headers, waitlist hardening, `user_state` size guard.

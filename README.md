@@ -70,6 +70,8 @@ To turn on cloud mode: create a Supabase project, run [`supabase/schema.sql`](su
 
 Server routes that act for a signed-in user (`/api/nora`, `/api/account/delete`) take her Supabase access token as `Authorization: Bearer …` and verify it with Supabase Auth on the server; they never trust a user id sent by the browser.
 
+**Consent.** Health data only goes to the cloud (Supabase) or to Nora's AI (Anthropic) with her explicit, separate consent, asked in onboarding and changeable in the Privacy Centre. Choices are stored with a version and timestamp (`consent_events` table for cloud accounts). The wording is a draft pending legal review. If you set up cloud mode before this change, re-run `supabase/schema.sql` (it is idempotent) to add the `consent_events` table.
+
 Whichever mode is used:
 - **Secret Space is end-to-end encrypted.** Entries are encrypted in the browser with AES-256-GCM, using a key derived from the user's passphrase. Only ciphertext is stored or synced, and nobody (including Bloom) can recover it without the passphrase.
 - **The app-lock PIN** is stored as a salted hash and never leaves the device.

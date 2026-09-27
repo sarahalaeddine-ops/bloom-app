@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
-import { auth, store } from "../lib/store";
+import { auth, store, consent } from "../lib/store";
+import { cloudEnabled } from "../lib/supabase";
+import ConsentPanel from "./ConsentPanel";
 import { PHASES, THERAPISTS } from "../lib/demo-data";
 import { BloomFlower, Illustration } from "./ui/Graphics";
 import { useT, LANGS } from "../lib/i18n";
@@ -15,8 +17,10 @@ export default function OnboardingScreen({ user, onComplete }) {
   const [phase, setPhase] = useState("");
   const [stimDay, setStimDay] = useState(7);
   const [booked, setBooked] = useState(false);
+  // Explicit consent comes before we ask for any cycle details (G11). Both choices start unticked.
+  const [choice, setChoice] = useState({ cloud: false, ai: false });
 
-  const steps = ["welcome", "clinic", "protocol", "phase", "day", "therapy", "done"];
+  const steps = ["welcome", "consent", "clinic", "protocol", "phase", "day", "therapy", "done"];
   const current = steps[step];
   const progress = (step / (steps.length - 1)) * 100;
 
@@ -70,6 +74,14 @@ export default function OnboardingScreen({ user, onComplete }) {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {current === "consent" && (
+          <div className="pt-4">
+            <div className="mb-4"><Illustration name="shield" size={88} /></div>
+            <h1 className="text-2xl font-bold text-bloom-text mb-2">{t("cons.title")}</h1>
+            <ConsentPanel cloud={cloudEnabled() && !!user.cloud} value={choice} onChange={setChoice} />
           </div>
         )}
 
@@ -186,10 +198,10 @@ export default function OnboardingScreen({ user, onComplete }) {
       </div>
 
       <div className="px-6 pb-8 pt-4">
-        <button onClick={current === "done" ? finish : () => setStep(step + 1)}
+        <button onClick={current === "done" ? finish : current === "consent" ? () => { consent.set(choice); setStep(step + 1); } : () => setStep(step + 1)}
           disabled={!canNext}
           className="w-full bg-bloom-accent text-white font-semibold py-4 rounded-2xl disabled:opacity-40 transition-opacity text-base">
-          {current === "done" ? t("onb.open") : current === "welcome" ? t("onb.start") : t("onb.continue")}
+          {current === "done" ? t("onb.open") : current === "welcome" ? t("onb.start") : current === "consent" ? t("cons.save") : t("onb.continue")}
         </button>
       </div>
     </div>

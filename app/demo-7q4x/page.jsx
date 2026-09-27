@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { auth, store } from "../../lib/store";
+import { auth, store, consent } from "../../lib/store";
 import LockScreen from "../../components/LockScreen";
 import { supabase } from "../../lib/supabase";
 import { LangProvider } from "../../lib/i18n";
 import SplashScreen from "../../components/SplashScreen";
 import AuthScreen from "../../components/AuthScreen";
 import OnboardingScreen from "../../components/OnboardingScreen";
+import ConsentScreen from "../../components/ConsentScreen";
 import AppShell from "../../components/AppShell";
 
 export default function Home() {
@@ -17,6 +18,7 @@ function App() {
   var [stage, setStage] = useState("splash");
   var [user, setUser] = useState(null);
   var [locked, setLocked] = useState(false);
+  var [, setConsentTick] = useState(0);
   var endSplash = useCallback(function () { setStage("main"); }, []);
 
   useEffect(function () {
@@ -46,6 +48,11 @@ function App() {
 
   if (!user.onboarded) {
     return <OnboardingScreen user={user} onComplete={setUser} />;
+  }
+
+  // Existing accounts, or a new consent version: ask before anything else (G11).
+  if (!consent.answered(user)) {
+    return <ConsentScreen user={user} onDone={function () { setConsentTick(function (n) { return n + 1; }); }} />;
   }
 
   return <AppShell user={user} setUser={setUser} />;

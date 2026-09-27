@@ -98,7 +98,7 @@ test("invalid session: 401 and nothing deleted", async function () {
   assert.equal((await POST(req({ token: JWT }))).status, 503);
 });
 
-test("deletes her row with her token, then her auth user with the service key; logs no identifiers", async function () {
+test("deletes her auth user with the service key first (cascade), then any leftover row with her token; logs no identifiers", async function () {
   setEnv("service.role.jwt");
   var lines = quiet();
   var calls = mockSupabase({});
@@ -107,25 +107,26 @@ test("deletes her row with her token, then her auth user with the service key; l
   assert.deepEqual(await res.json(), { ok: true });
   assert.equal(calls.length, 3);
   assert.equal(calls[0].url, SB + "/auth/v1/user");
+  assert.equal(calls[1].url, SB + "/auth/v1/admin/users/" + UID, "id from Supabase, not the body");
   assert.equal(calls[1].init.method, "DELETE");
-  assert.equal(calls[1].url, SB + "/rest/v1/user_state?user_id=eq." + UID, "id from Supabase, not the body");
-  assert.equal(calls[1].init.headers.Authorization, "Bearer " + JWT, "row delete uses her token (RLS)");
-  assert.equal(calls[2].url, SB + "/auth/v1/admin/users/" + UID);
+  assert.equal(calls[1].init.headers.apikey, "service.role.jwt");
   assert.equal(calls[2].init.method, "DELETE");
-  assert.equal(calls[2].init.headers.apikey, "service.role.jwt");
+  assert.equal(calls[2].url, SB + "/rest/v1/user_state?user_id=eq." + UID);
+  assert.equal(calls[2].init.headers.Authorization, "Bearer " + JWT, "row delete uses her token (RLS)");
   var log = lines.join("\n");
   assert.match(log, /account_deleted/);
   assert.equal(log.indexOf(UID), -1);
   assert.equal(log.indexOf(JWT), -1);
 });
 
-test("admin delete failure: 502, generic message; a failed row delete still lets the cascade finish", async function () {
+test("admin delete failure: 502, generic message, and nothing else deleted; a failed leftover-row delete is fine", async function () {
   setEnv("service.role.jwt");
   quiet();
-  mockSupabase({ admin: 500 });
+  var calls = mockSupabase({ admin: 500 });
   var res = await POST(req({ token: JWT }));
   assert.equal(res.status, 502);
   assert.deepEqual(await res.json(), { error: "Could not delete the account. Please try again." });
+  assert.equal(calls.filter(function (c) { return c.url.indexOf("/rest/v1/") !== -1; }).length, 0, "row untouched when the account delete fails");
 
   mockSupabase({ state: 500 });
   assert.equal((await POST(req({ token: JWT }))).status, 200);

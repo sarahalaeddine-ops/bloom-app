@@ -1,6 +1,6 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { auth, store } from "../lib/store.js";
+import { auth, store, consent, CONSENT_VERSION } from "../lib/store.js";
 
 beforeEach(async function () {
   await store.resetDemo();
@@ -79,4 +79,27 @@ test("new real profiles carry no demo E2 or follicle values (G15)", async functi
   assert.equal(res.data.e2, undefined);
   assert.equal(res.data.follicles, undefined);
   assert.equal(res.data.onboarded, false);
+});
+
+test("consent: versioned, timestamped, opt-in, with history; demo persona never asked", async function () {
+  var u = (await auth.signUp("Lina", "lina3@example.com", "s3cret-pass")).data;
+  assert.equal(consent.answered(u), false);
+  assert.equal(consent.aiAllowed(u), false, "no AI before consent");
+  assert.equal(consent.cloudAllowed(), false);
+  var rec = await consent.set({ cloud: false, ai: true });
+  assert.equal(rec.version, CONSENT_VERSION);
+  assert.ok(!Number.isNaN(Date.parse(rec.at)));
+  assert.equal(consent.answered(u), true);
+  assert.equal(consent.aiAllowed(u), true);
+  await consent.set({ cloud: false, ai: false });
+  var saved = consent.get();
+  assert.equal(saved.ai, false, "withdrawn");
+  assert.equal(saved.history.length, 2);
+  assert.deepEqual(saved.history.map(function (h) { return h.ai; }), [true, false]);
+  assert.equal(consent.syncing(), false, "local accounts never sync");
+  store.set("consent", { version: "old", cloud: true, ai: true, at: rec.at });
+  assert.equal(consent.answered(u), false, "a new consent version asks again");
+  var demo = auth.demo();
+  assert.equal(consent.answered(demo), true);
+  assert.equal(consent.aiAllowed(demo), true);
 });

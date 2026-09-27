@@ -3,10 +3,12 @@ import { supabaseServerConfig, bearerToken, verifyUser, deleteUserState, adminDe
 
 // Full erasure of a cloud account (GDPR Art. 17 / UAE PDPL; gap G4).
 // 1. Verify her Supabase access token server-side: the user id comes from Supabase, never the client.
-// 2. Delete her user_state row with her own token (RLS applies).
-// 3. Hard-delete her auth.users row with the Admin API. This is the only use of
-//    SUPABASE_SERVICE_ROLE_KEY, a server-only env var (never NEXT_PUBLIC_). The delete cascades to
-//    every table that references auth.users (user_state, consent_events).
+// 2. Hard-delete her auth.users row with the Admin API. This is the only use of
+//    SUPABASE_SERVICE_ROLE_KEY, a server-only env var (never NEXT_PUBLIC_). In the same database
+//    transaction the delete cascades to every table that references auth.users (user_state,
+//    consent_events), so either everything goes or nothing does.
+// 3. Belt and braces: delete any user_state row left behind (e.g. a schema without the cascade)
+//    with her own token, which PostgREST still accepts until it expires (RLS applies).
 // The client then wipes Bloom's data from the device. Local-mode accounts never call this route.
 //
 // Not behind the proxy.js demo gate: it only acts for the holder of a valid Supabase session.
@@ -47,13 +49,13 @@ export async function POST(request) {
   if (v.error === "invalid") return fail(401, "Not signed in");
   if (v.error) return fail(503, "Account deletion is not available right now");
 
-  // Her synced data first (least privilege). If this fails the cascade below still removes it.
-  var state = await deleteUserState(cfg, token, v.user.id);
   var account = await adminDeleteUser(cfg, serviceKey, v.user.id);
   if (account.error) {
-    console.error(JSON.stringify({ event: "account_delete_failed", step: "auth_user", state_deleted: !!state.ok }));
+    // Nothing was deleted, so the client keeps everything and she can try again.
+    console.error(JSON.stringify({ event: "account_delete_failed", step: "auth_user" }));
     return fail(502, "Could not delete the account. Please try again.");
   }
+  var state = await deleteUserState(cfg, token, v.user.id);
   // No user id, email or IP in logs.
   console.log(JSON.stringify({ event: "account_deleted", state_deleted: !!state.ok }));
   return Response.json({ ok: true });
