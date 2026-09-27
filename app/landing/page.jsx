@@ -9,6 +9,7 @@ export default function Landing() {
   var [email, setEmail] = useState("");
   var [error, setError] = useState("");
   var [joined, setJoined] = useState(false);
+  var [submitting, setSubmitting] = useState(false);
   var [count, setCount] = useState(BASE_COUNT);
 
   useEffect(function () {
@@ -16,10 +17,27 @@ export default function Landing() {
     setCount(BASE_COUNT + store.get("waitlist", []).length);
   }, []);
 
-  function join(e) {
+  async function join(e) {
     e.preventDefault();
+    if (submitting) return;
     var v = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setError("Please enter a valid email"); return; }
+    setSubmitting(true);
+    setError("");
+    try {
+      var res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: v }),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) { setError(data.error || "Something went wrong. Please try again."); return; }
+    } catch {
+      setError("Could not reach the server. Please check your connection and try again.");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
     var list = store.get("waitlist", []);
     if (!list.includes(v)) {
       list.push(v);
@@ -51,7 +69,7 @@ export default function Landing() {
             <label htmlFor="wl-email" className="sr-only">Email</label>
             <input id="wl-email" type="email" value={email} onChange={function (e) { setEmail(e.target.value); }} placeholder="your@email.com"
               className="flex-1 bg-white border border-bloom-border rounded-xl px-4 py-3.5 text-bloom-text text-sm outline-none focus:border-bloom-accent" />
-            <button type="submit" className="bg-bloom-accent hover:bg-bloom-deep text-white font-semibold px-6 py-3.5 rounded-xl transition-colors whitespace-nowrap">Join the waitlist</button>
+            <button type="submit" className="bg-bloom-accent hover:bg-bloom-deep text-white font-semibold px-6 py-3.5 rounded-xl transition-colors whitespace-nowrap disabled:opacity-60" disabled={submitting}>{submitting ? "Joining…" : "Join the waitlist"}</button>
           </form>
         )}
         {error && <p className="text-red-500 text-xs mb-2" role="alert">{error}</p>}
