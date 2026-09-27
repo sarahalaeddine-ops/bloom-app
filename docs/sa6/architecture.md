@@ -8,7 +8,7 @@ Last updated: 2026-09-27
 
 ## 1. Summary
 
-Bloom is a mobile-first Next.js 16 (App Router, React 19) web app, installable as a PWA. It is a working demo: all state lives on the device by default, and an optional cloud mode syncs to Supabase. The only server code is two route handlers (Nora chat and the waitlist) and a password gate (`proxy.js`). There is no custom database code on the server yet.
+Bloom is a mobile-first Next.js 16 (App Router, React 19) web app, installable as a PWA. It is a working demo: all state lives on the device by default, and an optional cloud mode syncs to Supabase. The server code is three route handlers (Nora chat, account erasure and the waitlist) and a password gate (`proxy.js`). Routes that act for a signed-in user verify her Supabase access token server-side and reach the database with her own token (RLS) through plain fetch (`lib/supabase-server.js`); the service-role key is used for one call only (account deletion).
 
 Design principles:
 
@@ -191,7 +191,7 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 ## 8. Quality and delivery
 
 - `npm run lint`, `npm test` (`node --test`, no packages; a tiny resolve hook in `tests/setup/` adds `.js` to extensionless imports), `npm run build`.
-- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`: Node LTS, `npm ci`, lint, test, build, no secrets. 67 tests today (lib/ logic, crypto, local auth, i18n parity, Nora prompt/fallback/route with a mocked Anthropic call, rate limiter, waitlist route, proxy gate).
+- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`: Node LTS, `npm ci`, lint, test, build, no secrets. 106 tests today (lib/ logic, crypto, local auth, consent, i18n parity, Nora prompt/fallback/route with mocked Anthropic and Supabase calls, server-side Supabase helpers, account-erasure route, cloud-mode client sync/consent/erasure against a mocked Supabase, rate limiter, waitlist route, proxy gate).
 - Deploy: Vercel preview per PR, production from `master`.
 - Database changes: idempotent SQL in `supabase/`.
 
