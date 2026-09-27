@@ -99,7 +99,7 @@ export default function Community({ onBack }) {
         </div>
         {ROOMS.map(function (r) {
           return (
-            <button key={r.id} onClick={function () { setRoom(r); }} className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border mb-2 text-left" style={{ borderColor: r.color + "40" }}>
+            <button key={r.id} onClick={function () { setRoom(r); }} className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border mb-2 text-start" style={{ borderColor: r.color + "40" }}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: r.color }}>{r.name[0]}</div>
               <div className="flex-1">
                 <p className="text-bloom-text text-sm font-bold">{r.name}</p>
