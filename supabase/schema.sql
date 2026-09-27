@@ -10,6 +10,15 @@ create table if not exists public.user_state (
   updated_at timestamptz not null default now()
 );
 
+-- Size guard: one user's synced state stays under 2 MB, so a buggy or abusive client can't
+-- fill the database. Added "not valid" so re-running never fails on existing rows.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'user_state_data_size') then
+    alter table public.user_state add constraint user_state_data_size check (pg_column_size(data) < 2097152) not valid;
+  end if;
+end $$;
+
 alter table public.user_state enable row level security;
 
 drop policy if exists "user_state: read own"   on public.user_state;

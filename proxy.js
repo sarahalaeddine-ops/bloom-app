@@ -12,6 +12,14 @@ async function passToken(password) {
   return Array.from(new Uint8Array(hash)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
 }
 
+// Compares two hex tokens without stopping at the first difference.
+function sameToken(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function passwordFromHeader(header) {
   if (!header || !header.startsWith("Basic ")) return null;
   try {
@@ -27,12 +35,12 @@ export async function proxy(request) {
   var password = process.env.DEMO_PASSWORD;
   var expected = password ? await passToken(password) : null;
 
-  if (expected && request.cookies.get(COOKIE)?.value === expected) return NextResponse.next();
+  if (expected && sameToken(request.cookies.get(COOKIE)?.value, expected)) return NextResponse.next();
 
   if (isApi) return Response.json({ error: "Not authorized" }, { status: 401 });
 
   var given = passwordFromHeader(request.headers.get("authorization"));
-  if (expected && given !== null && (await passToken(given)) === expected) {
+  if (expected && given !== null && sameToken(await passToken(given), expected)) {
     var res = NextResponse.next();
     res.cookies.set(COOKIE, expected, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: MAX_AGE });
     return res;

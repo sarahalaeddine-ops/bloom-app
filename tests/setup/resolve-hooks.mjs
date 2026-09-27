@@ -1,10 +1,12 @@
-// ESM resolve hook: retry relative, extensionless specifiers with ".js" (then "/index.js").
+// ESM resolve hook: retry extensionless specifiers with ".js" (then "/index.js"), the way Next's
+// bundler resolves them. Covers relative app imports ("./store") and package subpaths without an
+// exports map ("next/server").
 export async function resolve(specifier, context, nextResolve) {
   try {
     return await nextResolve(specifier, context);
   } catch (err) {
-    var relative = specifier.startsWith("./") || specifier.startsWith("../");
-    if (!relative || /\.[cm]?[jt]sx?$/.test(specifier)) throw err;
+    var retry = err && (err.code === "ERR_MODULE_NOT_FOUND" || err.code === "ERR_UNSUPPORTED_DIR_IMPORT");
+    if (!retry || /\.[cm]?[jt]sx?$/.test(specifier) || specifier.startsWith("node:")) throw err;
     try {
       return await nextResolve(specifier + ".js", context);
     } catch {

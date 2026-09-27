@@ -31,7 +31,7 @@ Nora calls Claude through a server route (`app/api/nora/route.js`), so the API k
 | `ANTHROPIC_API_KEY` | Enables live Nora replies. Without it Nora answers with scripted, cycle-aware demo replies. |
 | `NORA_MODEL` | Optional model override (defaults to `claude-sonnet-4-6`, as in the spec). |
 
-Put them in `.env.local` locally (see `.env.example`), and in Vercel → Project → Settings → Environment Variables for deploys.
+See [Environment variables](#environment-variables) for the full list.
 
 Nora replies in the user's language (English, Arabic or French), both live and in demo mode.
 
@@ -41,6 +41,20 @@ Safety and cost controls (details in [`docs/sa6/architecture.md`](docs/sa6/archi
 - Per-IP rate limit (10/minute, 200/day). It is in memory, so it applies per server instance. Emergencies are never blocked.
 - Automatic prompt caching, `max_tokens` 500, 20 s timeout with scripted fallback, and one log line per call with token counts only (no content).
 - Prompt or model changes: re-run the evals in [`docs/sa6/nora-evals.md`](docs/sa6/nora-evals.md).
+
+### Environment variables
+
+All optional: with none set, Bloom builds and runs as an offline demo (the private demo page and Nora API stay locked until `DEMO_PASSWORD` is set). Put them in `.env.local` locally (see `.env.example`) and in Vercel → Project → Settings → Environment Variables for deploys.
+
+| Env var | Secret | Purpose |
+|---|---|---|
+| `DEMO_PASSWORD` | Yes | Password for `/demo-7q4x` and `/api/nora` (`proxy.js`). Any username works; a cookie keeps visitors in for 30 days. Changing it signs everyone out. |
+| `ANTHROPIC_API_KEY` | Yes | Live Nora replies. Without it Nora uses scripted replies. |
+| `NORA_MODEL` | No | Nora model id (default `claude-sonnet-4-6`). |
+| `BLOB_READ_WRITE_TOKEN` | Yes | Waitlist storage in Vercel Blob. Added automatically when a Blob store is connected. |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No (public) | Turn on cloud accounts and sync. Row-level security protects the data. Never expose the service-role key. |
+
+To run the private demo locally: `DEMO_PASSWORD=anything npm run dev`, open http://localhost:3000/demo-7q4x and enter that password.
 
 ### Accounts, sync and security
 
@@ -84,9 +98,11 @@ All data persists in `localStorage` (`bloom_*` keys), so the demo survives reloa
 ```
 app/
   layout.jsx, globals.css      fonts + PWA meta tags
-  page.jsx                     splash → auth → onboarding → app shell
-  landing/page.jsx             waitlist landing page
-  api/nora/route.js            Nora chat (server-side Anthropic call + demo fallback)
+  page.jsx                     public landing page + waitlist form
+  demo-7q4x/page.jsx           the app: splash → auth → onboarding → app shell (password-protected)
+  api/nora/route.js            Nora chat (server-side Anthropic call + scripted fallback)
+  api/waitlist/route.js        waitlist sign-ups and count (Vercel Blob)
+proxy.js                       password gate for the demo and the Nora API (DEMO_PASSWORD)
 components/
   SplashScreen, AuthScreen, OnboardingScreen, AppShell
   screens/                     Home, CheckIn, Nora, Insights, More
@@ -101,9 +117,15 @@ lib/
   i18n.js, stories-i18n.js     English / Arabic / French
   cycle.js                     med log, check-ins, cycle dates
   demo-data.js                 all seeded demo content
-  nora.js                      Nora system prompt + offline replies
+  nora.js                      Nora system prompt, emergency detection, offline replies
+  rate-limit.js                in-memory per-IP rate limiter for API routes
+  validate.js                  shared input validation (email)
 public/manifest.json, apple-touch-icon.png, icon.svg, sw.js
 supabase/schema.sql            cloud table + row-level security
+tests/                         node --test suites (npm test)
+scripts/nora-evals.mjs         runs the Nora eval prompts against a dev server
+docs/sa6/                      architecture record, Nora evals
+.github/workflows/ci.yml       lint, test, build on every PR
 ```
 
 Tailwind CSS v3 with the `bloom` palette in `tailwind.config.js`. Deploy on Vercel.
@@ -112,3 +134,4 @@ Tailwind CSS v3 with the `bloom` palette in `tailwind.config.js`. Deploy on Verc
 
 - **sa4** (`.claude/agents/sa4.md`) builds features and flows from the Hanover spec.
 - **sa5** (`.claude/agents/sa5.md`) is the designer and enhancement advisor. It benchmarks Bloom against Flo and owns the graphics. See `docs/sa5/flo-benchmark.md` for the recommendation backlog.
+- **sa6** (`.claude/agents/sa6.md`) owns the technical architecture, AI features, security and CI. See `docs/sa6/architecture.md` and `docs/sa6/nora-evals.md`.

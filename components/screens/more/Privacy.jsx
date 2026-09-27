@@ -117,6 +117,10 @@ export default function Privacy({ onBack, user, setUser }) {
               {cloudEnabled() && user.cloud ? "Synced securely to your Bloom account (row-level secured, encrypted in transit)." : "Stored only on this device."}
             </p>
           </div>
+          <p className="text-bloom-muted text-xs mb-2 px-1">
+            <span className="text-bloom-text font-semibold">Nora: </span>
+            the messages you send her, your first name (never in anonymous mode) and your cycle details (stim day, protocol, clinic, E2) go to Anthropic (Claude) to write her replies. Secret Space, your PIN and your check-in journal never do.
+          </p>
           {counts.map(function (c) {
             return (
               <div key={c[0]} className="flex justify-between py-2 border-t border-bloom-border first:border-0 text-sm">
@@ -143,7 +147,7 @@ export default function Privacy({ onBack, user, setUser }) {
           <button onClick={function () { setConfirmDelete(true); }} className="w-full py-3.5 rounded-2xl border border-red-300 text-red-500 font-semibold text-sm">Delete all my data</button>
         ) : (
           <div className="bg-white rounded-2xl p-4 border border-red-200 text-center">
-            <p className="text-bloom-text text-sm mb-3">This permanently deletes your account, check-ins, logs and journal from this device.</p>
+            <p className="text-bloom-text text-sm mb-3">{cloudEnabled() && user.cloud ? "This permanently deletes your check-ins, logs and journal from this device and from your synced Bloom data." : "This permanently deletes your account, check-ins, logs and journal from this device."}</p>
             <div className="flex gap-2">
               <button onClick={function () { setConfirmDelete(false); }} className="flex-1 py-2.5 rounded-xl bg-bloom-surface text-bloom-muted text-sm font-semibold">Cancel</button>
               <button onClick={deleteAll} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Delete everything</button>

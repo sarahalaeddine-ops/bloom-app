@@ -74,7 +74,7 @@ Design principles:
 |---|---|---|---|---|
 | `POST /api/nora` | Nora chat. Server-side Anthropic call. | Demo cookie (proxy) | Body ≤ 64 KB, ≤ 20 turns, ≤ 4,000 chars/turn, profile fields sanitised, `max_tokens` 500, 20 s timeout, per-IP rate limit | `lib/nora.js` scripted replies (no key, API error, timeout) |
 | `GET /api/waitlist` | Waitlist count (cached 60 s at the edge) | Public | Paged, max 50 pages | `503/502` generic error |
-| `POST /api/waitlist` | Save an email as a private blob `waitlist/<email>.json` | Public | Strict email check, per-IP rate limit | `503/502` generic error |
+| `POST /api/waitlist` | Save an email as a private blob `waitlist/<email>.json` | Public | Body ≤ 2 KB, strict email check (`lib/validate.js`, no path characters), per-IP rate limit 5 / 10 min | `503/502` generic error |
 
 ### 3.4 Data layer: `lib/store.js`
 - **Local mode (default):** everything in `localStorage` under `bloom_*`. Local accounts store salted PBKDF2-SHA256 hashes (210k iterations) in `bloom_users`.
@@ -166,7 +166,7 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 ## 8. Quality and delivery
 
 - `npm run lint`, `npm test` (`node --test`, no packages; a tiny resolve hook in `tests/setup/` adds `.js` to extensionless imports), `npm run build`.
-- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`/`main`: Node LTS, `npm ci`, lint, test, build, no secrets.
+- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`: Node LTS, `npm ci`, lint, test, build, no secrets. 67 tests today (lib/ logic, crypto, local auth, i18n parity, Nora prompt/fallback/route with a mocked Anthropic call, rate limiter, waitlist route, proxy gate).
 - Deploy: Vercel preview per PR, production from `master`.
 - Database changes: idempotent SQL in `supabase/`.
 
@@ -187,6 +187,22 @@ Severity: **High** = fix before real users / real health data. **Med** = fix bef
 | G6 | Demo gate cookie is a deterministic hash of the password; comparison is not constant-time. | Low | Acceptable for a demo gate. Rotating `DEMO_PASSWORD` invalidates all cookies. Replace with real auth at launch. |
 | G7 | Local-mode accounts are only as safe as the device (hashes are in `localStorage`). | Low | By design for the demo; cloud mode is the production path. |
 | G8 | `user_state` is one jsonb blob per user, last write wins across devices. | Med | Fine for the demo. Move to per-entity tables with `updated_at` merge when multi-device use matters (R1/R3). |
+| G13 | Supabase auth error messages are shown as-is (e.g. "User already registered"), which allows email enumeration. | Low | Map to generic messages when cloud mode goes live (with sa4, needs i18n strings). |
+| G14 | Rate limiting keys on `x-forwarded-for`. Behind Vercel the platform sets it; behind another proxy it could be spoofed. | Low | Re-check if hosting changes. |
+| G15 | The Nora cycle context falls back to demo values (Stim Day 7, E2 1,840, fixed follicle sizes) when a real user hasn't entered them. | Med (launch) | R1: read real values from her data and leave unknown fields out of the prompt. |
+
+### Security pass 2026-09-27: fixed
+- Nora: profile fields were injected into the system prompt unvalidated (prompt injection, unbounded size). Now sanitised and placed in a delimited data block; body capped at 64 KB; a trailing assistant turn (prefill) is rejected; API error logging no longer echoes provider error messages.
+- Nora: anonymous mode still sent her full name to Anthropic. Now only the first name is sent, and none in anonymous mode.
+- Scripted Nora answered "severe pain since retrieval" with reassurance and ignored heavy bleeding, OHSS signs and self-harm. Now an immediate referral (see `nora-evals.md`).
+- No rate limits on Nora or the waitlist. Added (per instance).
+- Waitlist: the loose email regex allowed `/` and `..` in an email that becomes a blob path, and the body size was unbounded. Tightened and capped.
+- `proxy.js`: token comparison is now constant-time. The stale "not password-protected" comment in `app/demo-7q4x/layout.jsx` is corrected.
+- Security headers added in `next.config.ts` (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`, `Permissions-Policy`, HSTS) and `x-powered-by` removed.
+- `user_state` 2 MB size guard; "Delete everything" copy no longer claims to delete a cloud account it doesn't delete; Privacy Centre now names Anthropic and what Nora receives.
+- `DEMO_PASSWORD` and `BLOB_READ_WRITE_TOKEN` were undocumented. Now in `README.md` and `.env.example`.
+
+Reviewed and fine: RLS policies (all four operations, `to authenticated`, `(select auth.uid()) = user_id`, cascade delete), no service-role key anywhere in the client, `LOCAL_ONLY` keys excluded from sync and from the export, export excludes password and PIN hashes, Secret Space only syncs ciphertext, no `dangerouslySetInnerHTML` or `eval` in the app, the service worker caches nothing.
 
 ### Privacy
 | # | Gap | Sev | Status / plan |

@@ -1,5 +1,5 @@
 // Loaded with `node --import ./tests/setup/register.mjs --test`.
-// 1. Lets Node's ESM loader resolve the app's extensionless imports ("./store" → "./store.js"),
+// 1. Lets Node's ESM loader resolve extensionless imports ("./store" → "./store.js", "next/server"),
 //    the way Next's bundler does. No packages needed.
 // 2. Gives lib/ code a minimal browser-like global: window, localStorage.
 import { register } from "node:module";
