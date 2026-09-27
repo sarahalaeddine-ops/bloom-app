@@ -1,4 +1,8 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
+import { Illustration } from "../../ui/Graphics";
+
+var APPT_ART = { "Monitoring Scan": "scan", "Trigger Shot Timing": "phone", "Egg Retrieval": "egg", "Embryo Transfer": "embryo", "Beta HCG Test": "lab" };
 import { useState, useEffect } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import { APPOINTMENTS, PREP_TIPS } from "../../../lib/demo-data";
@@ -54,13 +58,17 @@ export default function Appointments({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">Appointments</h1>
-        <p className="text-bloom-muted text-sm mb-4">Your upcoming schedule</p>
+        <ScreenHero art="scan" title="Appointments" sub="Your upcoming schedule" />
 
         <div className="bg-white rounded-2xl p-5 border mb-4" style={{ borderColor: "#9B6DC530" }}>
-          <p className="text-xs font-bold uppercase tracking-wider text-bloom-accent mb-1">Next appointment</p>
-          <h2 className="text-xl font-bold text-bloom-text mb-1">{next.type}</h2>
-          <p className="text-bloom-muted text-sm mb-4">Tomorrow at {next.time} · {clinic}</p>
+          <div className="flex items-center gap-3 mb-4">
+            <Illustration name={APPT_ART[next.type] || "calendar"} size={64} />
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-bloom-accent mb-1">Next appointment</p>
+              <h2 className="text-xl font-bold text-bloom-text mb-1">{next.type}</h2>
+              <p className="text-bloom-muted text-sm">Tomorrow at {next.time} · {clinic}</p>
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-2 mb-4" aria-live="polite">
             {[[days, "days"], [hours, "hours"], [mins, "min"]].map(function (x) {
               return (
@@ -90,7 +98,7 @@ export default function Appointments({ onBack, user }) {
           return (
             <div key={apt.id} className="bg-white rounded-2xl border mb-2 overflow-hidden" style={{ borderColor: apt.color + "30" }}>
               <button onClick={function () { setOpen(isOpen ? null : apt.id); }} aria-expanded={isOpen} className="w-full text-start p-4 flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: apt.color }} />
+                <Illustration name={APPT_ART[apt.type] || "calendar"} size={48} />
                 <div className="flex-1">
                   <p className="text-bloom-text text-sm font-semibold">{apt.type}</p>
                   <p className="text-bloom-muted text-xs">{apt.label} · {apt.time}</p>

@@ -23,6 +23,7 @@ You are **sa5**, the **designer and enhancement advisor** for **Bloom — Your I
   - `Ovary`: follicles drawn to scale inside each ovary. Mature follicles are filled.
   - `Illustration name=…`: spot art (`clinic`, `protocol`, `phase`, `calendar`, `therapy`, `moon`, `drop`, `heart`, `egg`, `bloom`).
   - `MoodFace`, `StreakFlower`, `Donut`, `PetalBurst`, plus extra spot art (`shield`, `embryo`, `plate`, `leaf`, `couple`).
+- **Every screen expresses its content with a drawing.** Inner screens open with `ScreenHero` (`components/ui/ScreenHero.jsx`: gradient card, title, subtitle, `Illustration` on the end side). More-menu tiles use the same art as their screen (the `art` field in `MoreScreen.jsx` `SECTIONS`). Item lists get item-level art too: appointment types, `PersonAvatar` for therapists, `FlowerAvatar` for anonymous community names, `FruitSize` for pregnancy weeks, and `WellbeingScene` for wellbeing videos. Never ship a screen with only glyphs or emoji as its visuals.
 - `components/ui/Stories.jsx` holds Flo-style daily stories (bubbles + tap-through viewer). The content is `STORIES` in `lib/demo-data.js`, ranked per user by `storiesFor()`.
 - `components/QuickLog.jsx` is the "+" quick log, opened from `AppShell`. `components/ui/PinPad.jsx` + `components/LockScreen.jsx` are the app lock. `components/screens/more/Privacy.jsx` is the Privacy Centre.
 - RTL: every design must work in Arabic (`dir="rtl"`). Check screenshots in `ar` as well as `en`, use logical spacing classes, and never hard-code left/right.

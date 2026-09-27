@@ -74,6 +74,15 @@ Still to borrow: Flo's "Doctor's story" video series (needs real clinicians and 
 | **My cycles** stats with ⓘ and a chart with a "normal range" band | `CycleStats`: stim days, lead follicle, average growth, E2 change and doses taken, each with a reviewed ⓘ sheet. A lead-follicle chart with the **typical trigger zone (17–20 mm)** band, plus a banner that "every body responds at its own pace" |
 | Date header + calendar icon | Today's date on Home opens `CycleCalendar`: done and planned stim days, appointments, logged-day dots, and details for the tapped day (appointments, mood, feelings, symptoms, sleep) |
 
+## Pass 6: graphics everywhere
+
+At the owner's request, every screen now has illustrations that express its content, all in one style:
+- The **More menu** tiles each show their section's drawing (a report clipboard, a pill and pen, an ultrasound screen, a chart, an hourglass, therapy chat, yoga, community, a rainbow after rain, a couple, a baby, a locked journal, a bell, a shield and a crown).
+- **`ScreenHero`** is on Appointments, Charts, Medications, Two Week Wait, Therapy, Community, After a Failed Cycle, Pregnancy, Upgrade, Privacy and Reminders.
+- **Wellbeing** has five drawn scenes (movement, breath, meditation, nutrition, emotional support), a featured card, a one-minute **Breathe with me** exercise, and mood chips with faces.
+- **Item art**: appointment types, drawn therapist avatars, flower avatars in community rooms, drawn baby-size fruits for each pregnancy week (replacing emoji that don't render on every phone), med-type art, and partner features.
+- **Nora** uses the Bloom flower as its avatar, plus an intro card. Secret Space uses a locked journal.
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |

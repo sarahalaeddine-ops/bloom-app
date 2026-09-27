@@ -1,7 +1,7 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
-import { Illustration } from "../../ui/Graphics";
 import { getSettings, saveSettings, permission, requestPermission, notify, upcoming, fmtTime, doseCalendar, LEADS } from "../../../lib/reminders";
 
 function Toggle({ on, onChange, label }) {
@@ -51,11 +51,7 @@ export default function Reminders({ onBack }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <div className="flex flex-col items-center text-center mb-5">
-          <Illustration name="bell" size={104} />
-          <h1 className="text-2xl font-bold text-bloom-text mt-3 mb-1">Reminders</h1>
-          <p className="text-bloom-muted text-sm">Never miss a dose, a scan or a call from your clinic.</p>
-        </div>
+        <ScreenHero art="bell" title="Reminders" sub="Never miss a dose, a scan or a call from your clinic." tint="gold" />
 
         {msg && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{msg}</p>}
 

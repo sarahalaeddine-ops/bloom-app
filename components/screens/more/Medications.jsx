@@ -1,4 +1,6 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
+import { Illustration } from "../../ui/Graphics";
 import { useState } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
 import { MEDS, INJECTION_TIPS } from "../../../lib/demo-data";
@@ -13,9 +15,7 @@ function MedCard({ med, entry, onClick }) {
     <button onClick={onClick}
       className="w-full flex items-center gap-3 p-4 rounded-2xl border mb-2 text-start bg-white"
       style={{ borderColor: taken ? med.color + "40" : "#E8E0DB", backgroundColor: taken ? med.color + "06" : "white" }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: med.color + "18" }}>
-        <span className="text-sm" style={{ color: med.color }}>{med.type === "injection" ? "◎" : "●"}</span>
-      </div>
+      <Illustration name={med.type === "injection" ? "protocol" : "pill"} size={48} />
       <div className="flex-1">
         <p className="text-bloom-text text-sm font-bold">{med.name} <span className="font-normal text-bloom-muted">{med.dose}</span></p>
         <p className="text-bloom-dim text-xs">{med.time}{entry && entry.site ? " · " + entry.site : ""}</p>
@@ -66,8 +66,7 @@ export default function Medications({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg">
       <BackBtn onBack={onBack} />
       <div className="px-4 pb-2">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">Medications</h1>
-        <p className="text-bloom-muted text-sm mb-4">Stimulation Day {stimDay}</p>
+        <ScreenHero art="pill" title="Medications" sub={"Stimulation Day " + stimDay} />
         <div className="flex bg-bloom-surface rounded-xl p-1 mb-4" role="tablist">
           {[["today", "Today"], ["history", "History"], ["schedule", "Schedule"]].map(function (t) {
             return (
