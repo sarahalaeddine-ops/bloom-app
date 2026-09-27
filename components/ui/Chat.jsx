@@ -42,7 +42,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, bott
         className="flex-1 bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none focus:border-bloom-accent" />
       <button onClick={function () { onSend(); }} disabled={disabled || !value.trim()} aria-label="Send"
         className="w-11 h-11 bg-bloom-accent rounded-xl flex items-center justify-center text-white disabled:opacity-40">
-        →
+        <span className="flip-rtl">→</span>
       </button>
     </div>
   );

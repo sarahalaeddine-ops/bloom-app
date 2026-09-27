@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import { BloomFlower, Blobs } from "./ui/Graphics";
+import { useT } from "../lib/i18n";
 
 export default function SplashScreen({ onDone }) {
+  var { t } = useT();
   var [show, setShow] = useState(true);
 
   useEffect(function () {
@@ -14,13 +17,14 @@ export default function SplashScreen({ onDone }) {
   }, [onDone]);
 
   return (
-    <div className={"fixed inset-0 bg-bloom-bg flex flex-col items-center justify-center transition-opacity duration-500 " + (show ? "opacity-100" : "opacity-0")}>
+    <div className={"fixed inset-0 bg-bloom-bg flex flex-col items-center justify-center transition-opacity duration-500 overflow-hidden " + (show ? "opacity-100" : "opacity-0")}>
+      <Blobs />
       <div className="relative z-10 flex flex-col items-center animate-fade-in">
+        <BloomFlower size={88} className="mb-4" />
         <p className="logo" style={{ fontSize: "64px", lineHeight: "1" }}>bloom</p>
-        <p style={{ color: "#9B6DC5", fontSize: "32px", marginTop: "4px" }}>✦</p>
         <div className="w-16 h-px bg-bloom-accent opacity-30 my-6" />
         <p className="text-bloom-dim uppercase" style={{ fontSize: "11px", letterSpacing: "0.2em" }}>
-          Your IVF companion
+          {t("app.tagline")}
         </p>
         <div className="flex gap-2 mt-10">
           <div className="w-2 h-2 rounded-full bg-bloom-accent animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -29,7 +33,7 @@ export default function SplashScreen({ onDone }) {
         </div>
       </div>
       <p className="absolute bottom-12 text-bloom-dim text-xs tracking-wide">
-        You are not alone in this journey
+        {t("app.notAlone")}
       </p>
     </div>
   );

@@ -104,7 +104,7 @@ export default function Videos({ onBack }) {
                 <span className="text-3xl" style={{ color: c.color }}>{c.mark}</span>
                 <span className="absolute bottom-1 right-1 bg-black/40 text-white text-[10px] px-1.5 rounded">{v.duration}</span>
               </button>
-              <button onClick={function () { setPlaying(v); }} className="flex-1 text-left min-w-0">
+              <button onClick={function () { setPlaying(v); }} className="flex-1 text-start min-w-0">
                 <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md" style={{ color: c.color, backgroundColor: c.color + "15" }}>{v.phase}</span>
                 <p className="text-bloom-text text-sm font-semibold leading-tight mt-1.5">{v.title}</p>
                 <p className="text-bloom-dim text-xs mt-0.5">{v.duration} · {c.label}</p>

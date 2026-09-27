@@ -56,7 +56,7 @@ export default function Upgrade({ onBack, user, setUser }) {
           var on = plan === x.id;
           return (
             <button key={x.id} onClick={function () { setPlan(x.id); }} aria-pressed={on}
-              className="w-full text-left bg-white rounded-2xl p-5 border-2 mb-4 relative transition-all"
+              className="w-full text-start bg-white rounded-2xl p-5 border-2 mb-4 relative transition-all"
               style={{ borderColor: on ? x.color : "#E8E0DB" }}>
               {x.popular && <span className="absolute -top-3 right-4 text-white text-xs px-3 py-1 rounded-full font-bold" style={{ backgroundColor: x.color }}>Most popular</span>}
               <div className="flex items-start gap-3 mb-4">

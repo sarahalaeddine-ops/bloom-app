@@ -22,8 +22,9 @@ export async function POST(request) {
   if (!messages.length) return Response.json({ error: "No message" }, { status: 400 });
 
   var last = messages[messages.length - 1].content;
+  var lang = ["en", "ar", "fr"].indexOf(body.lang) !== -1 ? body.lang : "en";
   var key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return Response.json({ text: demoReply(last), demo: true });
+  if (!key) return Response.json({ text: demoReply(last, lang), demo: true });
 
   try {
     var res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -36,16 +37,16 @@ export async function POST(request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 500,
-        system: buildSystemPrompt(body.user),
+        system: buildSystemPrompt(body.user, lang),
         messages: messages,
       }),
     });
     var data = await res.json();
     if (!res.ok) throw new Error(data.error ? data.error.message : "API error " + res.status);
     var text = (data.content || []).filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("\n");
-    return Response.json({ text: text || demoReply(last) });
+    return Response.json({ text: text || demoReply(last, lang) });
   } catch (err) {
     console.error("Nora API error:", err.message);
-    return Response.json({ text: demoReply(last), demo: true });
+    return Response.json({ text: demoReply(last, lang), demo: true });
   }
 }

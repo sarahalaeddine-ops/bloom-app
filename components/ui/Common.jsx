@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "../../lib/i18n";
 
 export function Logo({ size = 24, withMark = true }) {
   return (
@@ -9,8 +10,9 @@ export function Logo({ size = 24, withMark = true }) {
 }
 
 export function BackBtn({ onBack }) {
+  var { t } = useT();
   return (
-    <button onClick={onBack} className="px-4 py-4 text-bloom-accent font-semibold text-sm">← Back</button>
+    <button onClick={onBack} className="px-4 py-4 text-bloom-accent font-semibold text-sm"><span className="flip-rtl">←</span> {t("common.back")}</button>
   );
 }
 
@@ -30,7 +32,7 @@ export function Header({ title, sub }) {
 export function Sheet({ onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end z-[60]" onClick={onClose}>
-      <div className="animate-sheet bg-white w-full max-w-[430px] mx-auto rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={function (e) { e.stopPropagation(); }}>
+      <div role="dialog" aria-modal="true" className="animate-sheet bg-white w-full max-w-[430px] mx-auto rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={function (e) { e.stopPropagation(); }}>
         {children}
       </div>
     </div>
@@ -40,8 +42,10 @@ export function Sheet({ onClose, children }) {
 export function Toast({ text }) {
   if (!text) return null;
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] bg-bloom-text text-white text-sm px-4 py-2.5 rounded-xl shadow-lg animate-fade-in">
-      {text}
+    <div className="fixed top-4 inset-x-0 z-[70] flex justify-center px-4 pointer-events-none" role="status">
+      <div className="bg-bloom-text text-white text-sm px-4 py-2.5 rounded-xl shadow-lg animate-fade-in text-center max-w-[398px]">
+        {text}
+      </div>
     </div>
   );
 }

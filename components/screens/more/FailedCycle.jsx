@@ -47,12 +47,12 @@ export default function FailedCycle({ onBack, openSection }) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={function () { openSection("therapy"); }} className="bg-white rounded-2xl p-4 border border-bloom-teal/40 text-left">
+          <button onClick={function () { openSection("therapy"); }} className="bg-white rounded-2xl p-4 border border-bloom-teal/40 text-start">
             <p className="text-bloom-teal text-lg mb-1">◇</p>
             <p className="text-bloom-text text-sm font-bold">Talk to a therapist</p>
             <p className="text-bloom-muted text-xs">Grief specialists</p>
           </button>
-          <button onClick={function () { openSection("community"); }} className="bg-white rounded-2xl p-4 border text-left" style={{ borderColor: "#5BADD440" }}>
+          <button onClick={function () { openSection("community"); }} className="bg-white rounded-2xl p-4 border text-start" style={{ borderColor: "#5BADD440" }}>
             <p className="text-lg mb-1" style={{ color: "#5BADD4" }}>◎</p>
             <p className="text-bloom-text text-sm font-bold">Failed Cycle room</p>
             <p className="text-bloom-muted text-xs">43 women who get it</p>

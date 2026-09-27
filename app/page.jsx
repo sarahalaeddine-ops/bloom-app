@@ -1,4 +1,5 @@
 import WaitlistForm from "../components/site/WaitlistForm";
+import { BloomFlower } from "../components/ui/Graphics";
 
 export const metadata = {
   title: "Bloom — The hardest journey. Not alone.",
@@ -83,6 +84,7 @@ export default function Site() {
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-6 lg:px-10 pt-12 pb-24 lg:pt-20 lg:pb-32 grid lg:grid-cols-[1.3fr_1fr] gap-14 items-center">
           <div>
+            <BloomFlower size={72} className="mb-5" />
             <p className="text-bloom-accent uppercase font-semibold mb-6" style={{ fontSize: "12px", letterSpacing: "0.25em" }}>Your IVF companion</p>
             <h1 className="font-serif font-light mb-6" style={{ fontSize: "clamp(44px, 5vw, 68px)", lineHeight: 1.02 }}>
               The hardest journey<br />you will ever take.<br /><em className="text-bloom-accent">Not alone.</em>
@@ -115,6 +117,7 @@ export default function Site() {
                 );
               })}
             </div>
+            <p className="font-serif italic text-bloom-muted text-2xl text-center mt-16">Period apps track cycles. Bloom walks with you through IVF.</p>
           </div>
         </section>
 
@@ -181,6 +184,7 @@ export default function Site() {
         {/* Closing call to action */}
         <section id="join" className="max-w-6xl mx-auto px-6 lg:px-10 pb-24 scroll-mt-10">
           <div className="bg-bloom-text text-white rounded-[2rem] px-8 py-16 lg:px-20 lg:py-20 flex flex-col items-center text-center">
+            <BloomFlower size={64} animate={false} className="mb-4" />
             <p className="logo mb-6" style={{ fontSize: "44px", lineHeight: 1 }}>bloom ✦</p>
             <h2 className="font-serif font-light mb-4" style={{ fontSize: "clamp(32px, 4vw, 48px)", lineHeight: 1.1 }}>Be the first to know when Bloom opens.</h2>
             <p className="text-white/70 mb-10 max-w-lg">Join the waitlist for early access. No spam, just one email when it is your turn.</p>
