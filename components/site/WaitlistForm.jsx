@@ -60,7 +60,7 @@ export default function WaitlistForm({ id, showCount }) {
       {error && <p className="text-red-500 text-xs mt-2" role="alert">{error}</p>}
       {showCount && count > 0 && (
         <p className="text-bloom-muted text-sm mt-4">
-          <span className="font-serif text-bloom-accent" style={{ fontSize: "22px" }}>{count.toLocaleString()}</span> {count === 1 ? "woman" : "women"} already waiting
+          <span className="font-sans font-semibold text-bloom-accent tabular-nums" style={{ fontSize: "20px" }}>{count.toLocaleString()}</span> {count === 1 ? "woman" : "women"} already waiting
         </p>
       )}
     </div>
