@@ -178,3 +178,136 @@ test("live path: API errors, network failures and empty replies fall back to scr
   assert.equal(c.demo, true);
   assert.match(c.text, /trigger/i);
 });
+
+// ── Cloud mode (G1): Supabase token verified server-side, context read from her own row ──────
+var SB = "https://proj.supabase.co";
+var UID = "5f0c6a52-1c2b-4a57-9d3e-2b7c1e9f0a11";
+var JWT = "eyJhbGciOi.eyJzdWIiOi.c2lnbmF0dXJl";
+
+function withCloud() {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = SB;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+}
+
+function noCloud() {
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+}
+
+// Routes mocked fetch calls by URL. opts: { user: status | Error, row: data | null, rowStatus, anthropic }
+function mockCloud(opts) {
+  var calls = [];
+  globalThis.fetch = async function (url, init) {
+    url = String(url);
+    calls.push({ url: url, init: init || {}, body: init && init.body ? JSON.parse(init.body) : null });
+    function json(status, body) { return new Response(JSON.stringify(body), { status: status, headers: { "content-type": "application/json" } }); }
+    if (url === SB + "/auth/v1/user") {
+      if (opts.user instanceof Error) throw opts.user;
+      return opts.user && opts.user !== 200 ? json(opts.user, { msg: "invalid" }) : json(200, { id: opts.uid || UID, aud: "authenticated" });
+    }
+    if (url.indexOf(SB + "/rest/v1/user_state") === 0) return json(opts.rowStatus || 200, opts.row ? [{ data: opts.row }] : []);
+    if (url === "https://api.anthropic.com/v1/messages") return json(200, opts.anthropic || { content: [{ type: "text", text: "Live answer" }], usage: {} });
+    throw new Error("unexpected fetch " + url);
+  };
+  return calls;
+}
+
+function cloudReq(body, token, ip) {
+  ipCounter++;
+  var headers = { "content-type": "application/json", "x-forwarded-for": ip || "10.9." + Math.floor(ipCounter / 250) + "." + (ipCounter % 250) };
+  if (token !== undefined) headers.authorization = "Bearer " + token;
+  return new Request("http://localhost/api/nora", { method: "POST", headers: headers, body: JSON.stringify(body) });
+}
+
+var CLIENT_USER = { name: "Mallory", clinic: "Client Clinic", stimDay: 3, demo: true, e2: 1840 };
+var SYNCED = { user: { id: UID, name: "Lina Haddad", clinic: "Synced Clinic", protocol: "Antagonist", phase: "stimulation", stimDay: 9, e2: 2100 } };
+
+test("cloud: a verified user's context comes from her own row, read with her token", async function () {
+  withCloud();
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  captureLogs();
+  var calls = mockCloud({ row: SYNCED });
+  var res = await POST(cloudReq(ask("How am I doing?", { user: CLIENT_USER }), JWT));
+  var data = await res.json();
+  noCloud();
+  assert.equal(res.status, 200);
+  assert.equal(data.text, "Live answer");
+  var verify = calls.find(function (c) { return c.url === SB + "/auth/v1/user"; });
+  assert.equal(verify.init.headers.Authorization, "Bearer " + JWT);
+  assert.equal(verify.init.headers.apikey, "anon-key");
+  var read = calls.find(function (c) { return c.url.indexOf("/rest/v1/user_state") !== -1; });
+  assert.match(read.url, new RegExp("user_id=eq\\." + UID));
+  assert.equal(read.init.headers.Authorization, "Bearer " + JWT, "RLS: her token, not a service key");
+  var system = calls.find(function (c) { return c.url.indexOf("anthropic") !== -1; }).body.system;
+  assert.match(system, /First name: Lina\n/);
+  assert.match(system, /Synced Clinic/);
+  assert.match(system, /Stimulation Day 9/);
+  assert.equal(system.indexOf("Client Clinic"), -1, "client-sent profile ignored");
+  assert.equal(system.indexOf("Mallory"), -1);
+  assert.equal(system.indexOf("18, 16"), -1, "client can't switch on the demo persona");
+});
+
+test("cloud: without a synced profile the client's fields are used, never as the demo persona", async function () {
+  withCloud();
+  mockCloud({ row: null });
+  var data = await (await POST(cloudReq(ask("What does my E2 mean?", { user: { demo: true, name: "Lina" } }), JWT))).json();
+  noCloud();
+  assert.equal(data.demo, true);
+  assert.doesNotMatch(data.text, /1,840/);
+});
+
+test("cloud: invalid or malformed tokens get 401; emergencies still get the referral", async function () {
+  withCloud();
+  mockCloud({ user: 401 });
+  var res = await POST(cloudReq(ask("hi"), JWT));
+  assert.equal(res.status, 401);
+  assert.deepEqual(await res.json(), { error: "Not signed in" });
+
+  var calls = mockCloud({});
+  assert.equal((await POST(cloudReq(ask("hi"), "garbage"))).status, 401);
+  assert.equal(calls.length, 0, "malformed token never reaches Supabase");
+
+  mockCloud({ user: 401 });
+  var urgent = await POST(cloudReq(ask("I'm bleeding heavily"), JWT));
+  noCloud();
+  assert.equal(urgent.status, 200);
+  assert.equal((await urgent.json()).urgent, true);
+});
+
+test("cloud: Supabase down means an offline reply with no profile and no AI call", async function () {
+  withCloud();
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  var calls = mockCloud({ user: new Error("down") });
+  var data = await (await POST(cloudReq(ask("What does my E2 mean?", { user: CLIENT_USER }), JWT))).json();
+  assert.equal(data.demo, true);
+  assert.doesNotMatch(data.text, /1,840/);
+  assert.equal(calls.filter(function (c) { return c.url.indexOf("anthropic") !== -1; }).length, 0);
+
+  calls = mockCloud({ rowStatus: 500 });
+  data = await (await POST(cloudReq(ask("hi"), JWT))).json();
+  noCloud();
+  assert.equal(data.demo, true);
+  assert.equal(calls.filter(function (c) { return c.url.indexOf("anthropic") !== -1; }).length, 0);
+});
+
+test("no token keeps today's local/demo behaviour, and a token is ignored when cloud mode is off", async function () {
+  withCloud();
+  var calls = mockCloud({});
+  var data = await (await POST(cloudReq(ask("What does my E2 mean?", { user: { demo: true } })))).json();
+  assert.match(data.text, /1,840/);
+  assert.equal(calls.length, 0);
+  noCloud();
+  calls = mockCloud({});
+  var res = await POST(cloudReq(ask("hi"), JWT));
+  assert.equal(res.status, 200);
+  assert.equal(calls.length, 0);
+});
+
+test("cloud: each account is limited to 10 requests a minute across IPs", async function () {
+  withCloud();
+  mockCloud({ row: SYNCED, uid: "0e8b1d6c-7a3f-4c2e-9b1a-5d4c3b2a1f00" }); // fresh account, fresh quota
+  for (var i = 0; i < 10; i++) assert.equal((await POST(cloudReq(ask("hi"), JWT, "203.0.113." + i))).status, 200);
+  var res = await POST(cloudReq(ask("hi"), JWT, "203.0.113.200"));
+  noCloud();
+  assert.equal(res.status, 429);
+});

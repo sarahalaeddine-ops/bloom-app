@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { store } from "../../lib/store";
+import { askNora } from "../../lib/api";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
 import { noraProfile } from "../../lib/nora";
@@ -34,19 +35,17 @@ export default function NoraScreen({ user }) {
     update(next);
     setLoading(true);
     try {
-      var res = await fetch("/api/nora", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // Only what Nora needs: first name (never in anonymous mode) and cycle context. See docs/sa6/architecture.md.
-          user: noraProfile(user),
-          messages: next,
-          lang: lang,
-        }),
+      var res = await askNora({
+        // Only what Nora needs: first name (never in anonymous mode) and cycle context. In cloud mode
+        // the server reads her synced profile instead. See docs/sa6/architecture.md.
+        user: noraProfile(user),
+        messages: next,
+        lang: lang,
       });
-      var data = await res.json();
-      setDemo(!!data.demo);
-      update(next.concat({ role: "assistant", content: data.text || t("nora.error") }));
+      // Her cloud session is no longer valid (the route's 401, not the demo gate's): ask her to sign in again.
+      var reply = res.status === 401 && res.data.error === "Not signed in" ? t("nora.signInAgain") : res.data.text || t("nora.error");
+      setDemo(!!res.data.demo);
+      update(next.concat({ role: "assistant", content: reply }));
     } catch {
       update(next.concat({ role: "assistant", content: t("nora.error") }));
     }

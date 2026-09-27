@@ -67,12 +67,12 @@ Design principles:
 - Matcher: `/demo-7q4x`, `/demo-7q4x/:path*`, `/api/nora`.
 - Pages: HTTP Basic auth prompt once, then an `httpOnly; Secure; SameSite=Lax` cookie `bloom_demo` (30 days) holding `SHA-256("bloom-demo:" + DEMO_PASSWORD)`.
 - API: cookie only, otherwise `401` JSON. With no `DEMO_PASSWORD` both stay locked (fail closed).
-- This is a **demo gate, not user auth.** Real user auth for server routes is roadmap item R1.
+- This is a **demo gate, not user auth.** Real user auth for server routes is the Supabase Bearer token checked in each route (R1, section 4.1).
 
 ### 3.3 API routes (Node runtime)
 | Route | Purpose | Auth | Limits | Fallback |
 |---|---|---|---|---|
-| `POST /api/nora` | Nora chat. Server-side Anthropic call. | Demo cookie (proxy) | Body ≤ 64 KB, ≤ 20 turns, ≤ 4,000 chars/turn, profile fields sanitised, `max_tokens` 500, 20 s timeout, per-IP rate limit | `lib/nora.js` scripted replies (no key, API error, timeout) |
+| `POST /api/nora` | Nora chat. Server-side Anthropic call. | Demo cookie (proxy). Cloud mode: `Authorization: Bearer <Supabase access token>` verified server-side; per-account limits | Body ≤ 64 KB, ≤ 20 turns, ≤ 4,000 chars/turn, profile fields sanitised, `max_tokens` 500, 20 s timeout, per-IP rate limit | `lib/nora.js` scripted replies (no key, API error, timeout) |
 | `GET /api/waitlist` | Waitlist count (cached 60 s at the edge) | Public | Paged, max 50 pages | `503/502` generic error |
 | `POST /api/waitlist` | Save an email as a private blob `waitlist/<email>.json` | Public | Body ≤ 2 KB, strict email check (`lib/validate.js`, no path characters), per-IP rate limit 5 / 10 min | `503/502` generic error |
 
@@ -95,11 +95,15 @@ Design principles:
 ## 4. Data flows
 
 ### 4.1 Nora chat
-1. `NoraScreen` sends `{ user: { name (omitted in anonymous mode), stimDay, protocol, clinic, e2 }, messages, lang }` to `/api/nora`.
+1. `NoraScreen` calls `askNora()` (`lib/api.js`), which sends `{ user: noraProfile(user), messages, lang }` to `/api/nora`, plus `Authorization: Bearer <access token>` when she is signed in to a cloud account (`auth.accessToken()`; supabase-js refreshes it if expired). `noraProfile` holds only first name (none in anonymous mode), phase, stim day, protocol, clinic, E2 (legacy demo defaults dropped) and `demo: true` for the demo persona only.
 2. `proxy.js` checks the demo cookie.
-3. Route: body size check → JSON parse → per-IP rate limit → filter/trim/cap messages → sanitise profile fields (`sanitizeUser`) → emergency detection.
+3. Route: body size check → JSON parse → filter/trim/cap messages → emergency detection → per-IP rate limit → **caller resolution** (G1, `lib/supabase-server.js`, plain fetch):
+   - No Bearer header, or cloud mode not configured on the server → local/demo mode: the client profile is used after sanitising.
+   - Bearer header → `GET {SUPABASE_URL}/auth/v1/user` with the anon key and her token. 4xx → `401 {"error":"Not signed in"}` (emergencies still get the referral, `200`). 5xx/timeout → offline reply with no profile and no AI call.
+   - Verified → per-account rate limit (10/min, 200/day, per instance) → `GET /rest/v1/user_state?user_id=eq.<verified id>&select=data` **with her token**, so RLS applies. Her synced `data.user` is the context (client fields ignored); without a synced profile (cloud sync off) the client's fields are used, sanitised. The demo persona can never be switched on for an account.
+   - Sanitise (`sanitizeUser`: unknown fields stay unknown, G15).
 4. No key → scripted `demoReply` (emergency reply first when detected). With key → Anthropic Messages API with `system` from `buildSystemPrompt` (versioned, `NORA_PROMPT_VERSION`), top-level `cache_control` (automatic prompt caching), `max_tokens` 500, 20 s timeout.
-5. Logs one JSON line per call: model, prompt version, token counts (incl. cache read/write), stop reason, latency. **No content, no IP, no user fields.**
+5. Logs one JSON line per call: model, prompt version, caller mode (`local`/`user`), token counts (incl. cache read/write), stop reason, latency. **No content, no IP, no user id, no user fields.**
 6. The chat history is stored on the device in `bloom_nora` and, in cloud mode, synced to `user_state` like other app data.
 
 ### 4.2 Waitlist
@@ -179,7 +183,7 @@ Severity: **High** = fix before real users / real health data. **Med** = fix bef
 ### Security
 | # | Gap | Sev | Status / plan |
 |---|---|---|---|
-| G1 | `/api/nora` has no user auth: anyone with the demo cookie can use it, and profile context is client-supplied. | High (for launch) | Demo cookie + per-IP limit today. R1: verify the Supabase JWT server-side, derive context from the user's own row, per-user quotas. |
+| G1 | `/api/nora` had no user auth and trusted client-supplied profile context. | High (for launch) | **Closed 2026-09-27** for cloud mode: Supabase access token verified server-side (`/auth/v1/user`), context read from her own `user_state` row with her token (RLS), per-account limits. Local/demo mode unchanged behind the demo gate. Remaining: the demo gate still fronts `/api/nora` (the app build needs it removed, see `app-store.md`), and limits are per instance (G2). |
 | G2 | Rate limiting is in-memory per instance. | Med | Shipped as a first line of defence. Durable store in R1. |
 | G3 | No Content-Security-Policy. | Med | Basic security headers shipped (`nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, HSTS). A nonce-based CSP needs dynamic rendering and testing with Supabase and Google Fonts; do it with G10. |
 | G4 | "Delete everything" doesn't delete the Supabase `auth.users` row (email stays). | High (GDPR erasure) | Needs a server route using the service-role key (never exposed) that verifies the session and calls the admin delete-user API; `on delete cascade` removes `user_state`. |
