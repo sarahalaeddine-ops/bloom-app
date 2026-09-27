@@ -1,5 +1,6 @@
 "use client";
 import { useId } from "react";
+import { useT } from "../../lib/i18n";
 
 // Hand-drawn SVG graphics for Bloom. No image files, no extra packages.
 // Colors come from the bloom palette in tailwind.config.js.
@@ -97,12 +98,13 @@ export function JourneyRing({ day, size = 200, children }) {
 }
 
 export function JourneyLegend() {
+  var { t } = useT();
   return (
     <div className="flex justify-center flex-wrap gap-x-3 gap-y-1">
       {JOURNEY.map(function (p) {
         return (
           <span key={p.id} className="flex items-center gap-1 text-[11px] text-bloom-muted">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />{p.label}
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />{t("journey." + p.id)}
           </span>
         );
       })}
@@ -360,6 +362,14 @@ export function Illustration({ name, size = 96 }) {
       <rect x="49" y="56" width="22" height="18" rx="3" fill={C.accent} />
       <path d="M53 56 v-5 a7 7 0 0 1 14 0 v5" fill="none" stroke={C.accent} strokeWidth="3" />
       <circle cx="60" cy="64" r="2.5" fill="#fff" />
+    </Frame>
+  );
+  if (name === "bell") return (
+    <Frame size={size} bg={C.gold}>
+      <path d="M60 26 c-14 0 -24 11 -24 26 v16 l-8 10 h64 l-8 -10 v-16 c0 -15 -10 -26 -24 -26 z" fill="#fff" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" />
+      <path d="M52 82 a8 8 0 0 0 16 0" fill={C.accent} />
+      <circle cx="60" cy="24" r="4" fill={C.accent} />
+      <path d="M86 34 q8 8 8 20 M34 34 q-8 8 -8 20" stroke={C.gold} strokeWidth="3" fill="none" strokeLinecap="round" className="twinkle" />
     </Frame>
   );
   if (name === "embryo") return (

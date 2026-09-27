@@ -123,7 +123,7 @@ export default function Report({ onBack, user }) {
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3 overflow-x-auto">
           <Label className="mb-2">Hormones</Label>
           <table className="w-full text-xs">
-            <thead><tr className="text-bloom-muted text-left"><th className="pb-2 font-semibold">Day</th><th className="pb-2 font-semibold">Date</th><th className="pb-2 font-semibold text-right">E2</th><th className="pb-2 font-semibold text-right">LH</th><th className="pb-2 font-semibold text-right">P4</th></tr></thead>
+            <thead><tr className="text-bloom-muted text-start"><th className="pb-2 font-semibold">Day</th><th className="pb-2 font-semibold">Date</th><th className="pb-2 font-semibold text-right">E2</th><th className="pb-2 font-semibold text-right">LH</th><th className="pb-2 font-semibold text-right">P4</th></tr></thead>
             <tbody>
               {HORMONES.map(function (h) {
                 return (

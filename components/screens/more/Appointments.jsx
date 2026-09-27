@@ -89,7 +89,7 @@ export default function Appointments({ onBack, user }) {
           var isOpen = open === apt.id;
           return (
             <div key={apt.id} className="bg-white rounded-2xl border mb-2 overflow-hidden" style={{ borderColor: apt.color + "30" }}>
-              <button onClick={function () { setOpen(isOpen ? null : apt.id); }} aria-expanded={isOpen} className="w-full text-left p-4 flex items-center gap-3">
+              <button onClick={function () { setOpen(isOpen ? null : apt.id); }} aria-expanded={isOpen} className="w-full text-start p-4 flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: apt.color }} />
                 <div className="flex-1">
                   <p className="text-bloom-text text-sm font-semibold">{apt.type}</p>

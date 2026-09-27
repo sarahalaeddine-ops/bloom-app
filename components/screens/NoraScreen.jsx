@@ -2,18 +2,16 @@
 import { useState } from "react";
 import { store } from "../../lib/store";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
+import { useT } from "../../lib/i18n";
 
-var SUGGESTED = ["What does my E2 mean?", "Am I at risk for OHSS?", "When is my trigger shot?", "I am scared about retrieval"];
-
-function welcome(user) {
-  return {
-    role: "assistant",
-    content: "Hi " + (user.name || "Sarah") + ". I am Nora, your IVF companion.\n\nYou are on Stimulation Day " + (user.stimDay || 7) + " with 11 follicles and E2 at " + (user.e2 || 1840).toLocaleString() + ". Things look really promising.\n\nHow are you feeling today?",
-  };
+function welcome(user, t) {
+  return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
 }
 
 export default function NoraScreen({ user }) {
-  var [msgs, setMsgs] = useState(function () { return store.get("nora", null) || [welcome(user)]; });
+  var { t, lang } = useT();
+  var SUGGESTED = [t("nora.s1"), t("nora.s2"), t("nora.s3"), t("nora.s4")];
+  var [msgs, setMsgs] = useState(function () { return store.get("nora", null) || [welcome(user, t)]; });
   var [input, setInput] = useState("");
   var [loading, setLoading] = useState(false);
   var [demo, setDemo] = useState(false);
@@ -38,20 +36,21 @@ export default function NoraScreen({ user }) {
         body: JSON.stringify({
           user: { name: user.name, stimDay: user.stimDay, protocol: user.protocol, clinic: user.clinic, e2: user.e2 },
           messages: next,
+          lang: lang,
         }),
       });
       var data = await res.json();
       setDemo(!!data.demo);
-      update(next.concat({ role: "assistant", content: data.text || "Sorry, try again." }));
+      update(next.concat({ role: "assistant", content: data.text || t("nora.error") }));
     } catch {
-      update(next.concat({ role: "assistant", content: "Something went wrong. Please try again." }));
+      update(next.concat({ role: "assistant", content: t("nora.error") }));
     }
     setLoading(false);
   }
 
   function clear() {
     store.remove("nora");
-    setMsgs([welcome(user)]);
+    setMsgs([welcome(user, t)]);
   }
 
   return (
@@ -62,9 +61,9 @@ export default function NoraScreen({ user }) {
         </div>
         <div className="flex-1">
           <p className="text-bloom-text text-sm font-semibold">Nora</p>
-          <p className="text-bloom-teal text-xs">Online · Knows your cycle</p>
+          <p className="text-bloom-teal text-xs">{t("nora.status")}</p>
         </div>
-        {msgs.length > 1 && <button onClick={clear} className="text-bloom-dim text-xs">New chat</button>}
+        {msgs.length > 1 && <button onClick={clear} className="text-bloom-dim text-xs">{t("nora.newChat")}</button>}
       </div>
 
       <div className="flex-1 px-4 py-4 pb-36 bg-bloom-bg">
@@ -84,12 +83,12 @@ export default function NoraScreen({ user }) {
         )}
 
         {loading && <Typing />}
-        {demo && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">Demo mode · add ANTHROPIC_API_KEY for live Nora</p>}
-        <p className="text-bloom-dim text-[10px] text-center mt-3">Nora is not a doctor. Always confirm medical decisions with your clinic.</p>
+        {demo && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
+        <p className="text-bloom-dim text-[10px] text-center mt-3">{t("nora.notDoctor")}</p>
         <div ref={bottomRef} />
       </div>
 
-      <ChatInput value={input} onChange={setInput} onSend={function () { send(); }} disabled={loading} placeholder="Ask Nora anything..." />
+      <ChatInput value={input} onChange={setInput} onSend={function () { send(); }} disabled={loading} placeholder={t("nora.ph")} />
     </div>
   );
 }

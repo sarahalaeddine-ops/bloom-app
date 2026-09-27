@@ -11,7 +11,7 @@ function MedCard({ med, entry, onClick }) {
   var missed = entry && entry.status === "missed";
   return (
     <button onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 rounded-2xl border mb-2 text-left bg-white"
+      className="w-full flex items-center gap-3 p-4 rounded-2xl border mb-2 text-start bg-white"
       style={{ borderColor: taken ? med.color + "40" : "#E8E0DB", backgroundColor: taken ? med.color + "06" : "white" }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: med.color + "18" }}>
         <span className="text-sm" style={{ color: med.color }}>{med.type === "injection" ? "◎" : "●"}</span>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Delete } from "lucide-react";
 
 // 4-digit PIN entry. With `confirm`, asks twice and only calls onDone when both match.
-// Without it, onDone(pin) returns true/false to say whether the PIN was right.
+// Without it, onDone(pin) returns (or resolves to) true/false to say whether the PIN was right.
 export default function PinPad({ title, confirm, onDone }) {
   var [pin, setPin] = useState("");
   var [first, setFirst] = useState(null);
@@ -18,8 +18,9 @@ export default function PinPad({ title, confirm, onDone }) {
     setTimeout(function () {
       if (confirm && first === null) { setFirst(next); setPin(""); return; }
       if (confirm && first !== next) { setFirst(null); setPin(""); setError("PINs didn't match. Try again."); return; }
-      var ok = onDone(next);
-      if (ok === false) { setPin(""); setError("Wrong PIN. Try again."); }
+      Promise.resolve(onDone(next)).then(function (ok) {
+        if (ok === false) { setPin(""); setError("Wrong PIN. Try again."); }
+      });
     }, 150);
   }
 

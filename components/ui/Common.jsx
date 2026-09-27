@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "../../lib/i18n";
 
 export function Logo({ size = 24, withMark = true }) {
   return (
@@ -9,8 +10,9 @@ export function Logo({ size = 24, withMark = true }) {
 }
 
 export function BackBtn({ onBack }) {
+  var { t } = useT();
   return (
-    <button onClick={onBack} className="px-4 py-4 text-bloom-accent font-semibold text-sm">← Back</button>
+    <button onClick={onBack} className="px-4 py-4 text-bloom-accent font-semibold text-sm"><span className="flip-rtl">←</span> {t("common.back")}</button>
   );
 }
 

@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { BackBtn } from "../../ui/Common";
 import { auth, store } from "../../../lib/store";
+import { useT, LANGS } from "../../../lib/i18n";
 
 var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF"];
 
 export default function Profile({ onBack, user, setUser }) {
+  var { t, lang, setLang } = useT();
   var [name, setName] = useState(user.name || "");
   var [clinic, setClinic] = useState(user.clinic || "");
   var [protocol, setProtocol] = useState(user.protocol || "Antagonist");
@@ -19,13 +21,13 @@ export default function Profile({ onBack, user, setUser }) {
     setTimeout(function () { setSaved(false); }, 2000);
   }
 
-  function signOut() {
-    auth.signOut();
+  async function signOut() {
+    await auth.signOut();
     setUser(null);
   }
 
-  function resetDemo() {
-    store.resetDemo();
+  async function resetDemo() {
+    await store.resetDemo();
     setUser(null);
   }
 
@@ -70,6 +72,21 @@ export default function Profile({ onBack, user, setUser }) {
           <button onClick={save} className="w-full py-4 rounded-2xl text-white font-semibold transition-all" style={{ backgroundColor: saved ? "#4ABFB0" : "#9B6DC5" }}>
             {saved ? "Saved ✓" : "Save Changes"}
           </button>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-4">
+          <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">{t("lang")}</p>
+          <div className="flex gap-2" role="group" aria-label={t("lang")}>
+            {LANGS.map(function (l) {
+              var on = lang === l.id;
+              return (
+                <button key={l.id} onClick={function () { setLang(l.id); }} aria-pressed={on}
+                  className="flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold"
+                  style={{ borderColor: on ? "#9B6DC5" : "#E8E0DB", backgroundColor: on ? "#9B6DC515" : "white", color: on ? "#9B6DC5" : "#7A6880" }}>
+                  {l.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <button onClick={signOut} className="w-full py-4 rounded-2xl border border-red-300 text-red-500 font-semibold text-sm mb-3">Sign Out</button>
 

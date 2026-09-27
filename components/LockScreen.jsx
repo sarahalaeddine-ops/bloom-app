@@ -3,13 +3,16 @@ import { useState } from "react";
 import { store } from "../lib/store";
 import { BloomFlower, Blobs } from "./ui/Graphics";
 import PinPad from "./ui/PinPad";
+import { verifySecret } from "../lib/crypto";
 
 export default function LockScreen({ onUnlock, onForgot }) {
   var [forgot, setForgot] = useState(false);
 
-  function check(pin) {
-    if (pin === store.get("lock_pin", null)) { onUnlock(); return true; }
-    return false;
+  async function check(pin) {
+    var stored = store.get("lock_pin", null);
+    var ok = typeof stored === "string" ? pin === stored : await verifySecret(pin, stored);
+    if (ok) onUnlock();
+    return ok;
   }
 
   return (

@@ -5,11 +5,13 @@ import { Illustration } from "../../ui/Graphics";
 import { auth, store } from "../../../lib/store";
 import { getCheckins, getMedHistory } from "../../../lib/cycle";
 import PinPad from "../../ui/PinPad";
+import { hashSecret } from "../../../lib/crypto";
+import { cloudEnabled } from "../../../lib/supabase";
 
 var PLEDGES = [
   ["Never sold", "Your health data is never sold or used for advertising."],
   ["Never shared without you", "Your clinic and partner only see what you choose to share."],
-  ["Stays on this device", "In this demo everything is stored only in this browser."],
+  ["Secret Space is end-to-end encrypted", "Encrypted on your device with your passphrase (AES-256). We can't read it."],
 ];
 
 function Toggle({ on, onChange, label }) {
@@ -30,7 +32,7 @@ export default function Privacy({ onBack, user, setUser }) {
   var counts = [
     ["Check-ins", getCheckins().length],
     ["Medication logs", getMedHistory().length],
-    ["Secret Space entries", store.get("secret", []).length],
+    ["Secret Space", store.get("secret_vault", null) ? "Encrypted 🔒" : "Not set up"],
     ["Nora messages", store.get("nora", []).length],
   ];
 
@@ -48,8 +50,8 @@ export default function Privacy({ onBack, user, setUser }) {
     flash("App lock off.");
   }
 
-  function savePin(pin) {
-    store.set("lock_pin", pin);
+  async function savePin(pin) {
+    store.set("lock_pin", await hashSecret(pin));
     setHasPin(true);
     setPinSheet(false);
     flash("App lock on. You'll need your PIN to open Bloom.");
@@ -72,8 +74,8 @@ export default function Privacy({ onBack, user, setUser }) {
     flash("Your data was downloaded ✓");
   }
 
-  function deleteAll() {
-    store.resetDemo();
+  async function deleteAll() {
+    await store.resetDemo();
     setUser(null);
   }
 
@@ -109,6 +111,12 @@ export default function Privacy({ onBack, user, setUser }) {
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
           <Label className="mb-3">What Bloom holds about you</Label>
+          <div className="flex items-center gap-2 mb-2 p-2.5 rounded-xl bg-bloom-surface">
+            <span className={"w-2 h-2 rounded-full " + (cloudEnabled() && user.cloud ? "bg-bloom-teal" : "bg-bloom-gold")} />
+            <p className="text-bloom-muted text-xs">
+              {cloudEnabled() && user.cloud ? "Synced securely to your Bloom account (row-level secured, encrypted in transit)." : "Stored only on this device."}
+            </p>
+          </div>
           {counts.map(function (c) {
             return (
               <div key={c[0]} className="flex justify-between py-2 border-t border-bloom-border first:border-0 text-sm">

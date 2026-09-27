@@ -5,10 +5,15 @@ import { store } from "../../lib/store";
 import { storiesFor } from "../../lib/demo-data";
 import { getCheckins } from "../../lib/cycle";
 import { Illustration } from "./Graphics";
+import ReviewedBadge from "./Reviewed";
+import { useT } from "../../lib/i18n";
+import { localizeStory } from "../../lib/stories-i18n";
 
 // Flo-style "daily insights": a row of story bubbles that open a tap-through viewer.
 export default function Stories({ user }) {
-  var [list] = useState(function () { return storiesFor(user, getCheckins()[0]); });
+  var { t, lang } = useT();
+  var [ranked] = useState(function () { return storiesFor(user, getCheckins()[0]); });
+  var list = ranked.map(function (s) { return localizeStory(s, lang); });
   var [seen, setSeen] = useState(function () { return store.get("stories_seen", []); });
   var [open, setOpen] = useState(null);
 
@@ -25,14 +30,14 @@ export default function Stories({ user }) {
         {list.map(function (s, i) {
           var done = seen.includes(s.id);
           return (
-            <button key={s.id} onClick={function () { setOpen(i); markSeen(s.id); }} className="flex-shrink-0 w-[92px] text-left flex flex-col justify-start">
+            <button key={s.id} onClick={function () { setOpen(i); markSeen(s.id); }} className="flex-shrink-0 w-[92px] text-start flex flex-col justify-start">
               <div className="rounded-2xl p-[2px] mb-1.5" style={{ background: done ? "#E8E0DB" : "linear-gradient(135deg,#9B6DC5,#E07A8A)" }}>
                 <div className="rounded-[14px] h-[112px] flex items-center justify-center" style={{ backgroundColor: s.color }}>
                   <Illustration name={s.art} size={70} />
                 </div>
               </div>
               <p className={"text-xs leading-tight " + (done ? "text-bloom-muted" : "text-bloom-text font-semibold")}>{s.title}</p>
-              {s.why && <p className="text-[10px] leading-tight text-bloom-accent mt-0.5">{s.why}</p>}
+              {s.why && <p className="text-[10px] leading-tight text-bloom-accent mt-0.5">{t(s.why.k, { s: s.why.s ? t("sym." + s.why.s).toLowerCase() : "" })}</p>}
             </button>
           );
         })}
@@ -45,8 +50,10 @@ export default function Stories({ user }) {
 }
 
 function StoryViewer({ list, index, onChange, onClose }) {
+  var { t } = useT();
   var story = list[index];
   var [slide, setSlide] = useState(0);
+  var [paused, setPaused] = useState(false);
 
   function next() {
     if (slide < story.slides.length - 1) setSlide(slide + 1);
@@ -59,6 +66,7 @@ function StoryViewer({ list, index, onChange, onClose }) {
   }
 
   useEffect(function () {
+    if (paused) return;
     var t = setTimeout(next, 5000);
     return function () { clearTimeout(t); };
   });
@@ -87,8 +95,8 @@ function StoryViewer({ list, index, onChange, onClose }) {
           })}
         </div>
         <div className="flex items-center justify-between px-4 pt-3">
-          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: story.ink }}>Today for you · {story.title}</p>
-          <button onClick={onClose} aria-label="Close story" className="p-1" style={{ color: story.ink }}><X size={22} /></button>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: story.ink }}>{t("story.today")} · {story.title}</p>
+          <button onClick={onClose} aria-label={t("story.close")} className="p-1" style={{ color: story.ink }}><X size={22} /></button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <div className="mb-8 animate-fade-in" key={"art" + index}><Illustration name={story.art} size={160} /></div>
@@ -96,9 +104,10 @@ function StoryViewer({ list, index, onChange, onClose }) {
             {story.slides[slide]}
           </p>
         </div>
-        <p className="text-center text-xs pb-8" style={{ color: story.ink, opacity: 0.7 }}>Tap to continue</p>
-        <button onClick={prev} aria-label="Previous" className="absolute left-0 top-20 bottom-0 w-1/3" />
-        <button onClick={next} aria-label="Next" className="absolute right-0 top-20 bottom-0 w-2/3" />
+        <div className="flex justify-center pb-3 px-4"><ReviewedBadge cat="story" onToggle={setPaused} /></div>
+        <p className="text-center text-xs pb-8" style={{ color: story.ink, opacity: 0.7 }}>{t("story.tap")}</p>
+        <button onClick={prev} aria-label="Previous" className="absolute start-0 top-20 bottom-0 w-1/3" />
+        <button onClick={next} aria-label="Next" className="absolute end-0 top-20 bottom-0 w-2/3" />
       </div>
     </div>
   );

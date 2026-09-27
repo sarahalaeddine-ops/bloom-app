@@ -111,7 +111,7 @@ export default function Partner({ onBack, user }) {
             var open = faq === i;
             return (
               <div key={i} className="border-b border-bloom-border last:border-0">
-                <button onClick={function () { setFaq(open ? null : i); }} aria-expanded={open} className="w-full text-left px-4 py-3 flex justify-between items-center gap-2">
+                <button onClick={function () { setFaq(open ? null : i); }} aria-expanded={open} className="w-full text-start px-4 py-3 flex justify-between items-center gap-2">
                   <span className="text-bloom-text text-sm font-medium">{f.q}</span>
                   <span className="text-bloom-muted">{open ? "−" : "+"}</span>
                 </button>

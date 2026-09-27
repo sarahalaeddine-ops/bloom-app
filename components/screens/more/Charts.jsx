@@ -71,7 +71,7 @@ export default function Charts({ onBack, user }) {
           <Label className="mb-3">All values</Label>
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-bloom-muted text-left">
+              <tr className="text-bloom-muted text-start">
                 <th className="font-semibold pb-2">Day</th><th className="font-semibold pb-2">Date</th><th className="font-semibold pb-2 text-right">E2</th><th className="font-semibold pb-2 text-right">Lead</th><th className="font-semibold pb-2 text-right">Count</th>
               </tr>
             </thead>

@@ -45,20 +45,26 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (p
 9. **Landing page**: flower mark and an illustrated three-feature section.
 10. Accessibility: sheets are `role="dialog"`, toasts are `role="status"`, and all new motion is off under reduced-motion.
 
+## Shipped in pass 3
+
+1. **Arabic + RTL and French**: a full right-to-left layout with an Arabic font (IBM Plex Sans Arabic / Noto Naskh Arabic). Arabic addresses the user in the feminine. Nora replies in the chosen language, live and offline. There's a language picker on sign-in, onboarding and Profile, and the first visit follows the browser language.
+2. **Reminders**: service-worker notifications for doses and appointments with a choice of lead time, an in-app fallback, a "coming up" list, a test reminder, and an `.ics` export of daily dose alarms for when the app is closed.
+3. **Secure backend**: passwords hashed with salted PBKDF2 (legacy accounts migrate on sign-in), a hashed app-lock PIN, optional Supabase cloud accounts and sync with row-level security, and **end-to-end encrypted Secret Space** (AES-256-GCM with a passphrase).
+4. **Medical Review Board**: a "Medically reviewed by…" badge on articles and stories, sources on every article, and a board sheet with the editorial policy. The reviewers are demo placeholders until the real board is appointed.
+
 ## Backlog (ranked by impact ÷ effort)
 
 | # | Recommendation | Impact | Effort |
 |---|---|---|---|
-| 1 | **Arabic + RTL** (and French, Spanish, Hindi): Bloom's launch market is the UAE; Flo's reach comes from 20+ languages | Very high | L |
+| 1 | **Translate the rest**: article library, deeper More screens, plus Spanish, Hindi and Urdu | High | M |
 | 2 | **Clinic connect**: import scan and bloods results from the clinic (or photo-OCR a results sheet) so data isn't typed by hand | Very high | L |
-| 3 | **Push reminders** for doses and appointments (PWA notifications) | High | M |
-| 4 | **Real backend** (Supabase auth + encrypted storage, end-to-end encrypted Secret Space) | High | L |
+| 3 | **Server push** (web-push + cron over the stored subscriptions) so reminders arrive when the app is closed, beyond the calendar export | High | M |
+| 4 | **Appoint the real Medical Review Board** and put its names on content (swap the placeholders) | High | S (people) |
 | 5 | **Split check-in into 3 swipeable cards** (mood → body → notes) | High | M |
 | 6 | **Dark mode** night palette for 3am injections | Med | M |
 | 7 | **Follicle growth animation** between scans on the Ovary graphic | Med | M |
 | 8 | **2WW embryo development timeline** illustration, day by day | Med | M |
 | 9 | **Apple Health / Google Fit** sync for sleep, steps and weight | Med | M |
-| 10 | **Clinical review board** badge on content (Flo's credibility lever) | High | S (content) |
 
 ## Sources
 
