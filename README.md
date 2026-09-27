@@ -10,6 +10,16 @@ npm run dev          # http://localhost:3000  (app)
                      # http://localhost:3000/landing  (waitlist landing page)
 ```
 
+### Checks
+
+```bash
+npm run lint
+npm test             # unit + API route tests (Node's built-in test runner, no extra packages)
+npm run build
+```
+
+Tests live in `tests/*.test.mjs`. `tests/setup/register.mjs` lets Node resolve the app's extensionless imports and gives `lib/` a minimal `window`/`localStorage`, so pure logic and route handlers can be tested without a browser or network. CI runs all three on every pull request (`.github/workflows/ci.yml`).
+
 On the sign-in screen, tap **✦ Try the demo as Sarah** to jump straight into a fully seeded account (Stim Day 7, Antagonist, 11 follicles, E2 1,840).
 
 ### Nora AI
