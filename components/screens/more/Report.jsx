@@ -1,31 +1,43 @@
 "use client";
 import { useState } from "react";
 import { BackBtn, Label, Logo } from "../../ui/Common";
-import { HORMONES, FOLLICLES, MATURE_MM, MEDS, MOODS, DEMO_USER } from "../../../lib/demo-data";
-import { getCheckins, dateForStimDay, cycleStartDate, fmtDate, follicleStats, medAdherence } from "../../../lib/cycle";
+import { MATURE_MM, MEDS, MOODS } from "../../../lib/demo-data";
+import { getCheckins, dateForStimDay, cycleStartDate, fmtDate, follicleStats, medAdherence, hormoneSeries, latestFollicles } from "../../../lib/cycle";
+import ScanLog, { ScanEmpty } from "../../ScanLog";
+import { useT } from "../../../lib/i18n";
 import { JourneyRing, journeyDay, Ovary, Donut, MoodFace } from "../../ui/Graphics";
 import LineChart from "../../ui/LineChart";
 
 var DISCLAIMER = "This report is generated from information entered in Bloom. It is not a medical record and does not replace your clinic's own records or advice.";
 
+// Only her own logged values: a real account never gets the demo persona's hormones, follicles or
+// doctor (lib/cycle.js).
 function buildText(user, checkins) {
   var stimDay = user.stimDay || 7;
   var s = follicleStats();
+  var rows = hormoneSeries();
+  var f = latestFollicles();
+  var dash = function (v) { return v != null ? v : "-"; };
   var lines = [
     "BLOOM CYCLE REPORT",
     "Patient: " + user.name,
     "Clinic: " + user.clinic,
-    "Doctor: " + (user.doctor || DEMO_USER.doctor),
+    "Doctor: " + (user.doctor || "-"),
     "Protocol: " + user.protocol,
     "Cycle start: " + fmtDate(cycleStartDate(stimDay)),
     "Stim day: " + stimDay,
     "",
     "HORMONES (Day / Date / E2 pg/mL / LH IU/L / P4 ng/mL)",
   ];
-  HORMONES.forEach(function (h) { lines.push("Day " + h.day + " / " + fmtDate(dateForStimDay(stimDay, h.day)) + " / " + h.e2 + " / " + h.lh + " / " + h.p4); });
-  lines.push("", "FOLLICLES (" + s.total + " total, " + s.mature + " mature ≥" + MATURE_MM + "mm)");
-  lines.push("Right: " + FOLLICLES.right.join(", ") + " mm");
-  lines.push("Left: " + FOLLICLES.left.join(", ") + " mm");
+  if (!rows.length) lines.push("No scan results logged yet.");
+  rows.forEach(function (h) { lines.push("Day " + h.day + " / " + fmtDate(dateForStimDay(stimDay, h.day)) + " / " + dash(h.e2) + " / " + dash(h.lh) + " / " + dash(h.p4)); });
+  if (f) {
+    lines.push("", "FOLLICLES, Day " + f.day + " (" + s.total + " total, " + s.mature + " mature ≥" + MATURE_MM + "mm)");
+    lines.push("Right: " + (f.right.join(", ") || "-") + " mm");
+    lines.push("Left: " + (f.left.join(", ") || "-") + " mm");
+  } else {
+    lines.push("", "FOLLICLES: none logged yet.");
+  }
   lines.push("", "MEDICATIONS");
   MEDS.forEach(function (m) { lines.push(m.name + " " + m.dose + " · " + m.freq + " · " + m.type + " · from Day " + m.startDay); });
   lines.push("", "CHECK-INS (Date / Mood / Anxiety / Hope / Symptoms)");
@@ -37,10 +49,17 @@ function buildText(user, checkins) {
 }
 
 export default function Report({ onBack, user }) {
+  var { t } = useT();
   var stimDay = user.stimDay || 7;
   var [checkins] = useState(getCheckins);
   var [status, setStatus] = useState("");
+  var [, setScanTick] = useState(0);
+  var [scanOpen, setScanOpen] = useState(false);
   var s = follicleStats();
+  var rows = hormoneSeries();
+  var e2Rows = rows.filter(function (h) { return h.e2 != null; });
+  var f = latestFollicles();
+  var dash = function (v) { return v != null ? v : "—"; };
   var text = buildText(user, checkins);
 
   async function share() {
@@ -69,7 +88,7 @@ export default function Report({ onBack, user }) {
   }
 
   var info = [
-    ["Name", user.name], ["Clinic", user.clinic], ["Doctor", user.doctor || DEMO_USER.doctor],
+    ["Name", user.name], ["Clinic", user.clinic], ["Doctor", user.doctor || "—"],
     ["Protocol", user.protocol], ["Cycle start", fmtDate(cycleStartDate(stimDay))], ["Stim day", "Day " + stimDay],
   ];
 
@@ -106,29 +125,40 @@ export default function Report({ onBack, user }) {
                 <Donut value={medAdherence()} size={56} label="Doses taken" />
                 <div><p className="text-bloom-text text-sm font-semibold">Doses taken</p><p className="text-bloom-dim text-xs">logged in Bloom</p></div>
               </div>
+              {!s.none && (
               <div className="flex items-center gap-3">
                 <Donut value={s.total ? s.mature / s.total : 0} size={56} color="#9B6DC5" label="Mature follicles" />
                 <div><p className="text-bloom-text text-sm font-semibold">{s.mature} of {s.total} mature</p><p className="text-bloom-dim text-xs">≥{MATURE_MM} mm</p></div>
               </div>
+              )}
             </div>
           </div>
+          {f && (
           <div className="flex gap-2 mb-4">
-            <Ovary label="Right" sizes={FOLLICLES.right} color="#9B6DC5" matureMm={MATURE_MM} />
-            <Ovary label="Left" sizes={FOLLICLES.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
+            <Ovary label="Right" sizes={f.right} color="#9B6DC5" matureMm={MATURE_MM} />
+            <Ovary label="Left" sizes={f.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
           </div>
+          )}
+          {e2Rows.length > 1 && (
+          <>
           <p className="text-bloom-muted text-xs font-semibold mb-1">E2 (pg/mL) by stim day</p>
-          <LineChart series={[{ name: "E2", color: "#E07A8A", values: HORMONES.map(function (h) { return h.e2; }) }]} labels={HORMONES.map(function (h) { return "D" + h.day; })} unit=" pg/mL" height={130} />
+          <LineChart series={[{ name: "E2", color: "#E07A8A", values: e2Rows.map(function (h) { return h.e2; }) }]} labels={e2Rows.map(function (h) { return "D" + h.day; })} unit=" pg/mL" height={130} />
+          </>
+          )}
         </div>
 
+        {rows.length === 0 && <div className="no-print"><ScanEmpty body={t("scan.emptyReport")} onLog={function () { setScanOpen(true); }} /></div>}
+
+        {rows.length > 0 && (
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3 overflow-x-auto">
           <Label className="mb-2">Hormones</Label>
           <table className="w-full text-xs">
             <thead><tr className="text-bloom-muted text-start"><th className="pb-2 font-semibold">Day</th><th className="pb-2 font-semibold">Date</th><th className="pb-2 font-semibold text-right">E2</th><th className="pb-2 font-semibold text-right">LH</th><th className="pb-2 font-semibold text-right">P4</th></tr></thead>
             <tbody>
-              {HORMONES.map(function (h) {
+              {rows.map(function (h, i) {
                 return (
-                  <tr key={h.day} className="border-t border-bloom-border text-bloom-text">
-                    <td className="py-2">{h.day}</td><td>{fmtDate(dateForStimDay(stimDay, h.day))}</td><td className="text-right">{h.e2}</td><td className="text-right">{h.lh}</td><td className="text-right">{h.p4}</td>
+                  <tr key={i} className="border-t border-bloom-border text-bloom-text">
+                    <td className="py-2">{h.day}</td><td>{fmtDate(dateForStimDay(stimDay, h.day))}</td><td className="text-right">{dash(h.e2)}</td><td className="text-right">{dash(h.lh)}</td><td className="text-right">{dash(h.p4)}</td>
                   </tr>
                 );
               })}
@@ -136,10 +166,12 @@ export default function Report({ onBack, user }) {
           </table>
           <p className="text-bloom-dim text-[10px] mt-2">E2 pg/mL · LH IU/L · P4 ng/mL</p>
         </div>
+        )}
 
+        {f && (
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-          <Label className="mb-2">Follicles · {s.total} total, {s.mature} mature</Label>
-          {[["Right ovary", FOLLICLES.right, "#9B6DC5"], ["Left ovary", FOLLICLES.left, "#4ABFB0"]].map(function (row) {
+          <Label className="mb-2">Follicles · Day {f.day} · {s.total} total, {s.mature} mature</Label>
+          {[["Right ovary", f.right, "#9B6DC5"], ["Left ovary", f.left, "#4ABFB0"]].map(function (row) {
             return (
               <div key={row[0]} className="mb-2 last:mb-0">
                 <p className="text-xs font-semibold mb-1.5" style={{ color: row[2] }}>{row[0]}</p>
@@ -153,6 +185,7 @@ export default function Report({ onBack, user }) {
             );
           })}
         </div>
+        )}
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
           <Label className="mb-2">Medications</Label>
@@ -193,6 +226,7 @@ export default function Report({ onBack, user }) {
         </div>
         </div>
       </div>
+      {scanOpen && <ScanLog user={user} onClose={function () { setScanOpen(false); }} onSaved={function () { setScanOpen(false); setScanTick(function (n) { return n + 1; }); }} />}
     </div>
   );
 }

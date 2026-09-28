@@ -1,7 +1,7 @@
 "use client";
 import { PLANS } from "../../lib/demo-data";
 import { useT } from "../../lib/i18n";
-import { follicleStats } from "../../lib/cycle";
+import { follicleStats, latestE2 } from "../../lib/cycle";
 import { IS_APP_BUILD } from "../../lib/config";
 import { isNative } from "../../lib/native";
 import Medications from "./more/Medications";
@@ -53,13 +53,14 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
   }
 
   var stats = follicleStats();
+  var e2Last = latestE2(); // her own logged value; the persona's only for the demo
   var plan = user.plan ? PLANS.find(function (p) { return p.id === user.plan; }) : null;
   var STATS = [
     { l: t("more.name"),      v: user.anonymous ? t("more.hidden") : user.name || "Sarah", c: "#9B6DC5" },
     { l: t("more.phase"),     v: (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 7 }) : t("phase." + user.phase), c: "#1A1014" },
     { l: t("more.protocol"),  v: user.protocol || "Antagonist", c: "#1A1014" },
-    { l: t("more.follicles"), v: t("more.follicleVal", { t: stats.total, m: stats.mature }), c: "#4ABFB0" },
-    { l: t("more.e2"),        v: (user.e2 || 1840).toLocaleString() + " pg/mL", c: "#E07A8A" },
+    { l: t("more.follicles"), v: stats.none ? t("scan.none") : t("more.follicleVal", { t: stats.total, m: stats.mature }), c: "#4ABFB0" },
+    { l: t("more.e2"),        v: e2Last ? e2Last.value.toLocaleString() + " pg/mL" : t("scan.none"), c: "#E07A8A" },
   ];
 
   return (

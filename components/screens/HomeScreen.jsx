@@ -4,8 +4,9 @@ import { Logo, Label } from "../ui/Common";
 import { JourneyRing, JourneyLegend, journeyDay, Ovary, Blobs, StreakFlower, MoodFace } from "../ui/Graphics";
 import Stories from "../ui/Stories";
 import { useT } from "../../lib/i18n";
-import { FOLLICLES, MATURE_MM, MEDS, MOODS } from "../../lib/demo-data";
-import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
+import { MATURE_MM, MEDS, MOODS } from "../../lib/demo-data";
+import { getTodayMedLog, getCheckins, follicleStats, latestFollicles, latestE2, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
+import ScanLog, { ScanEmpty } from "../ScanLog";
 
 function greeting() {
   var h = new Date().getHours();
@@ -20,8 +21,12 @@ export default function HomeScreen({ user, openMore, goTab }) {
   var anon = !!user.anonymous;
   var stimDay = user.stimDay || 7;
   var protocol = user.protocol || "Antagonist";
-  var clinic = user.clinic || "Emirates Fertility Centre";
-  var e2 = user.e2 || 1840;
+  var clinic = user.clinic || (user.id === "demo" ? "Emirates Fertility Centre" : "");
+  // Her own latest scan; the demo persona's seeded values only for the demo (lib/cycle.js).
+  var [, setScanTick] = useState(0);
+  var [scanOpen, setScanOpen] = useState(false);
+  var e2Last = latestE2();
+  var follicles = latestFollicles();
   var stats = follicleStats();
   var daysLeft = Math.max(0, TRIGGER_DAY + 2 - stimDay);
   var [log] = useState(getTodayMedLog);
@@ -53,15 +58,15 @@ export default function HomeScreen({ user, openMore, goTab }) {
           </JourneyRing>
         </div>
         <div className="relative mt-3"><JourneyLegend /></div>
-        <p className="relative text-bloom-muted text-xs text-center mt-2">{t("home.protocol", { p: "\u2068" + protocol + "\u2069" })} · <bdi>{clinic}</bdi></p>
+        <p className="relative text-bloom-muted text-xs text-center mt-2">{t("home.protocol", { p: "\u2068" + protocol + "\u2069" })}{clinic ? " · " : ""}{clinic ? <bdi>{clinic}</bdi> : null}</p>
       </div>
 
       <Stories user={user} />
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         {[
-          { val: stats.total, label: t("home.follicles"), sub: t("home.mature", { n: stats.mature }), color: "#9B6DC5", go: "charts" },
-          { val: e2 >= 1000 ? (e2 / 1000).toFixed(1) + "k" : e2, label: t("home.e2"), sub: t("common.day", { n: stimDay }), color: "#E07A8A", go: "charts" },
+          { val: stats.none ? "—" : stats.total, label: t("home.follicles"), sub: stats.none ? t("scan.none") : t("home.mature", { n: stats.mature }), color: "#9B6DC5", go: "charts" },
+          { val: !e2Last ? "—" : e2Last.value >= 1000 ? (e2Last.value / 1000).toFixed(1) + "k" : e2Last.value, label: t("home.e2"), sub: e2Last ? t("common.day", { n: e2Last.day }) : t("scan.none"), color: "#E07A8A", go: "charts" },
           { val: "8AM", label: t("home.nextScan"), sub: t("home.tomorrow"), color: "#4ABFB0", go: "appointments" },
         ].map(function (s) {
           return (
@@ -102,14 +107,17 @@ export default function HomeScreen({ user, openMore, goTab }) {
         </div>
       </button>
 
+      {!follicles ? (
+        <ScanEmpty title={t("home.follicleMap")} body={t("scan.emptyHome")} onLog={function () { setScanOpen(true); }} />
+      ) : (
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
         <div className="flex justify-between items-center mb-3">
           <Label>{t("home.follicleMap")}</Label>
-          <span className="text-bloom-dim text-xs">{t("home.scan", { n: stimDay })}</span>
+          <span className="text-bloom-dim text-xs">{t("home.scan", { n: follicles.day })}</span>
         </div>
         <div className="flex gap-2 mb-3">
-          <Ovary label={t("home.rightOvary")} sizes={FOLLICLES.right} color="#9B6DC5" matureMm={MATURE_MM} />
-          <Ovary label={t("home.leftOvary")} sizes={FOLLICLES.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
+          <Ovary label={t("home.rightOvary")} sizes={follicles.right} color="#9B6DC5" matureMm={MATURE_MM} />
+          <Ovary label={t("home.leftOvary")} sizes={follicles.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
         </div>
         <div className="flex flex-wrap gap-4 pt-2 border-t border-bloom-border">
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-accent" /><span className="text-bloom-muted text-xs">{t("home.rightOvary")}</span></div>
@@ -117,6 +125,7 @@ export default function HomeScreen({ user, openMore, goTab }) {
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-bloom-muted" /><span className="text-bloom-muted text-xs">{t("home.filled", { mm: MATURE_MM })}</span></div>
         </div>
       </div>
+      )}
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border">
         <div className="flex justify-between items-center mb-3">
@@ -148,6 +157,7 @@ export default function HomeScreen({ user, openMore, goTab }) {
           })}
         </div>
       </div>
+      {scanOpen && <ScanLog user={user} onClose={function () { setScanOpen(false); }} onSaved={function () { setScanOpen(false); setScanTick(function (n) { return n + 1; }); }} />}
     </div>
   );
 }

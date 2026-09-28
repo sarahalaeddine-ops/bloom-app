@@ -1,8 +1,11 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { store, todayKey } from "../lib/store.js";
-import { follicleStats, cycleStartDate, dateForStimDay, checkinStreak, lastSevenDays, logDose, getTodayMedLog, getMedHistory, medAdherence, saveCheckin, getCheckins } from "../lib/cycle.js";
-import { MEDS, SEED_CHECKINS } from "../lib/demo-data.js";
+import { follicleStats, cycleStartDate, dateForStimDay, checkinStreak, lastSevenDays, logDose, getTodayMedLog, getMedHistory, medAdherence, saveCheckin, getCheckins, isDemoUser, buildScan, parseSizes, saveScan, getScans, hormoneSeries, latestFollicles, latestE2 } from "../lib/cycle.js";
+import { MEDS, SEED_CHECKINS, DEMO_USER, HORMONES } from "../lib/demo-data.js";
+
+function asDemo() { store.set("user", { ...DEMO_USER }); }
+function asReal() { store.set("user", { id: "u-1", name: "Lina", onboarded: true }); }
 
 function daysAgo(n) {
   var d = new Date();
@@ -12,8 +15,45 @@ function daysAgo(n) {
 
 beforeEach(function () { localStorage.clear(); });
 
-test("follicleStats counts total and mature (>= 16 mm) follicles", function () {
+test("follicleStats counts total and mature (>= 16 mm) follicles for the demo persona", function () {
+  asDemo();
   assert.deepEqual(follicleStats(), { total: 11, mature: 4 });
+});
+
+test("a real account never sees the persona's numbers: no scans, follicles, E2, check-ins or doses", function () {
+  asReal();
+  assert.equal(isDemoUser(), false);
+  assert.deepEqual(follicleStats(), { total: 0, mature: 0, none: true });
+  assert.equal(latestFollicles(), null);
+  assert.equal(latestE2(), null);
+  assert.deepEqual(getScans(), []);
+  assert.deepEqual(hormoneSeries(), []);
+  assert.deepEqual(getCheckins(), []);
+  assert.deepEqual(getMedHistory(), []);
+  assert.deepEqual(getTodayMedLog(), {});
+  assert.equal(checkinStreak(), 0);
+});
+
+test("scan results: validated, sorted, and drive follicle stats and E2 for a real account", function () {
+  asReal();
+  assert.deepEqual(parseSizes("12, 18 14/16.5"), [18, 16.5, 14, 12]);
+  assert.equal(parseSizes("12, 99"), undefined);
+  assert.deepEqual(buildScan({ day: "0" }), { error: "day" });
+  assert.deepEqual(buildScan({ day: 5 }), { error: "empty" });
+  assert.deepEqual(buildScan({ day: 5, e2: "abc" }), { error: "e2" });
+  assert.deepEqual(buildScan({ day: 5, right: "12, 45" }), { error: "sizes" });
+  saveScan(buildScan({ day: 8, e2: "1,2", right: "17, 15", left: "16" }).scan);
+  saveScan(buildScan({ day: 6, e2: 900, right: "13" }).scan);
+  assert.deepEqual(getScans().map(function (s) { return s.day; }), [6, 8]);
+  assert.equal(latestE2().value, 1.2, "a comma is read as a decimal point");
+  assert.deepEqual(follicleStats(), { total: 3, mature: 2 });
+  assert.deepEqual(hormoneSeries().map(function (h) { return [h.day, h.leadFollicle, h.count]; }), [[6, 13, 1], [8, 17, 3]]);
+});
+
+test("the demo persona's series comes from the seeded hormone data", function () {
+  asDemo();
+  assert.equal(hormoneSeries().length, HORMONES.length);
+  assert.equal(latestE2().value, 1840);
 });
 
 test("cycle start is stimDay - 1 days ago, and dateForStimDay counts from it", function () {
@@ -47,14 +87,16 @@ test("lastSevenDays returns 7 days oldest first, matching check-ins by day", fun
   assert.equal(week[0].checkin, null);
 });
 
-test("getCheckins falls back to the seeded check-ins, saveCheckin prepends", function () {
+test("getCheckins falls back to the seeded check-ins (demo only), saveCheckin prepends", function () {
+  asDemo();
   assert.equal(getCheckins().length, SEED_CHECKINS.length);
   saveCheckin({ date: daysAgo(0), mood: 4 });
   assert.equal(getCheckins().length, SEED_CHECKINS.length + 1);
   assert.equal(getCheckins()[0].mood, 4);
 });
 
-test("today's med log is seeded from MEDS[].taken until a dose is logged", function () {
+test("today's med log is seeded from MEDS[].taken until a dose is logged (demo)", function () {
+  asDemo();
   var seeded = getTodayMedLog();
   MEDS.forEach(function (m) { assert.equal(!!seeded[m.id], !!m.taken, m.id); });
   var pending = MEDS.find(function (m) { return !m.taken; });
@@ -66,6 +108,7 @@ test("today's med log is seeded from MEDS[].taken until a dose is logged", funct
 });
 
 test("medAdherence is a ratio between 0 and 1 and drops after a missed dose", function () {
+  asDemo();
   var before = medAdherence();
   assert.ok(before > 0 && before <= 1);
   logDose(MEDS[0].id, { status: "missed" });
