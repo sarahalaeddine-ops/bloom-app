@@ -1,7 +1,8 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { store, todayKey } from "../lib/store.js";
-import { follicleStats, cycleStartDate, dateForStimDay, checkinStreak, lastSevenDays, logDose, getTodayMedLog, getMedHistory, medAdherence, saveCheckin, getCheckins, isDemoUser, buildScan, parseSizes, saveScan, getScans, hormoneSeries, latestFollicles, latestE2 } from "../lib/cycle.js";
+import { follicleStats, cycleStartDate, dateForStimDay, checkinStreak, lastSevenDays, logDose, getTodayMedLog, getMedHistory, medAdherence, saveCheckin, getCheckins, isDemoUser, buildScan, parseSizes, saveScan, getScans, hormoneSeries, latestFollicles, latestE2, doseEntry } from "../lib/cycle.js";
+import { getMed, doseKey } from "../lib/schedule.js";
 import { MEDS, SEED_CHECKINS, DEMO_USER, HORMONES } from "../lib/demo-data.js";
 
 function asDemo() { store.set("user", { ...DEMO_USER }); }
@@ -62,7 +63,7 @@ test("cycle start is stimDay - 1 days ago, and dateForStimDay counts from it", f
   expected.setDate(expected.getDate() - 6);
   assert.equal(start.toDateString(), expected.toDateString());
   assert.equal(dateForStimDay(7, 7).toDateString(), new Date().toDateString());
-  assert.equal(cycleStartDate(undefined).toDateString(), expected.toDateString(), "defaults to day 7");
+  assert.equal(cycleStartDate(undefined).toDateString(), new Date().toDateString(), "defaults to day 1 (never the persona's day 7)");
 });
 
 test("todayKey is YYYY-MM-DD", function () {
@@ -95,22 +96,35 @@ test("getCheckins falls back to the seeded check-ins (demo only), saveCheckin pr
   assert.equal(getCheckins()[0].mood, 4);
 });
 
-test("today's med log is seeded from MEDS[].taken until a dose is logged (demo)", function () {
+test("today's med log is seeded per dose from MEDS[].taken until a dose is logged (demo)", function () {
   asDemo();
   var seeded = getTodayMedLog();
-  MEDS.forEach(function (m) { assert.equal(!!seeded[m.id], !!m.taken, m.id); });
-  var pending = MEDS.find(function (m) { return !m.taken; });
-  var log = logDose(pending.id, { status: "taken", site: "Left belly" });
-  assert.equal(log[pending.id].status, "taken");
-  assert.ok(log[pending.id].at, "timestamped");
+  MEDS.forEach(function (m) {
+    getMed(m.id).times.forEach(function (t) { assert.equal(!!seeded[doseKey(m.id, t)], !!m.taken, m.id + " " + t); });
+  });
+  var pending = getMed(MEDS.find(function (m) { return !m.taken; }).id);
+  assert.equal(pending.times.length, 2, "Progynova is twice daily");
+  var log = logDose(pending.id, pending.times[0], { status: "taken", site: "lb" });
+  assert.equal(doseEntry(log, pending.id, pending.times[0]).status, "taken");
+  assert.equal(doseEntry(log, pending.id, pending.times[1]), null, "the evening dose is still due");
+  assert.ok(log[doseKey(pending.id, pending.times[0])].at, "timestamped");
   assert.equal(getMedHistory()[0].medId, pending.id);
-  assert.equal(store.get("medlog", {})[todayKey()][pending.id].site, "Left belly");
+  assert.equal(getMedHistory()[0].time, pending.times[0]);
+  assert.equal(store.get("medlog", {})[todayKey()][doseKey(pending.id, pending.times[0])].site, "lb");
 });
 
-test("medAdherence is a ratio between 0 and 1 and drops after a missed dose", function () {
+test("doseEntry still reads a legacy whole-day entry keyed by medication id", function () {
+  var log = { gonal: { status: "taken" } };
+  assert.equal(doseEntry(log, "gonal", "21:00").status, "taken");
+  assert.equal(doseEntry(log, "other", "21:00"), null);
+});
+
+test("medAdherence is a ratio between 0 and 1, drops after a missed dose, and is null with no doses", function () {
+  asReal();
+  assert.equal(medAdherence(), null, "a new account has nothing logged (not 100%)");
   asDemo();
   var before = medAdherence();
   assert.ok(before > 0 && before <= 1);
-  logDose(MEDS[0].id, { status: "missed" });
+  logDose(MEDS[0].id, "21:00", { status: "missed" });
   assert.ok(medAdherence() < before);
 });

@@ -138,8 +138,10 @@ async function handle(request) {
     if (userHit) return tooMany(userHit);
     // Her own synced profile wins over anything the client sent. No synced profile (cloud sync
     // off): fall back to the client's fields, sanitised. Never the demo persona for an account.
+    // Her schedule comes from the same row (bloom_my_meds / bloom_my_appts, synced with her
+    // cloud consent); lib/nora.js keeps only names, doses, times and the next appointments.
     var synced = caller.stored.user;
-    input = synced && typeof synced === "object" ? noraProfile(synced) : body.user;
+    input = synced && typeof synced === "object" ? noraProfile(synced, { meds: caller.stored.my_meds, appts: caller.stored.my_appts }) : body.user;
     if (input && typeof input === "object") input = { ...input, demo: false };
   }
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { isNative, platform, notificationId, notificationPermission, biometricInfo, verifyBiometric, replaceScheduled, onBackButton } from "../lib/native.js";
 import { nativePlan, syncNative, DEFAULTS, currentPermission } from "../lib/reminders.js";
 import { store, todayKey } from "../lib/store.js";
-import { MEDS } from "../lib/demo-data.js";
+import { MEDS, DEMO_USER } from "../lib/demo-data.js";
 
 beforeEach(function () { localStorage.clear(); delete globalThis.Capacitor; });
 afterEach(function () { delete globalThis.Capacitor; });
@@ -38,7 +38,8 @@ test("notification ids are stable positive 31-bit integers", function () {
   assert.ok(Number.isInteger(a) && a > 0 && a < 2147483647);
 });
 
-test("nativePlan covers 7 days, uses neutral text in her language, and skips doses taken today", function () {
+test("nativePlan covers 7 days, uses neutral text in her language, and skips doses taken today (demo schedule)", function () {
+  store.set("user", { ...DEMO_USER });
   var now = new Date();
   now.setHours(0, 1, 0, 0);
   var plan = nativePlan({ ...DEFAULTS, enabled: true, lead: 0 }, now, "en");

@@ -247,6 +247,27 @@ test("cloud: a verified user's context comes from her own row, read with her tok
   assert.equal(system.indexOf("18, 16"), -1, "client can't switch on the demo persona");
 });
 
+test("cloud: her own schedule comes from her row (names, doses, times, next appointments; never notes)", async function () {
+  withCloud();
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  captureLogs();
+  var tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  var row = {
+    ...SYNCED,
+    my_meds: [{ id: "m1", name: "Menopur", dose: "150 IU", type: "injection", times: ["19:30"], days: [], end: "", notes: "SECRET-NOTE" }],
+    my_appts: [{ id: "a1", kind: "retrieval", title: "", date: tomorrow, time: "07:30", clinic: "Clinic Street 5", notes: "SECRET-APPT" }],
+  };
+  var calls = mockCloud({ row: row });
+  await POST(cloudReq(ask("When is my next dose?", { user: { ...CLIENT_USER, meds: [{ name: "Gonal-F", times: ["21:00"] }] } }), JWT));
+  noCloud();
+  var system = calls.find(function (c) { return c.url.indexOf("anthropic") !== -1; }).body.system;
+  assert.match(system, /- Menopur 150 IU at 19:30 daily/);
+  assert.match(system, new RegExp("- Egg retrieval on " + tomorrow + " at 07:30"));
+  assert.equal(system.indexOf("SECRET"), -1, "notes are never sent");
+  assert.equal(system.indexOf("Clinic Street"), -1, "appointment place is never sent");
+  assert.equal(system.indexOf("Gonal-F"), -1, "client-sent schedule ignored when her row exists");
+});
+
 test("cloud: without a synced profile the client's fields are used, never as the demo persona", async function () {
   withCloud();
   mockCloud({ row: null });

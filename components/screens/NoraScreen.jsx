@@ -5,6 +5,7 @@ import { askNora } from "../../lib/api";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
 import { noraProfile } from "../../lib/nora";
+import { getMeds, getAppts } from "../../lib/schedule";
 
 // The demo persona gets her cycle summary; a real user never sees Sarah's numbers (G15).
 function welcome(user, t) {
@@ -39,7 +40,8 @@ export default function NoraScreen({ user }) {
       var res = await askNora({
         // Only what Nora needs: first name (never in anonymous mode) and cycle context. In cloud mode
         // the server reads her synced profile instead. See docs/sa6/architecture.md.
-        user: noraProfile(user),
+        // Her schedule: medication names, doses and times and her next appointments (no notes).
+        user: noraProfile(user, { meds: getMeds(), appts: getAppts() }),
         messages: next,
         lang: lang,
         // Her consent to AI processing (G11). Cloud accounts: the server checks her stored consent too.

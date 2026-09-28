@@ -5,6 +5,8 @@ import { Illustration } from "../../ui/Graphics";
 import { getSettings, saveSettings, permission, currentPermission, requestPermission, notify, upcoming, fmtTime, doseCalendar, syncNative, LEADS } from "../../../lib/reminders";
 import { isNative } from "../../../lib/native";
 import { useT } from "../../../lib/i18n";
+import { getMeds } from "../../../lib/schedule";
+import { apptLabel } from "../../ScheduleForms";
 
 function Toggle({ on, onChange, label }) {
   return (
@@ -15,8 +17,9 @@ function Toggle({ on, onChange, label }) {
   );
 }
 
-export default function Reminders({ onBack }) {
+export default function Reminders({ onBack, openSection }) {
   var { t } = useT();
+  var hasMeds = getMeds().length > 0;
   var native = isNative();
   var [s, setS] = useState(getSettings);
   var [perm, setPerm] = useState(permission);
@@ -116,16 +119,19 @@ export default function Reminders({ onBack }) {
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
           <Label className="mb-3">{t("rem.coming")}</Label>
           {next.length === 0 && <p className="text-bloom-muted text-sm">{t("rem.nothing")}</p>}
+          {!hasMeds && openSection && (
+            <button onClick={function () { openSection("medications"); }} className="mt-2 text-bloom-accent text-xs font-semibold py-2">{t("rem.addMeds")}</button>
+          )}
           {next.map(function (r) {
             return (
               <div key={r.id} className="flex items-center gap-3 py-2 border-t border-bloom-border first:border-0">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-bloom-text text-sm font-semibold truncate">{r.kind === "med" ? r.title : r.title.replace(" in 1 hour", "")}</p>
-                  <p className="text-bloom-dim text-xs">{r.kind === "med" ? t("rem.due", { time: fmtTime(r.due) }) : r.body}</p>
+                  <p className="text-bloom-text text-sm font-semibold truncate"><bdi>{r.kind === "med" ? r.title : apptLabel(r.appt, t)}</bdi></p>
+                  <p className="text-bloom-dim text-xs"><bdi>{r.kind === "med" ? t("rem.due", { time: fmtTime(r.due) }) : r.body}</bdi></p>
                 </div>
                 <span className="text-bloom-muted text-xs whitespace-nowrap">
-                  {r.at.toDateString() === new Date().toDateString() ? "" : t("rem.tmrw") + " "}{fmtTime(r.at)}
+                  {r.at.toDateString() === new Date().toDateString() ? "" : t("rem.tmrw") + " "}<bdi>{fmtTime(r.at)}</bdi>
                 </span>
               </div>
             );
@@ -141,7 +147,7 @@ export default function Reminders({ onBack }) {
           <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200 mb-3">
             <p className="text-bloom-text text-sm font-semibold mb-1">{t("rem.closedTitle")}</p>
             <p className="text-bloom-muted text-xs leading-relaxed mb-3">{t("rem.calBody")}</p>
-            <button onClick={addToCalendar} className="w-full py-3 rounded-xl bg-bloom-accent text-white font-semibold text-sm">{t("rem.calBtn")}</button>
+            <button onClick={addToCalendar} disabled={!hasMeds} className="w-full py-3 rounded-xl bg-bloom-accent text-white font-semibold text-sm disabled:opacity-40">{t("rem.calBtn")}</button>
           </div>
         )}
 

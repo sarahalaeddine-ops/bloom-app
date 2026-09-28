@@ -2,23 +2,26 @@
 import { useState } from "react";
 import { Sheet, Label } from "./ui/Common";
 import { MoodFace } from "./ui/Graphics";
-import { MEDS, MOODS, SYMPTOMS } from "../lib/demo-data";
+import { MOODS, SYMPTOMS } from "../lib/demo-data";
 import { useT } from "../lib/i18n";
-import { getTodayMedLog, logDose, saveCheckin, getCheckins } from "../lib/cycle";
+import { getTodayMedLog, logDose, doseEntry, saveCheckin, getCheckins } from "../lib/cycle";
+import { dosesOn, fmtClock } from "../lib/schedule";
 
 // Flo's "+" quick log, for IVF: tick a dose, or log mood, symptoms and weight in a few taps.
 export default function QuickLog({ user, onClose, onSaved }) {
-  var { t } = useT();
+  var { t, locale } = useT();
   var [log, setLog] = useState(getTodayMedLog);
+  var [doses] = useState(function () { return dosesOn(new Date()); });
   var [mood, setMood] = useState(null);
   var [symptoms, setSymptoms] = useState([]);
   var [weight, setWeight] = useState("");
   var [alert, setAlert] = useState(null);
-  var pending = MEDS.filter(function (m) { return !(log[m.id] && log[m.id].status === "taken"); });
+  // Her own doses due today (lib/schedule.js); nothing for an account that hasn't added any.
+  var pending = doses.filter(function (d) { var e = doseEntry(log, d.med.id, d.time); return !(e && e.status === "taken"); });
 
-  function take(m) {
-    setLog(logDose(m.id, { status: "taken", site: "", note: "" }));
-    onSaved(t("ql.doseLogged", { med: m.name }));
+  function take(d) {
+    setLog(logDose(d.med.id, d.time, { status: "taken", site: "", note: "" }));
+    onSaved(t("ql.doseLogged", { med: d.med.name }));
   }
 
   function toggle(s) {
@@ -28,7 +31,7 @@ export default function QuickLog({ user, onClose, onSaved }) {
   function save() {
     var w = weight ? parseFloat(weight) : null;
     var last = (getCheckins().find(function (c) { return c.weight; }) || {}).weight;
-    saveCheckin({ date: new Date().toISOString(), stimDay: user.stimDay || 7, mood: mood, anxiety: 3, hope: 3, symptoms: symptoms, weight: w, note: "", quick: true });
+    saveCheckin({ date: new Date().toISOString(), stimDay: user.stimDay || null, mood: mood, anxiety: 3, hope: 3, symptoms: symptoms, weight: w, note: "", quick: true });
     onSaved(t("ql.saved"));
     var gain = w && last ? +(w - last).toFixed(1) : 0;
     if (gain >= 2) setAlert(gain);
@@ -54,16 +57,19 @@ export default function QuickLog({ user, onClose, onSaved }) {
       <p className="text-bloom-muted text-sm mb-5">{t("ql.sub")}</p>
 
       <Label className="mb-2">{t("ql.doses")}</Label>
-      {pending.length === 0 ? (
+      {doses.length === 0 ? (
+        <p className="text-bloom-muted text-sm mb-5">{t("ql.noMeds")}</p>
+      ) : pending.length === 0 ? (
         <p className="text-bloom-teal text-sm font-semibold mb-5">{t("ql.allDone")}</p>
       ) : (
         <div className="flex flex-wrap gap-2 mb-5">
-          {pending.map(function (m) {
+          {pending.map(function (d) {
+            var m = d.med;
             return (
-              <button key={m.id} onClick={function () { take(m); }} className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold"
+              <button key={d.key} onClick={function () { take(d); }} className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold min-h-[40px]"
                 style={{ borderColor: m.color + "55", color: m.color, backgroundColor: m.color + "0D" }}>
-                <span className="w-4 h-4 rounded-full border-2" style={{ borderColor: m.color }} />
-                <bdi dir="ltr">{m.name} · {m.time}</bdi>
+                <span className="w-4 h-4 rounded-full border-2 flex-shrink-0" style={{ borderColor: m.color }} />
+                <bdi>{m.name}</bdi> · <bdi>{fmtClock(d.time, locale)}</bdi>
               </button>
             );
           })}
