@@ -53,7 +53,11 @@ All optional: with none set, Bloom builds and runs as an offline demo (the priva
 | `NORA_MODEL` | No | Nora model id (default `claude-sonnet-4-6`). |
 | `BLOB_READ_WRITE_TOKEN` | Yes | Waitlist storage in Vercel Blob. Added automatically when a Blob store is connected. |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No (public) | Turn on cloud accounts and sync. Row-level security protects the data. Never expose the service-role key. |
+| `NORA_REQUIRE_AUTH` | No | `1` = live Nora (Anthropic) only for verified Supabase accounts; local/demo callers, including the web demo, get scripted offline answers. Recommended in production once the native app is live. Unset = today's behaviour. |
+| `NEXT_PUBLIC_API_BASE` | No (public) | **App build only** (`npm run build:app`): the hosted site the iOS/Android app calls for `/api/*` and links to for the privacy policy. Default `https://bloomivfcompanion.com`. Leave unset on Vercel. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Yes, server-only** | Lets `/api/account/delete` erase a cloud account (her `auth.users` row) after verifying her session. Supabase → Project Settings → API keys (legacy `service_role` JWT or a new `sb_secret_…` key). **Never** prefix it with `NEXT_PUBLIC_`, never use it in client code. Without it, "Delete everything" in cloud mode shows an error and deletes nothing. |
+
+**Native app build.** `npm run build:app` makes a static export of the app (only `*.app.jsx` routes: `app/layout.app.jsx`, `app/page.app.jsx`) into `out/` for Capacitor. API routes and `proxy.js` stay on Vercel; the app calls them cross-origin with her Bearer token. `/api/nora` and `/api/account/delete` send CORS headers only to `capacitor://localhost` and `https://localhost` (`lib/cors.js`), and `proxy.js` lets Bearer requests and CORS preflights to `/api/nora` through the demo gate (the route verifies the token itself). See [`docs/sa6/app-store.md`](docs/sa6/app-store.md).
 
 To run the private demo locally: `DEMO_PASSWORD=anything npm run dev`, open http://localhost:3000/demo-7q4x and enter that password.
 

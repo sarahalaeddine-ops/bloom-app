@@ -290,7 +290,7 @@ test("cloud: Supabase down means an offline reply with no profile and no AI call
   assert.equal(calls.filter(function (c) { return c.url.indexOf("anthropic") !== -1; }).length, 0);
 });
 
-test("no token keeps today's local/demo behaviour, and a token is ignored when cloud mode is off", async function () {
+test("no token keeps today's local/demo behaviour; a token can't be verified when cloud mode is off", async function () {
   withCloud();
   var calls = mockCloud({});
   var data = await (await POST(cloudReq(ask("What does my E2 mean?", { user: { demo: true } })))).json();
@@ -298,9 +298,50 @@ test("no token keeps today's local/demo behaviour, and a token is ignored when c
   assert.equal(calls.length, 0);
   noCloud();
   calls = mockCloud({});
-  var res = await POST(cloudReq(ask("hi"), JWT));
-  assert.equal(res.status, 200);
+  // A Bearer header passes the demo gate (native app), so it must never fall back to local mode.
+  var res = await POST(cloudReq(ask("hi", { ai: true, user: { demo: true } }), JWT));
+  assert.equal(res.status, 401);
   assert.equal(calls.length, 0);
+});
+
+test("NORA_REQUIRE_AUTH: local/demo callers get offline answers only; verified accounts still go live", async function () {
+  process.env.NORA_REQUIRE_AUTH = "1";
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  try {
+    noCloud();
+    var calls = mockCloud({ anthropic: { content: [{ type: "text", text: "live" }], usage: {} } });
+    var data = await (await POST(req(ask("What does my E2 mean?", { ai: true, user: { demo: true } })))).json();
+    assert.equal(data.demo, true);
+    assert.equal(data.authRequired, true);
+    assert.equal(calls.length, 0, "no Anthropic call without a verified account");
+    withCloud();
+    calls = mockCloud({ row: SYNCED, anthropic: { content: [{ type: "text", text: "live" }], usage: {} } });
+    data = await (await POST(cloudReq(ask("hello"), JWT))).json();
+    assert.equal(data.text, "live");
+  } finally {
+    delete process.env.NORA_REQUIRE_AUTH;
+    noCloud();
+  }
+});
+
+test("CORS: app origins get CORS headers and a preflight answer; other origins get none", async function () {
+  var mod = await import("../app/api/nora/route.js");
+  for (var origin of ["capacitor://localhost", "https://localhost"]) {
+    var pre = mod.OPTIONS(new Request("http://localhost/api/nora", { method: "OPTIONS", headers: { origin: origin } }));
+    assert.equal(pre.status, 204);
+    assert.equal(pre.headers.get("access-control-allow-origin"), origin);
+    assert.match(pre.headers.get("access-control-allow-headers"), /Authorization/);
+    assert.equal(pre.headers.get("access-control-allow-credentials"), null);
+  }
+  var evil = mod.OPTIONS(new Request("http://localhost/api/nora", { method: "OPTIONS", headers: { origin: "https://evil.example" } }));
+  assert.equal(evil.headers.get("access-control-allow-origin"), null);
+  var r = req(ask("hi"));
+  var withOrigin = new Request(r, { headers: { ...Object.fromEntries(r.headers), origin: "capacitor://localhost" } });
+  var res = await POST(withOrigin);
+  assert.equal(res.headers.get("access-control-allow-origin"), "capacitor://localhost");
+  assert.match(res.headers.get("vary"), /Origin/);
+  var plain = await POST(req(ask("hi")));
+  assert.equal(plain.headers.get("access-control-allow-origin"), null);
 });
 
 test("cloud: each account is limited to 10 requests a minute across IPs", async function () {

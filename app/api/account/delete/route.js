@@ -1,5 +1,6 @@
 import { createRateLimiter, clientIp } from "../../../../lib/rate-limit";
 import { supabaseServerConfig, bearerToken, verifyUser, deleteUserState, adminDeleteUser } from "../../../../lib/supabase-server";
+import { withCors, preflight } from "../../../../lib/cors";
 
 // Full erasure of a cloud account (GDPR Art. 17 / UAE PDPL; gap G4).
 // 1. Verify her Supabase access token server-side: the user id comes from Supabase, never the client.
@@ -12,6 +13,7 @@ import { supabaseServerConfig, bearerToken, verifyUser, deleteUserState, adminDe
 // The client then wipes Bloom's data from the device. Local-mode accounts never call this route.
 //
 // Not behind the proxy.js demo gate: it only acts for the holder of a valid Supabase session.
+// The native app calls it cross-origin; lib/cors.js allows only the Capacitor origins.
 var MAX_BODY_CHARS = 1000;
 var perIp = createRateLimiter({ limit: 5, windowMs: 10 * 60 * 1000 });
 
@@ -19,7 +21,15 @@ function fail(status, error, headers) {
   return Response.json({ error: error }, { status: status, headers: headers });
 }
 
+export function OPTIONS(request) {
+  return preflight(request);
+}
+
 export async function POST(request) {
+  return withCors(request, await handle(request));
+}
+
+async function handle(request) {
   var cfg = supabaseServerConfig();
   if (!cfg) return fail(404, "Not available");
 

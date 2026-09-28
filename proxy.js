@@ -3,6 +3,12 @@ import { NextResponse } from "next/server";
 // Password gate for the private app demo and the Nora API it uses.
 // The browser asks for the password once (any username works); after that a
 // cookie keeps the visitor in for 30 days. Without DEMO_PASSWORD set, both stay locked.
+//
+// The native app (docs/sa6/app-store.md) has no demo cookie. For the API only:
+// - requests carrying "Authorization: Bearer <token>" go through to the route, which verifies the
+//   Supabase session itself and answers 401 when it is not valid;
+// - CORS preflights (OPTIONS) go through so the route can answer them (they carry no data).
+// Everything else still needs the demo cookie. The demo page gate is unchanged.
 var COOKIE = "bloom_demo";
 var MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -30,6 +36,11 @@ function passwordFromHeader(header) {
   }
 }
 
+function hasBearer(request) {
+  var header = request.headers.get("authorization");
+  return !!header && header.slice(0, 7).toLowerCase() === "bearer " && header.slice(7).trim().length > 0;
+}
+
 export async function proxy(request) {
   var isApi = request.nextUrl.pathname.startsWith("/api/");
   var password = process.env.DEMO_PASSWORD;
@@ -37,7 +48,10 @@ export async function proxy(request) {
 
   if (expected && sameToken(request.cookies.get(COOKIE)?.value, expected)) return NextResponse.next();
 
-  if (isApi) return Response.json({ error: "Not authorized" }, { status: 401 });
+  if (isApi) {
+    if (request.method === "OPTIONS" || hasBearer(request)) return NextResponse.next();
+    return Response.json({ error: "Not authorized" }, { status: 401 });
+  }
 
   var given = passwordFromHeader(request.headers.get("authorization"));
   if (expected && given !== null && sameToken(await passToken(given), expected)) {

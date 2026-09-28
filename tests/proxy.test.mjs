@@ -30,6 +30,21 @@ test("API needs the cookie; Basic auth is not enough", async function () {
   assert.equal((await proxy(req("/api/nora", { cookie: "bloom_demo=" + token("wrong") }))).status, 401);
 });
 
+test("API: Bearer requests and CORS preflights pass the gate (native app); the route verifies them", async function () {
+  process.env.DEMO_PASSWORD = "pw-123";
+  assert.ok(passedThrough(await proxy(req("/api/nora", { authorization: "Bearer abc.def.ghi" }))));
+  assert.ok(passedThrough(await proxy(new NextRequest("https://bloom.test/api/nora", { method: "OPTIONS", headers: { origin: "capacitor://localhost" } }))));
+  assert.equal((await proxy(req("/api/nora", { authorization: "Bearer " }))).status, 401, "empty Bearer");
+  assert.equal((await proxy(req("/api/nora", { authorization: "Token abc" }))).status, 401);
+  delete process.env.DEMO_PASSWORD;
+  assert.ok(passedThrough(await proxy(req("/api/nora", { authorization: "Bearer abc.def.ghi" }))), "also without DEMO_PASSWORD");
+});
+
+test("page: a Bearer header does not open the demo page", async function () {
+  process.env.DEMO_PASSWORD = "pw-123";
+  assert.equal((await proxy(req("/demo-7q4x", { authorization: "Bearer abc.def.ghi" }))).status, 401);
+});
+
 test("page: wrong password prompts again, right password sets a secure httpOnly cookie", async function () {
   process.env.DEMO_PASSWORD = "pw-123";
   var denied = await proxy(req("/demo-7q4x", { authorization: basic("nope") }));
