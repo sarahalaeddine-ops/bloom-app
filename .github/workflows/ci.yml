@@ -1,4 +1,5 @@
-# Lint, test and build on every pull request and on pushes to master.
+# Lint, test and build (web + app bundle) on every pull request and on pushes to master,
+# then compile the Android app.
 # Needs no secrets: without env vars Bloom builds as the offline demo.
 name: CI
 
@@ -32,3 +33,29 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Static export for the iOS/Android apps must keep building too.
+      - run: npm run build:app
+
+  # Compiles the Android app (debug, unsigned) so native config or plugin breakage shows up on the
+  # PR. GitHub's Ubuntu runners include the Android SDK; Capacitor 8 needs JDK 21. iOS needs macOS
+  # and signing, so it is built in Codemagic/Xcode instead (docs/sa6/app-store.md).
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: check
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci
+      - run: npm run app:sync
+      - run: ./gradlew assembleDebug --no-daemon
+        working-directory: android
