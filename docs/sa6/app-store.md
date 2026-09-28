@@ -1,6 +1,8 @@
 # Bloom on the App Store and Google Play (Capacitor)
 
-Owned by **sa6**. Status (2026-09-28): **the app is built and ready for the founder's store steps.** The founder approved Capacitor on 2026-09-27; the iOS and Android projects are in `ios/` and `android/`, the app bundle builds with `npm run build:app`, and the native features are in. What is left is mostly accounts, legal review and uploading: see **section 14, "What you need to do"**, written for a non-technical reader. Guideline quotes were checked on 2026-09-27 against the sources in section 12. Items marked **(verify)** come from sources that could not be opened from this environment and must be re-checked before submission.
+Owned by **sa6**. Status (2026-09-28): **the app is built and ready for the founder's store steps.** The founder approved Capacitor on 2026-09-27; the iOS and Android projects are in `ios/` and `android/`, the app bundle builds with `npm run build:app`, and the native features are in. What is left is mostly accounts, legal review and uploading: see **section 14, "What you need to do"**, written for a non-technical reader.
+
+**Update 2026-09-28 (blockers from the previous pass, all done):** Next.js patched to 16.3.6 (critical advisories); real accounts enter their own medications and appointments (reminders, Home, Report and Nora use them; no persona schedule anywhere); Charts, the Cycle Report and the iOS Face ID permission text are in English, Arabic and French; a sweep removed the remaining persona fallbacks. What still stands between us and a TestFlight / Play internal-testing build is listed in **13.7**. Guideline quotes were checked on 2026-09-27 against the sources in section 12. Items marked **(verify)** come from sources that could not be opened from this environment and must be re-checked before submission.
 
 Quick map of this document:
 - Sections 1 to 12: the plan and the rules we designed against (kept for reference).
@@ -232,6 +234,8 @@ Defaults applied on 2026-09-28 so work could continue. Each can be reversed; tel
 | 10 | Budget | Apple US$99/year, Google US$25 once, Codemagic minutes, a Mac if needed. | n/a |
 | 11 | Company details | Needed for enrolment (legal entity, D-U-N-S, Account Holder). | n/a |
 | 12 | UAE data residency | Still open: needed before a UAE launch with cloud accounts (`architecture.md` section 9). | n/a |
+| 13 | Fictional therapists and community posts | **Open (2026-09-28).** Therapy & Coaching (and the free session offered in onboarding) lists invented therapists, and Community shows seeded posts. Options: real partner therapists, a clear "example" label, or hide both in the app for v1. Suggested default: hide in the app build until real services exist (like Upgrade). | Tell sa6 which option. |
+| 14 | Nora sees her schedule | **Applied (2026-09-28).** With her AI consent, Nora receives medication names, doses and times and her next 3 appointment dates (never notes or places), so she can answer "when is my next dose?". Disclosed in the consent text and privacy policy (consent version `2026-09-28-draft2`, everyone is asked again). Lawyer to confirm the wording. | Remove `meds`/`appts` from `noraProfile` in `lib/nora.js`. |
 
 ## 12. Sources (checked 2026-09-27)
 - Apple, [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) (last updated 8 June 2026): 1.4.1, 1.4.2, 2.1(a), 2.2, 2.5.1, 3.1.1, 4.2, 4.8, 5.1.1(i), (ii), (v), (ix), 5.1.2(i), (vi), 5.1.3.
@@ -295,7 +299,7 @@ Not added: `@capacitor/push-notifications` (server push is phase 2 and adds Fire
 ### 13.4 Permissions and usage strings
 | Platform | Entry | Text / reason |
 |---|---|---|
-| iOS | `NSFaceIDUsageDescription` | "Bloom uses Face ID to unlock your private IVF journal and cycle data. Your face data never leaves your iPhone." (English only; add `ar.lproj`/`fr.lproj` InfoPlist.strings in Xcode for translated prompts.) |
+| iOS | `NSFaceIDUsageDescription` | "Bloom uses Face ID to unlock your private IVF journal and cycle data. Your face data never leaves your iPhone." Translated in `ios/App/App/{en,ar,fr}.lproj/InfoPlist.strings` (registered in the Xcode project; `knownRegions` now en, ar, fr). The in-app biometric prompt texts (`bio.*`) were already translated. |
 | iOS | Notifications | Asked at runtime when she turns reminders on (no Info.plist key needed). |
 | iOS | `ITSAppUsesNonExemptEncryption = false` | Bloom only uses standard encryption (HTTPS, AES in the browser crypto API). Confirm in App Store Connect's export compliance questions. |
 | Android | `POST_NOTIFICATIONS` | Reminders (Android 13+ asks at runtime). |
@@ -305,11 +309,24 @@ Not added: `@capacitor/push-notifications` (server push is phase 2 and adds Fire
 | Android | `INTERNET` | Accounts, sync, Nora. |
 
 ### 13.5 Real accounts vs the demo
-Real accounts no longer see Sarah's follicles, E2, check-ins or dose history: Home, Charts, the Cycle Report and More show her own logged scans, or an empty state with **Log a scan result**. **Still demo data for everyone (next priority, see the report):** the medication list and schedule (`MEDS`) and appointments (`APPOINTMENTS`), so reminders follow the demo schedule until she can enter her own medicines. **Do not start external testing with real patients before that is fixed.**
+Done (2026-09-28). A real account only ever sees what she entered:
+- **Medications and appointments** are her own (`lib/schedule.js`, keys `bloom_my_meds` / `bloom_my_appts`, synced only with her cloud consent). She adds, edits and deletes them in More → Medications / Appointments: name, dose, type, one or more times, start and end dates, optional weekdays and notes; appointment type, date, time, clinic and notes. Validated on save. Empty states everywhere until she adds something.
+- Home, the quick log, Reminders (the web scheduler, the calendar file and the native 7-day plan), the Cycle Report and Nora's context all read her schedule. The dose log is per dose, so a twice-daily medicine has two reminders and two ticks.
+- Scans (E2, follicles) and check-ins were already hers (previous pass).
+- **Shared devices:** Bloom's on-device data now belongs to one account at a time (`bloom_owner`). Leaving the web demo deletes its data; if another account signs in, the previous account's data is parked on the device (never synced) and returned when she signs back in. The app build has no demo at all.
+- The demo persona (web demo only) keeps Sarah's schedule, results and check-ins.
 
 ### 13.6 Verified here vs not
-- Verified in this environment: lint, 124 unit tests, web build, app build, `cap sync` (iOS + Android), Playwright on the static app bundle at 390x844 in English and Arabic (sign-up, onboarding disclaimer, empty states, scan logging, Nora AI disclosure, Upgrade hidden, profile wording, reminders and lock screen in Arabic), the web demo unchanged, CORS and gate behaviour with curl.
-- **Not verified:** a real iOS build (needs a Mac and Xcode) and an Android compile (the Android SDK download is blocked in this sandbox; CI compiles it on GitHub). Native plugins (notifications, Face ID, back button, status bar, privacy screen) have only been exercised through their no-op web paths. **Test on real phones before submission** (checklist step 7).
+- Verified in this environment (2026-09-28): lint (0 errors), 143 unit tests, web build, app build, Playwright on the static app bundle at 390x844 in **English and Arabic**: new account → onboarding → add a medication and an appointment → both on Home, planned in Reminders, offered in the quick log, listed in the Cycle Report; no persona value (Sarah, Emirates Fertility Centre, Gonal-F, Cetrotide, Progynova, 1840, Dr. Haddad, Antagonist) on Home, Medications, Appointments, Reminders, Charts, Report or Nora, nor in localStorage; no page errors. Scripted Nora evals E01–E20.
+- Earlier pass: `cap sync` (iOS + Android), CORS and gate behaviour with curl, the web demo.
+- **Not verified:** a real iOS build (needs a Mac and Xcode; the new `InfoPlist.strings` entries were added to the Xcode project by hand, so open the project once in Xcode and check the Arabic Face ID prompt on a phone) and an Android compile (CI does it). Native plugins have only run through their no-op web paths. Live Nora (no API key here). **Test on real phones before submission** (checklist step 7).
+
+### 13.7 Still open before TestFlight / Play internal testing
+Technical items a developer can do; none needs a new package.
+1. **English-only screens a user can reach:** Community, After a Failed Cycle, Partner Space, Pregnancy Journey, Secret Space, Therapy & Coaching, Two Week Wait, Wellbeing Videos (and their content in `lib/demo-data.js`). Fine for an English-only TestFlight; must be translated before Arabic users test.
+2. **Fictional content shown to real users:** the therapists (Dr. Sarah Mitchell and others in `THERAPISTS`, also offered in onboarding), the Community rooms' seeded posts, and the demo bookings. For the stores these must be real services, clearly labelled examples, or hidden (App Store 2.3 accurate metadata / 1.4.1). **Founder decision** (see 11).
+3. Real-phone checks of the native parts (step 7), including the localised Face ID prompt.
+4. `npm audit`: 0 findings in runtime dependencies. Remaining (development tools only, not in the app): `uuid` < 11.1.1 (moderate) via `@capacitor/cli` → `xcode`; the only "fix" downgrades the Capacitor CLI, so we wait for a Capacitor release.
 
 ---
 
@@ -347,7 +364,7 @@ In Vercel → your project → Settings → Environment Variables (Production), 
 
 ### Step 5. Reviewer login (Apple and Google both test the app with it)
 - [ ] In Supabase → Authentication → Users → **Add user**: an address you control (for example reviewer@bloomivfcompanion.com), a strong password, tick "Auto confirm". **Never put this password in the code or in email threads; keep it in a password manager.**
-- [ ] On a phone with the app (step 7), sign in with it once: finish onboarding, allow cloud sync and Nora AI, turn reminders on, log two check-ins and two scan results so the screens look alive.
+- [ ] On a phone with the app (step 7), sign in with it once: finish onboarding, allow cloud sync and Nora AI, turn reminders on, add two medications and two appointments, log two check-ins and two scan results so the screens look alive. (The consent text changed on 2026-09-28, so existing accounts are asked again: that is expected.)
 - [ ] In App Store Connect → App Review Information: enter the reviewer email and password, and paste these notes: "Bloom is an IVF companion. Nora is an AI companion (Anthropic Claude) that never diagnoses or changes doses, refers emergencies to the clinic and asks for explicit consent before any AI processing (Privacy Centre). To test account deletion, please create a new account (More → Privacy Centre → Delete all my data) rather than deleting the reviewer account."
 - [ ] Same credentials in Play Console → App content → **App access**.
 - [ ] After each review, check the reviewer account still works.
@@ -372,7 +389,8 @@ A developer can do this in about an hour once accounts exist. Two ways:
 
 ### Step 7. Test on real phones (1 to 2 weeks)
 - [ ] Install from TestFlight (iPhone) and Play internal testing (Android). Test in English and Arabic: sign up, onboarding, reminders arrive with the app closed (set one 5 minutes ahead), Face ID / fingerprint unlock, back button on Android, Nora answers, log a scan, delete an account, the privacy link opens.
-- [ ] Invite a few real patients only after the medication list is theirs (13.5).
+- [ ] Also test: add a medication with two times and an appointment, then check both reminders arrive and that the lock screen shows no medicine name.
+- [ ] Invite a few real patients only after 13.7 items 1 and 2 are settled (Arabic screens, fictional therapists and community posts).
 
 ### Step 8. Store listing (texts in section 15, privacy answers in section 16)
 - [ ] **Screenshots** in English and Arabic **(verify sizes at upload)**:
@@ -464,7 +482,7 @@ Tracking: **No**, Bloom does not track users across other companies' apps or web
 
 | Data type (Apple's list) | Collected? | Linked to her? | Used for tracking? | Purpose |
 |---|---|---|---|---|
-| Health & Fitness → **Health** (cycle, symptoms, weight, scans, doses) | Yes | Yes | No | App Functionality |
+| Health & Fitness → **Health** (cycle, symptoms, weight, scans, medication schedule, dose log, appointments) | Yes | Yes | No | App Functionality |
 | Contact Info → **Name** | Yes | Yes | No | App Functionality |
 | Contact Info → **Email Address** | Yes | Yes | No | App Functionality |
 | User Content → **Other User Content** (check-in notes, Nora chats; Secret Space is encrypted and unreadable to Bloom) | Yes | Yes | No | App Functionality |
