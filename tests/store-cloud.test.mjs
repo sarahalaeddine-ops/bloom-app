@@ -8,7 +8,7 @@ var UID = "5f0c6a52-1c2b-4a57-9d3e-2b7c1e9f0a11";
 var calls = [];
 var deleteStatus = 200;
 var remoteRow = null;
-var auth, store, consent;
+var auth, store, consent, CURRENT;
 
 function b64url(obj) { return Buffer.from(JSON.stringify(obj)).toString("base64url"); }
 var ACCESS = b64url({ alg: "HS256", typ: "JWT" }) + "." + b64url({ sub: UID, exp: Math.floor(Date.now() / 1000) + 3600, role: "authenticated" }) + ".sig";
@@ -39,7 +39,7 @@ before(async function () {
     throw new Error("unexpected fetch " + method + " " + url);
   };
   var mod = await import("../lib/store.js");
-  auth = mod.auth; store = mod.store; consent = mod.consent;
+  auth = mod.auth; store = mod.store; consent = mod.consent; CURRENT = mod.CONSENT_VERSION;
 });
 
 beforeEach(function () {
@@ -102,7 +102,7 @@ test("withdrawing cloud consent replaces the cloud copy with the consent record 
 });
 
 test("sign-in on a new device pulls her consent record", async function () {
-  remoteRow = { consent: { version: "2026-09-27-draft1", cloud: true, ai: false, at: new Date().toISOString() }, checkins: [{ mood: 3 }] };
+  remoteRow = { consent: { version: CURRENT, cloud: true, ai: false, at: new Date().toISOString() }, checkins: [{ mood: 3 }] };
   var u = await signIn();
   assert.equal(consent.answered(u), true);
   assert.equal(consent.aiAllowed(u), false);
