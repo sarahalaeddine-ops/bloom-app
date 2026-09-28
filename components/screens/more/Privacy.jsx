@@ -105,7 +105,7 @@ export default function Privacy({ onBack, user, setUser }) {
   function exportData() {
     var data = {};
     try {
-      Object.keys(localStorage).filter(function (k) { return k.indexOf("bloom_") === 0 && k !== "bloom_users" && k !== "bloom_lock_pin"; }).forEach(function (k) {
+      Object.keys(localStorage).filter(function (k) { return k.indexOf("bloom_") === 0 && k !== "bloom_users" && k !== "bloom_lock_pin" && k !== "bloom_owner" && k.indexOf("bloom_stash_") !== 0; /* other accounts' parked data is never hers to export */ }).forEach(function (k) {
         data[k.replace("bloom_", "")] = JSON.parse(localStorage.getItem(k));
       });
     } catch {}
