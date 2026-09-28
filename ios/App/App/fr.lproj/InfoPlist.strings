@@ -1,0 +1,2 @@
+/* Face ID permission text (iOS shows it the first time Bloom asks). Keep in step with Info.plist. */
+"NSFaceIDUsageDescription" = "Bloom utilise Face ID pour déverrouiller votre journal FIV privé et les données de votre cycle. Les données de votre visage ne quittent jamais votre iPhone.";
