@@ -2,7 +2,7 @@
 
 Owned by **sa6** (full-stack / AI). This is the living record of how Bloom is built, what data goes where, the known risks and the technical roadmap. Update it with every feature.
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 ---
 
@@ -80,10 +80,23 @@ Design principles:
 ### 3.4 Data layer: `lib/store.js`
 - **Local mode (default):** everything in `localStorage` under `bloom_*`. Local accounts store salted PBKDF2-SHA256 hashes (210k iterations) in `bloom_users`.
 - **Cloud mode** (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`): Supabase Auth (email + password). **Only with her consent to cloud sync** (G11, section 3.6), every write schedules a debounced (1.5 s) upsert of a snapshot of all non-`LOCAL_ONLY` keys into `public.user_state.data` (one jsonb row per user). Without it, the row holds only her consent record. Sign-in pulls the row back (including the consent record).
-- **`LOCAL_ONLY`** (never synced): `users`, `lock_pin`, `secret` (legacy plaintext), `lang`, `reminders_fired`.
+- **`LOCAL_ONLY`** (never synced): `users`, `lock_pin`, `lock_bio`, `secret` (legacy plaintext), `lang`, `reminders_fired`, `owner`, and every `stash_<id>`.
+- **One owner per device (2026-09-28):** all per-user data shares the `bloom_*` keys, so `bloom_owner` records whose it is. On sign-up / sign-in / demo entry with a different account (`switchOwner` in `lib/store.js`): the demo persona's data is discarded (fictional); a real account's data is parked in `bloom_stash_<id>` (device only, never synced, never exported) and restored when she signs in again; a device from before owner tagging is adopted by the first real account (previous behaviour). Leaving the demo clears its data. Before this, a real account signing up after the web demo on the same device saw Sarah's check-ins and could sync them into her cloud row.
+- **Her schedule (2026-09-28):** `my_meds` and `my_appts` (`lib/schedule.js`, see 3.7) are ordinary synced keys: on the device always, in `user_state` only with her cloud consent.
 - **Secret Space:** `secret_vault` holds AES-256-GCM ciphertext with a PBKDF2-derived, non-extractable key from the user's passphrase. It syncs as ciphertext only.
 - **Sign-out (cloud):** pushes, signs out and wipes the user's `bloom_*` keys from the device.
 - **Delete everything** (`store.eraseAccount()`): cloud mode calls `/api/account/delete` (account + synced data erased on the server), then clears the local session and all `bloom_*` keys except `lang`; on failure nothing local is deleted. Local mode wipes the device (`resetDemo`).
+
+### 3.7 Her medications and appointments: `lib/schedule.js` (2026-09-28)
+- **User problem:** real accounts saw the demo persona's schedule (Gonal-F 9 PM, a scan "tomorrow at 8 AM") on Home, in reminders and in Nora's answers. She needs her own plan.
+- **Data model (device + `user_state.data`, no schema change):** `my_meds: [{ id, name ≤60, dose ≤40, type: injection|oral|other, times: ["HH:MM" ×1–6], start, end: "YYYY-MM-DD"|"", days: [0–6] (empty = daily), notes ≤300, color }]` (max 30); `my_appts: [{ id, kind: scan|bloods|consult|trigger|retrieval|transfer|beta|other, title (required for other), date, time, clinic ≤80, notes ≤300 }]` (max 60). `validateMed` / `validateAppt` trim, strip control characters, check dates and times, and return an error key the forms translate. The dose log (`medlog`) is keyed per dose (`medId@HH:MM`); legacy per-medicine entries are still read (`doseEntry`).
+- **Demo vs real:** `getMeds()` / `getAppts()` return the stored list, or the persona's seeded schedule for the demo user only when nothing is stored (so the demo is editable). A real account starts with `[]`.
+- **Consumers:** Home (today's doses, next appointment, days to her own retrieval appointment), Medications (today / history / my medications with add-edit-delete), Appointments (countdown, upcoming, past, .ics per appointment), quick log, Reminders (web scheduler, dose `.ics` with `BYDAY` / `UNTIL`, native 7-day plan with neutral lock-screen text), Cycle Report (her medications and next appointments), Nora (4.1).
+- **AI pattern:** context injection, not tools yet (R3): the schedule is small and bounded (≤10 medicines, next 3 appointments), so it goes in the system prompt's data block.
+- **Privacy impact:** new health data (medication names are health data). Stays on the device unless she consents to cloud sync; to Anthropic only with AI consent and only names, doses, times, weekdays, end date and the next 3 appointments' type, date and time (never notes or places). Disclosed in the consent text (version `2026-09-28-draft2`, everyone is re-asked), the Privacy Centre and the privacy policy.
+- **Cost:** about +60–150 input tokens per Nora message (cacheable within a conversation): < $0.0005 per message on Sonnet 4.6.
+- **Fallback:** works with zero env vars (local mode); the scripted Nora doesn't use the schedule (it gives the general answer).
+- **Open for the founder:** whether Nora may see the schedule at all (default: yes, with AI consent; decision 14 in `app-store.md`).
 
 ### 3.5 Schema: `supabase/schema.sql`
 - `public.user_state(user_id uuid pk → auth.users on delete cascade, data jsonb, updated_at)`.
@@ -94,10 +107,10 @@ Design principles:
 
 ### 3.6 Consent (G11)
 
-> **DRAFT: the consent wording is not legally reviewed.** The copy (`cons.*` keys in `lib/i18n.js`, en/ar/fr) and the consent model below must be reviewed by a lawyer for GDPR Art. 9(2)(a) and UAE PDPL / health-data rules before real patients use cloud sync or live Nora. Version `2026-09-27-draft1` (`CONSENT_VERSION` in `lib/store.js`); bump it when the text changes and everyone is asked again.
+> **DRAFT: the consent wording is not legally reviewed.** The copy (`cons.*` keys in `lib/i18n.js`, en/ar/fr) and the consent model below must be reviewed by a lawyer for GDPR Art. 9(2)(a) and UAE PDPL / health-data rules before real patients use cloud sync or live Nora. Version `2026-09-28-draft2` (`CONSENT_VERSION` in `lib/store.js`; draft2 adds the medication schedule and appointment dates to what Nora receives); bump it when the text changes and everyone is asked again.
 
 - **Granular, opt-in, never a condition of use.** Two separate choices, both unticked by default: (1) *sync my health data to my Bloom account* (Supabase; shown only for cloud accounts) and (2) *let Nora answer with AI* (Anthropic). Saying no keeps Bloom fully usable on the device with offline Nora answers.
-- **What the screen says:** what stays on the device; what goes to Supabase and why; what goes to Anthropic for Nora (messages, first name except in anonymous mode, phase, stim day, protocol, clinic, E2); that providers may process data outside her country; that she can withdraw at any time in the Privacy Centre, withdrawal stops future processing and doesn't affect earlier processing.
+- **What the screen says:** what stays on the device; what goes to Supabase and why; what goes to Anthropic for Nora (messages, first name except in anonymous mode, phase, stim day, protocol, clinic, E2, medication names, doses and times, upcoming appointment dates); that providers may process data outside her country; that she can withdraw at any time in the Privacy Centre, withdrawal stops future processing and doesn't affect earlier processing.
 - **Where it is asked:** onboarding step 2 (before any cycle details are collected, after sign-up), and a one-time `ConsentScreen` for onboarded users who haven't answered the current version (existing accounts). The demo persona (fictional data) is never asked and always uses the AI path.
 - **Record:** `bloom_consent = { version, cloud, ai, at, history[≤20] }` on the device (synced as a record even without cloud consent, so the server can see her AI choice) and, for cloud accounts, one `consent_events` row per change with a database timestamp.
 - **Enforcement:**
@@ -111,12 +124,12 @@ Design principles:
 ## 4. Data flows
 
 ### 4.1 Nora chat
-1. `NoraScreen` calls `askNora()` (`lib/api.js`), which sends `{ user: noraProfile(user), messages, lang }` to `/api/nora`, plus `Authorization: Bearer <access token>` when she is signed in to a cloud account (`auth.accessToken()`; supabase-js refreshes it if expired). `noraProfile` holds only first name (none in anonymous mode), phase, stim day, protocol, clinic, E2 (legacy demo defaults dropped) and `demo: true` for the demo persona only.
+1. `NoraScreen` calls `askNora()` (`lib/api.js`), which sends `{ user: noraProfile(user), messages, lang }` to `/api/nora`, plus `Authorization: Bearer <access token>` when she is signed in to a cloud account (`auth.accessToken()`; supabase-js refreshes it if expired). `noraProfile(user, { meds, appts })` holds only first name (none in anonymous mode), phase, stim day, protocol, clinic, E2 (legacy demo defaults dropped), her medication schedule (name, dose, times, weekdays, end date; ≤10) and her next 3 appointments (type, custom label for "other", date, time), and `demo: true` for the demo persona only. Never notes or places.
 2. `proxy.js` checks the demo cookie.
 3. Route: body size check → JSON parse → filter/trim/cap messages → emergency detection → per-IP rate limit → **caller resolution** (G1, `lib/supabase-server.js`, plain fetch):
    - No Bearer header, or cloud mode not configured on the server → local/demo mode: the client profile is used after sanitising.
    - Bearer header → `GET {SUPABASE_URL}/auth/v1/user` with the anon key and her token. 4xx → `401 {"error":"Not signed in"}` (emergencies still get the referral, `200`). 5xx/timeout → offline reply with no profile and no AI call.
-   - Verified → per-account rate limit (10/min, 200/day, per instance) → `GET /rest/v1/user_state?user_id=eq.<verified id>&select=data` **with her token**, so RLS applies. Her synced `data.user` is the context (client fields ignored); without a synced profile (cloud sync off) the client's fields are used, sanitised. The demo persona can never be switched on for an account.
+   - Verified → per-account rate limit (10/min, 200/day, per instance) → `GET /rest/v1/user_state?user_id=eq.<verified id>&select=data` **with her token**, so RLS applies. Her synced `data.user` plus `data.my_meds` / `data.my_appts` are the context (client fields ignored); without a synced profile (cloud sync off) the client's fields are used, sanitised. The demo persona can never be switched on for an account.
    - Sanitise (`sanitizeUser`: unknown fields stay unknown, G15).
 4. No key → scripted `demoReply` (emergency reply first when detected). With key → Anthropic Messages API with `system` from `buildSystemPrompt` (versioned, `NORA_PROMPT_VERSION`), top-level `cache_control` (automatic prompt caching), `max_tokens` 500, 20 s timeout.
 5. Logs one JSON line per call: model, prompt version, caller mode (`local`/`user`), token counts (incl. cache read/write), stop reason, latency. **No content, no IP, no user id, no user fields.**
@@ -129,7 +142,7 @@ Landing form → `POST /api/waitlist` → email check + rate limit → Vercel Bl
 Local: `auth.signUp/signIn` hash and compare on the device. Cloud: Supabase Auth issues a session (stored by supabase-js in `localStorage`), and the client reads/writes its own `user_state` row directly under RLS. There is no Bloom server between the client and Supabase.
 
 ### 4.4 Reminders
-Client-side scheduler + service worker notifications while Bloom is open or backgrounded; `.ics` export with alarms for when the app is closed. No server push yet (R5).
+Planned from her own schedule (`lib/schedule.js`; the persona's only for the demo). Web: client-side scheduler + service worker notifications while Bloom is open or backgrounded; `.ics` export with alarms (daily or her weekdays, until her end date). Native app: the next 7 days scheduled as local notifications (`nativePlan`), re-planned on every schedule change, dose log and foreground; today's taken doses are skipped per dose. No server push (R5).
 
 ### 4.6 Consent
 Onboarding / `ConsentScreen` / Privacy Centre toggle → `consent.set({ cloud, ai })` → `bloom_consent` on the device → cloud accounts: insert into `consent_events` (her token, RLS) and upsert `user_state` (full snapshot if cloud consent, else `{ consent }` only). `/api/nora` reads `data.consent.ai` from her row when she is signed in.
@@ -162,7 +175,8 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Account email, password | Local: hash in `bloom_users`. Cloud: Supabase Auth | Cloud mode only | Supabase |
 | Profile (name, clinic, protocol, stim day, E2, follicles) | `bloom_user` | Cloud sync; Nora gets first name (not in anonymous mode), stim day, protocol, clinic, E2 | Supabase; Anthropic (per message) |
 | Check-ins (mood, anxiety, symptoms, weight, journal text) | `bloom_checkins` | Cloud sync only | Supabase |
-| Medication logs, scan results (`bloom_scans`: E2, LH, P4, follicle sizes), appointments/bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
+| Her medication schedule and appointments (`bloom_my_meds`, `bloom_my_appts`) | `bloom_*` | Cloud sync (with consent); Nora gets names, doses, times and the next 3 appointment dates (with AI consent), never notes or places | Supabase; Anthropic (per message) |
+| Medication logs, scan results (`bloom_scans`: E2, LH, P4, follicle sizes), therapy bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
 | Nora chat history | `bloom_nora` | Cloud sync (with consent); last 20 turns sent to Anthropic per message (with AI consent) | Supabase; Anthropic |
 | Secret Space | `bloom_secret_vault` (ciphertext) | Cloud sync as ciphertext only. **Never sent to Anthropic.** | Supabase (cannot read it) |
 | App-lock PIN hash, biometric-unlock setting, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
@@ -191,7 +205,7 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 ## 8. Quality and delivery
 
 - `npm run lint`, `npm test` (`node --test`, no packages; a tiny resolve hook in `tests/setup/` adds `.js` to extensionless imports), `npm run build`.
-- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`: Node LTS, `npm ci`, lint, test, build, no secrets. 106 tests today (lib/ logic, crypto, local auth, consent, i18n parity, Nora prompt/fallback/route with mocked Anthropic and Supabase calls, server-side Supabase helpers, account-erasure route, cloud-mode client sync/consent/erasure against a mocked Supabase, rate limiter, waitlist route, proxy gate).
+- CI: `.github/workflows/ci.yml` on pull requests and pushes to `master`: Node LTS, `npm ci`, lint, test, build, no secrets. 143 tests today (2026-09-28) (lib/ logic, crypto, local auth, consent, i18n parity, Nora prompt/fallback/route with mocked Anthropic and Supabase calls, server-side Supabase helpers, account-erasure route, cloud-mode client sync/consent/erasure against a mocked Supabase, rate limiter, waitlist route, proxy gate).
 - Deploy: Vercel preview per PR, production from `master`.
 - Database changes: idempotent SQL in `supabase/`.
 
@@ -253,7 +267,7 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 |---|---|---|---|---|---|
 | R1 | **Real auth on server routes + erasure** (mostly shipped 2026-09-27: G1, G4, G11, G15 closed; durable limits G2 still open) | Verify the Supabase JWT in `/api/nora` (and future routes), read cycle context from the user's own row instead of trusting the client, durable per-user rate limits/quotas, full account deletion (G4), consent step (G11). | M | ~$0 (Supabase free/pro tier) | Consent wording (lawyer); whether Nora needs an account (demo stays open?); free-tier message quota. |
 | R2 | **Nora model upgrade + live evals** | Run `docs/sa6/nora-evals.md` against a live key, then try `claude-sonnet-5` with thinking disabled and compare. | S | Eval run < $1; production cost ~−30% vs Sonnet 4.6 | Approve an API key and a monthly budget cap in the Anthropic Console. |
-| R3 | **Nora tool use (read-only)** | Tools: `get_today_meds`, `get_next_appointment`, `get_checkin_trends(days)`. Server runs them for the signed-in user (cloud: reads `user_state` with the user's JWT under RLS; local mode: client sends a minimal, explicit snapshot). Bounded loop (max 3 tool rounds). | M | +~500 tokens/request for tool definitions (cacheable) | Which data Nora may read (journals? weight?), and how that is shown in the Privacy Centre. |
+| R3 | **Nora tool use (read-only)** | Her schedule is now in the prompt (3.7), so today's meds and the next appointment are covered for v1. Remaining tools: `get_dose_log(days)`, `get_checkin_trends(days)`. Server runs them for the signed-in user (cloud: reads `user_state` with the user's JWT under RLS; local mode: client sends a minimal, explicit snapshot). Bounded loop (max 3 tool rounds). | M | +~500 tokens/request for tool definitions (cacheable) | Which data Nora may read (journals? weight?), and how that is shown in the Privacy Centre. |
 | R4 | **Grounded answers (RAG)** | Phase 0: vetted content (protocol guides, med instructions, FAQs) small enough to put in the cached system prompt, with citations; no new vendor. Phase 1 (content > ~50k tokens): pgvector in Supabase, ingestion script in `scripts/`, chunk sources + citations shown in the UI. **Needs an embeddings provider: Anthropic has no embeddings API.** Options: Voyage AI, OpenAI, Cohere, Google; or Supabase's built-in `gte-small` model in Edge Functions (no new vendor, weaker in Arabic; verify). | M (phase 0) / L (phase 1) | Phase 0: cache writes/reads only. Phase 1: embeddings are cents per thousand docs; pgvector is included in Supabase. | **Embeddings provider (new vendor + DPA)**; who on the Medical Review Board signs off content; languages covered. |
 | R5 | **Server push reminders** | Web Push (VAPID, no vendor) so doses fire with the app closed; subscriptions in a new RLS table; scheduler via Supabase `pg_cron` + Edge Function or Vercel Cron. Payload encryption (RFC 8291) by hand with Web Crypto, or the `web-push` package (needs approval). iOS needs the PWA installed (16.4+). Lock-screen text must not reveal treatment ("Time for your evening reminder", not drug names). | M | Cron + function invocations, ~$0–20/month at demo scale | Approve `web-push` or hand-rolled crypto; lock-screen wording; opt-in UX. |
 | R6 | **Clinic results import** | Phase 1: user uploads a PDF/photo of scan or blood results → Claude vision extracts follicles/E2 into a draft she confirms (never auto-applied). Phase 2: clinic integrations (HL7/FHIR, clinic portals). | M (P1) / L (P2) | ~$0.01–0.03 per document | Clinic partnerships and data-sharing agreements; storage of source documents (or discard after extraction); medical-device implications of interpreting results. |
@@ -271,6 +285,7 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 8. App store: whether the app build keeps the demo gate in front of `/api/nora` (it can't, see `app-store.md`) and whether signed-in users get Nora without the demo password on the web too.
 
 ## 12. Change log
+- 2026-09-28 (store blockers): Next.js and eslint-config-next 16.3.6 (critical RCE advisories; `npm audit --omit=dev` clean; js-yaml dev fix). Her own medications and appointments (`lib/schedule.js`, 3.7) wired into Home, Medications, Appointments, quick log, reminders (web, .ics, native), Cycle Report and Nora (prompt `2026-09-28.1`, rule 8); per-dose log; one data owner per device (`switchOwner`); Charts and the Cycle Report translated; iOS Face ID text in en/ar/fr; persona fallbacks removed; consent `2026-09-28-draft2`.
 - 2026-09-28 (R2, native apps): Capacitor 8 iOS/Android projects; `BUILD_TARGET=app` static export (`*.app.jsx` routes only) calling the hosted API via `NEXT_PUBLIC_API_BASE`; CORS for the Capacitor origins (`lib/cors.js`); Bearer pass-through in `proxy.js`; `NORA_REQUIRE_AUTH`; native reminders, biometric unlock, privacy screen, backups excluded (`lib/native.js`); public `/privacy` (draft), `/support`, `/delete-account`; AI and medical disclosures; Upgrade and demo persona hidden in the app; real accounts see only their own scans (new `bloom_scans`), check-ins and doses. Details and founder checklist: `docs/sa6/app-store.md`.
 - 2026-09-27 (R1): Server-side Supabase token checks for `/api/nora` (G1), full account erasure route (G4), health-data consent with versioned records and enforcement (G11, draft wording), no demo persona values for real users (G15, prompt `2026-09-27.2`), Privacy Centre in en/ar/fr, `consent_events` table, `SUPABASE_SERVICE_ROLE_KEY`. App Store plan in `docs/sa6/app-store.md`.
 - 2026-09-27: Record created (sa6). Added tests, CI, Nora hardening (rate limit, caching, usage logs, emergency handling, input sanitising), evals, security headers, waitlist hardening, `user_state` size guard.
