@@ -9,6 +9,10 @@ import AuthScreen from "./AuthScreen";
 import OnboardingScreen from "./OnboardingScreen";
 import ConsentScreen from "./ConsentScreen";
 import AppShell from "./AppShell";
+import { initShell, onAppState, setPrivacyScreen } from "../lib/native";
+
+// Native app: lock again when she comes back after this long in the background (PIN set).
+var RELOCK_MS = 60 * 1000;
 
 export default function BloomApp() {
   return <LangProvider><App /></LangProvider>;
@@ -20,6 +24,19 @@ function App() {
   var [locked, setLocked] = useState(false);
   var [, setConsentTick] = useState(0);
   var endSplash = useCallback(function () { setStage("main"); }, []);
+
+  // Native shell (status bar, splash) and, with the app lock on, the privacy screen and re-locking
+  // after time in the background. No-ops on the web.
+  useEffect(function () {
+    initShell();
+    if (store.get("lock_pin", null)) setPrivacyScreen(true);
+    var hiddenAt = 0;
+    return onAppState(function (active) {
+      if (!active) { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt > RELOCK_MS && auth.getUser() && store.get("lock_pin", null)) setLocked(true);
+      hiddenAt = 0;
+    });
+  }, []);
 
   useEffect(function () {
     var saved = auth.getUser();
@@ -43,7 +60,7 @@ function App() {
   }
 
   if (locked) {
-    return <LockScreen onUnlock={function () { setLocked(false); }} onForgot={async function () { store.remove("lock_pin"); await auth.signOut(); setLocked(false); setUser(null); }} />;
+    return <LockScreen onUnlock={function () { setLocked(false); }} onForgot={async function () { store.remove("lock_pin"); store.remove("lock_bio"); setPrivacyScreen(false); await auth.signOut(); setLocked(false); setUser(null); }} />;
   }
 
   if (!user.onboarded) {

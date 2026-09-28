@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
 import { MEDS, INJECTION_TIPS } from "../../../lib/demo-data";
 import { getTodayMedLog, logDose, getMedHistory, dateForStimDay, fmtDate } from "../../../lib/cycle";
+import { syncNative } from "../../../lib/reminders";
 
 var SITES = ["Left belly", "Right belly", "Left thigh", "Right thigh"];
 
@@ -52,6 +53,7 @@ export default function Medications({ onBack, user }) {
   function saveDose() {
     var entry = { status: missed ? "missed" : "taken", site: modal.type === "injection" && !missed ? site : "", note: note.trim() };
     setLog(logDose(modal.id, entry));
+    syncNative(); // native app: drop today's reminder for a dose she has taken
     setHistory(getMedHistory());
     setModal(null);
   }

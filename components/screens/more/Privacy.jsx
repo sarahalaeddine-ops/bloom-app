@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
 import { Illustration } from "../../ui/Graphics";
 import { auth, store, consent } from "../../../lib/store";
@@ -8,6 +8,7 @@ import PinPad from "../../ui/PinPad";
 import { hashSecret } from "../../../lib/crypto";
 import { cloudEnabled } from "../../../lib/supabase";
 import { useT, langInfo } from "../../../lib/i18n";
+import { biometricInfo, verifyBiometric, setPrivacyScreen } from "../../../lib/native";
 
 var PLEDGES = ["priv.p1", "priv.p2", "priv.p3"];
 
@@ -32,6 +33,15 @@ export default function Privacy({ onBack, user, setUser }) {
   var [msg, setMsg] = useState("");
   var [deleting, setDeleting] = useState(false);
   var [deleteError, setDeleteError] = useState("");
+  // Native app only: Face ID / Touch ID / fingerprint unlock on top of the PIN (device setting).
+  var [bioKind, setBioKind] = useState(null);
+  var [bioOn, setBioOn] = useState(function () { return !!store.get("lock_bio", false); });
+
+  useEffect(function () {
+    var live = true;
+    biometricInfo().then(function (info) { if (live && info.available) setBioKind(info.kind); });
+    return function () { live = false; };
+  }, []);
 
   var counts = [
     [t("priv.cCheckins"), getCheckins().length],
@@ -66,7 +76,10 @@ export default function Privacy({ onBack, user, setUser }) {
   function setLock(on) {
     if (on) { setPinSheet(true); return; }
     store.remove("lock_pin");
+    store.remove("lock_bio");
+    setBioOn(false);
     setHasPin(false);
+    setPrivacyScreen(false);
     flash(t("priv.lockOff"));
   }
 
@@ -74,7 +87,18 @@ export default function Privacy({ onBack, user, setUser }) {
     store.set("lock_pin", await hashSecret(pin));
     setHasPin(true);
     setPinSheet(false);
+    setPrivacyScreen(true); // native: hide her data in the app switcher while the lock is on
     flash(t("priv.lockOn"));
+  }
+
+  // Turning biometric unlock on asks for Face ID / fingerprint once, so she knows it works.
+  async function setBio(on) {
+    if (!on) { store.remove("lock_bio"); setBioOn(false); flash(t("priv.bioOff")); return; }
+    var ok = await verifyBiometric({ reason: t("bio.reason"), title: t("bio.title"), cancel: t("common.cancel") });
+    if (!ok) { flash(t("priv.bioFailed")); return; }
+    store.set("lock_bio", true);
+    setBioOn(true);
+    flash(t("priv.bioOn"));
   }
 
   function exportData() {
@@ -133,6 +157,15 @@ export default function Privacy({ onBack, user, setUser }) {
             </div>
             <Toggle on={hasPin} onChange={setLock} label={t("priv.lock")} />
           </div>
+          {hasPin && bioKind && (
+            <div className="flex items-center gap-3 py-2 border-t border-bloom-border">
+              <div className="flex-1">
+                <p className="text-bloom-text text-sm font-semibold">{t("priv.bio." + bioKind)}</p>
+                <p className="text-bloom-muted text-xs">{t("priv.bio.d")}</p>
+              </div>
+              <Toggle on={bioOn} onChange={setBio} label={t("priv.bio." + bioKind)} />
+            </div>
+          )}
         </div>
 
         {!isDemo && (
