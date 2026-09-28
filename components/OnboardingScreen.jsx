@@ -63,6 +63,7 @@ export default function OnboardingScreen({ user, onComplete }) {
                 </div>
               ))}
             </div>
+            <p className="text-bloom-muted text-xs leading-relaxed mt-4 px-2" role="note">{t("app.medical")}</p>
             <div className="flex justify-center gap-2 mt-5" role="group" aria-label={t("lang")}>
               {LANGS.map(function (l) {
                 var on = lang === l.id;

@@ -9,6 +9,7 @@ import { hashSecret } from "../../../lib/crypto";
 import { cloudEnabled } from "../../../lib/supabase";
 import { useT, langInfo } from "../../../lib/i18n";
 import { biometricInfo, verifyBiometric, setPrivacyScreen } from "../../../lib/native";
+import { siteUrl } from "../../../lib/config";
 
 var PLEDGES = ["priv.p1", "priv.p2", "priv.p3"];
 
@@ -223,6 +224,12 @@ export default function Privacy({ onBack, user, setUser }) {
             );
           })}
         </div>
+
+        <p className="text-xs text-center mb-4">
+          <a href={siteUrl("/privacy")} target="_blank" rel="noopener noreferrer" className="text-bloom-accent font-semibold underline">{t("legal.privacy")}</a>
+          <span className="text-bloom-dim"> · </span>
+          <a href={siteUrl("/support")} target="_blank" rel="noopener noreferrer" className="text-bloom-accent font-semibold underline">{t("legal.support")}</a>
+        </p>
 
         {!confirmDelete ? (
           <button onClick={function () { setConfirmDelete(true); }} className="w-full py-3.5 rounded-2xl border border-red-300 text-red-500 font-semibold text-sm">{t("priv.delete")}</button>

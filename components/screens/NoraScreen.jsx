@@ -68,7 +68,7 @@ export default function NoraScreen({ user }) {
           <span className="text-white text-sm">✦</span>
         </div>
         <div className="flex-1">
-          <p className="text-bloom-text text-sm font-semibold">Nora</p>
+          <p className="text-bloom-text text-sm font-semibold flex items-center gap-1.5">Nora <span className="text-[9px] font-bold uppercase tracking-wider text-bloom-accent bg-purple-50 border border-purple-200 rounded px-1 py-px" title={t("nora.aiBadge.d")}>{t("nora.aiBadge")}</span></p>
           <p className="text-bloom-teal text-xs">{t("nora.status")}</p>
         </div>
         {msgs.length > 1 && <button onClick={clear} className="text-bloom-dim text-xs">{t("nora.newChat")}</button>}
@@ -93,6 +93,7 @@ export default function NoraScreen({ user }) {
         {loading && <Typing />}
         {aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.aiOff")}</p>}
         {demo && !aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
+        {/* AI disclosure (App Store 5.1.2(i), 1.4.1): always visible under the chat. */}
         <p className="text-bloom-dim text-[10px] text-center mt-3">{t("nora.notDoctor")}</p>
         <div ref={bottomRef} />
       </div>

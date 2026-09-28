@@ -2,6 +2,8 @@
 import { PLANS } from "../../lib/demo-data";
 import { useT } from "../../lib/i18n";
 import { follicleStats } from "../../lib/cycle";
+import { IS_APP_BUILD } from "../../lib/config";
+import { isNative } from "../../lib/native";
 import Medications from "./more/Medications";
 import Appointments from "./more/Appointments";
 import Charts from "./more/Charts";
@@ -35,13 +37,15 @@ var SECTIONS = [
   { id: "secret",       mark: LockKeyhole, label: "Secret Space",         color: "#8B7AC5", desc: "Private journal, only you can see", Screen: Secret },
   { id: "reminders",    mark: BellRing, label: "Reminders",           color: "#C49A3C", desc: "Dose and appointment alerts",       Screen: Reminders },
   { id: "privacy",      mark: ShieldCheck, label: "Privacy Centre",   color: "#4ABFB0", desc: "App lock, anonymous mode, your data", Screen: Privacy },
-  { id: "upgrade",      mark: Crown, label: "Upgrade to Bloom+",    color: "#9B6DC5", desc: "Unlock all features",               Screen: Upgrade },
+  // Hidden in the native app for v1 (App Store 3.1.1: paid features need in-app purchase).
+  { id: "upgrade",      webOnly: true, mark: Crown, label: "Upgrade to Bloom+",    color: "#9B6DC5", desc: "Unlock all features",               Screen: Upgrade },
   { id: "profile",      hidden: true,                                                                                           Screen: Profile },
 ];
 
 export default function MoreScreen({ user, setUser, active, setActive }) {
   var { t } = useT();
-  var section = SECTIONS.find(function (s) { return s.id === active; });
+  var inApp = IS_APP_BUILD || isNative();
+  var section = SECTIONS.find(function (s) { return s.id === active && !(inApp && s.webOnly); });
 
   if (section) {
     var Screen = section.Screen;
@@ -78,7 +82,7 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
       </button>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {SECTIONS.filter(function (s) { return !s.hidden; }).map(function (sec) {
+        {SECTIONS.filter(function (s) { return !s.hidden && !(inApp && s.webOnly); }).map(function (sec) {
           var label = sec.id === "upgrade" && plan ? t("more.plan", { p: plan.name }) : t("sec." + sec.id);
           var Mark = sec.mark;
           return (
