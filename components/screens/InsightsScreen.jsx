@@ -31,7 +31,7 @@ export default function InsightsScreen({ user }) {
 
   var filtered = cat === "all" ? ARTICLES : ARTICLES.filter(function (a) { return a.cat === cat; });
   var popular = filtered.filter(function (a) { return a.popular; });
-  var phase = (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 7 }) : t("phase." + user.phase);
+  var phase = (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 1 }) : t("phase." + user.phase);
 
   function gotIt() {
     if (!read.includes(selected.id)) {

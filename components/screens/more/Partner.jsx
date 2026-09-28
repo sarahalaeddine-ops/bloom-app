@@ -88,7 +88,7 @@ export default function Partner({ onBack, user }) {
         </div>
 
         <Label className="mb-2">How to support her today</Label>
-        <p className="text-bloom-dim text-xs mb-2">{user.name} is on Stimulation Day {user.stimDay || 7}</p>
+        <p className="text-bloom-dim text-xs mb-2">{user.name} is on Stimulation Day {user.stimDay || 1}</p>
         {PARTNER_TIPS.map(function (t, i) {
           return (
             <div key={i} className="bg-white rounded-2xl p-4 border mb-2" style={{ borderColor: PEACH + "80" }}>

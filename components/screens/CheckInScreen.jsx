@@ -27,7 +27,7 @@ export default function CheckInScreen({ user }) {
   function save() {
     if (mood === null) { setError(t("ci.pickMood")); return; }
     var w = weight ? parseFloat(weight) : null;
-    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || 7, mood: mood, anxiety: anxiety, hope: hope, symptoms: symptoms, weight: w, note: note.trim() };
+    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || null, mood: mood, anxiety: anxiety, hope: hope, symptoms: symptoms, weight: w, note: note.trim() };
     var gain = w && lastWeight ? +(w - lastWeight).toFixed(1) : 0;
     setHistory(saveCheckin(entry));
     setSaved({ gain: gain });

@@ -61,7 +61,7 @@ export default function AuthScreen({ onLogin }) {
           {mode === "signup" && (
             <div className="mb-4">
               <label htmlFor="name" className="text-xs font-semibold text-bloom-muted uppercase tracking-wide mb-2 block">{t("auth.name")}</label>
-              <input id="name" value={name} onChange={function (e) { setName(e.target.value); }} placeholder="Sarah" autoComplete="given-name" className={inputCls} />
+              <input id="name" value={name} onChange={function (e) { setName(e.target.value); }} autoComplete="given-name" className={inputCls} />
             </div>
           )}
 

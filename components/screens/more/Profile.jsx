@@ -5,7 +5,7 @@ import { auth, store } from "../../../lib/store";
 import { useT, LANGS } from "../../../lib/i18n";
 import { siteUrl } from "../../../lib/config";
 
-var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF"];
+var PROTOCOLS = ["Antagonist", "Long Lupron", "Mini IVF", "Natural", "Not sure yet"];
 
 // The last action depends on who is signed in:
 // - demo persona: "Reset demo data" (wipes this device, as before);
@@ -16,7 +16,7 @@ export default function Profile({ onBack, user, setUser, openSection }) {
   var { t, lang, setLang } = useT();
   var [name, setName] = useState(user.name || "");
   var [clinic, setClinic] = useState(user.clinic || "");
-  var [protocol, setProtocol] = useState(user.protocol || "Antagonist");
+  var [protocol, setProtocol] = useState(user.protocol || "");
   var [saved, setSaved] = useState(false);
   var [confirmReset, setConfirmReset] = useState(false);
   var isDemo = user.id === "demo";
@@ -51,7 +51,7 @@ export default function Profile({ onBack, user, setUser, openSection }) {
             <div className="w-16 h-16 rounded-full bg-bloom-accent flex items-center justify-center mb-2">
               <span className="text-white text-2xl font-bold">{(name || "S")[0].toUpperCase()}</span>
             </div>
-            <p className="text-bloom-text font-bold"><bdi>{name || "Sarah"}</bdi></p>
+            <p className="text-bloom-text font-bold"><bdi>{name}</bdi></p>
             <p className="text-bloom-muted text-xs" dir="ltr">{user.email}</p>
           </div>
           <div className="mb-4">

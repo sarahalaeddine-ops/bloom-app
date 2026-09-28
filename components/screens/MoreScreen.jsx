@@ -56,9 +56,9 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
   var e2Last = latestE2(); // her own logged value; the persona's only for the demo
   var plan = user.plan ? PLANS.find(function (p) { return p.id === user.plan; }) : null;
   var STATS = [
-    { l: t("more.name"),      v: user.anonymous ? t("more.hidden") : user.name || "Sarah", c: "#9B6DC5" },
-    { l: t("more.phase"),     v: (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 7 }) : t("phase." + user.phase), c: "#1A1014" },
-    { l: t("more.protocol"),  v: user.protocol || "Antagonist", c: "#1A1014" },
+    { l: t("more.name"),      v: user.anonymous ? t("more.hidden") : user.name || "—", c: "#9B6DC5" },
+    { l: t("more.phase"),     v: (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 1 }) : t("phase." + user.phase), c: "#1A1014" },
+    { l: t("more.protocol"),  v: user.protocol || "—", c: "#1A1014" },
     { l: t("more.follicles"), v: stats.none ? t("scan.none") : t("more.follicleVal", { t: stats.total, m: stats.mature }), c: "#4ABFB0" },
     { l: t("more.e2"),        v: e2Last ? e2Last.value.toLocaleString() + " pg/mL" : t("scan.none"), c: "#E07A8A" },
   ];
@@ -73,10 +73,10 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
       <button onClick={function () { setActive("profile"); }}
         className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-purple-200 mb-4">
         <div className="w-12 h-12 rounded-full bg-bloom-accent flex items-center justify-center">
-          <span className="text-white text-xl font-bold">{(user.name || "S")[0].toUpperCase()}</span>
+          <span className="text-white text-xl font-bold">{(user.name || "✦")[0].toUpperCase()}</span>
         </div>
         <div className="flex-1 text-start">
-          <p className="text-bloom-text font-bold text-sm">{user.name || "Sarah"}</p>
+          <p className="text-bloom-text font-bold text-sm"><bdi>{user.name || ""}</bdi></p>
           <p className="text-bloom-muted text-xs">{user.email || ""}</p>
         </div>
         <span className="text-bloom-accent text-sm font-semibold">{t("more.edit")}</span>
