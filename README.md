@@ -16,9 +16,24 @@ npm run dev          # http://localhost:3000  (app)
 npm run lint
 npm test             # unit + API route tests (Node's built-in test runner, no extra packages)
 npm run build
+npm run build:app    # the static app bundle for iOS/Android must build too
 ```
 
 Tests live in `tests/*.test.mjs`. `tests/setup/register.mjs` lets Node resolve the app's extensionless imports and gives `lib/` a minimal `window`/`localStorage`, so pure logic and route handlers can be tested without a browser or network. CI runs all three on every pull request (`.github/workflows/ci.yml`).
+
+### iOS and Android apps (Capacitor)
+
+The same app ships to the App Store and Google Play as a Capacitor app (`ios/`, `android/`, `capacitor.config.ts`). Full plan, founder checklist and store texts: [`docs/sa6/app-store.md`](docs/sa6/app-store.md).
+
+```bash
+npm run build:app    # static export of the app into out/ (API calls go to NEXT_PUBLIC_API_BASE)
+npm run app:sync     # build:app + copy into ios/ and android/ (npx cap sync)
+npm run app:ios      # open Xcode (Mac only)
+npm run app:android  # open Android Studio
+npm run app:icons    # regenerate icons/splash from the Bloom mark (needs Playwright + Chromium)
+```
+
+For a store build, put `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.production.local` (public values; never server secrets). In the native app: reminders are scheduled on the phone (work with Bloom closed), the app lock can use Face ID / fingerprint, Upgrade and the demo persona are hidden, and the privacy policy (`/privacy`), support (`/support`) and account deletion (`/delete-account`) pages open on the website. Native code lives behind `lib/native.js`, which is a no-op on the web.
 
 On the sign-in screen, tap **✦ Try the demo as Sarah** to jump straight into a fully seeded account (Stim Day 7, Antagonist, 11 follicles, E2 1,840).
 
@@ -83,7 +98,7 @@ Whichever mode is used:
 
 ### Reminders
 
-**More → Reminders** turns on dose and appointment notifications, delivered through the service worker (`public/sw.js`), with a choice of lead time (on time, 5, 15 or 30 min). They fire while Bloom is open or in a background tab, and fall back to in-app toasts if notifications are blocked. For reminders when the app is fully closed, **Add dose alarms to my calendar** downloads an `.ics` file with a daily repeating event and alarm for every dose. The service worker already handles `push` events, ready for a push server.
+In the iOS/Android app, the next 7 days of reminders are scheduled as local notifications on the phone (neutral lock-screen text, no medicine names), so they arrive with Bloom closed and offline. On the web: **More → Reminders** turns on dose and appointment notifications, delivered through the service worker (`public/sw.js`), with a choice of lead time (on time, 5, 15 or 30 min). They fire while Bloom is open or in a background tab, and fall back to in-app toasts if notifications are blocked. For reminders when the app is fully closed, **Add dose alarms to my calendar** downloads an `.ics` file with a daily repeating event and alarm for every dose. The service worker already handles `push` events, ready for a push server.
 
 ### Languages
 

@@ -162,10 +162,10 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Account email, password | Local: hash in `bloom_users`. Cloud: Supabase Auth | Cloud mode only | Supabase |
 | Profile (name, clinic, protocol, stim day, E2, follicles) | `bloom_user` | Cloud sync; Nora gets first name (not in anonymous mode), stim day, protocol, clinic, E2 | Supabase; Anthropic (per message) |
 | Check-ins (mood, anxiety, symptoms, weight, journal text) | `bloom_checkins` | Cloud sync only | Supabase |
-| Medication logs, appointments/bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
+| Medication logs, scan results (`bloom_scans`: E2, LH, P4, follicle sizes), appointments/bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
 | Nora chat history | `bloom_nora` | Cloud sync (with consent); last 20 turns sent to Anthropic per message (with AI consent) | Supabase; Anthropic |
 | Secret Space | `bloom_secret_vault` (ciphertext) | Cloud sync as ciphertext only. **Never sent to Anthropic.** | Supabase (cannot read it) |
-| App-lock PIN hash, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
+| App-lock PIN hash, biometric-unlock setting, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
 | Consent record (version, choices, time) | `bloom_consent`; `consent_events` and `user_state.data.consent` for cloud accounts | Cloud accounts only (also without cloud-sync consent: it is the record of that choice) | Supabase |
 | Waitlist email | Vercel Blob (private) | Yes | Vercel |
 | Server logs | Vercel function logs | n/a | Vercel. Nora logs hold token counts only. |
@@ -271,5 +271,6 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 8. App store: whether the app build keeps the demo gate in front of `/api/nora` (it can't, see `app-store.md`) and whether signed-in users get Nora without the demo password on the web too.
 
 ## 12. Change log
+- 2026-09-28 (R2, native apps): Capacitor 8 iOS/Android projects; `BUILD_TARGET=app` static export (`*.app.jsx` routes only) calling the hosted API via `NEXT_PUBLIC_API_BASE`; CORS for the Capacitor origins (`lib/cors.js`); Bearer pass-through in `proxy.js`; `NORA_REQUIRE_AUTH`; native reminders, biometric unlock, privacy screen, backups excluded (`lib/native.js`); public `/privacy` (draft), `/support`, `/delete-account`; AI and medical disclosures; Upgrade and demo persona hidden in the app; real accounts see only their own scans (new `bloom_scans`), check-ins and doses. Details and founder checklist: `docs/sa6/app-store.md`.
 - 2026-09-27 (R1): Server-side Supabase token checks for `/api/nora` (G1), full account erasure route (G4), health-data consent with versioned records and enforcement (G11, draft wording), no demo persona values for real users (G15, prompt `2026-09-27.2`), Privacy Centre in en/ar/fr, `consent_events` table, `SUPABASE_SERVICE_ROLE_KEY`. App Store plan in `docs/sa6/app-store.md`.
 - 2026-09-27: Record created (sa6). Added tests, CI, Nora hardening (rate limit, caching, usage logs, emergency handling, input sanitising), evals, security headers, waitlist hardening, `user_state` size guard.
