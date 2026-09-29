@@ -8,7 +8,7 @@ import Medications from "./more/Medications";
 import Appointments from "./more/Appointments";
 import Charts from "./more/Charts";
 import TwoWeekWait from "./more/TwoWeekWait";
-import Therapy from "./more/Therapy";
+import Coaching from "./more/Coaching";
 import Videos from "./more/Videos";
 import Community from "./more/Community";
 import FailedCycle from "./more/FailedCycle";
@@ -28,7 +28,7 @@ var SECTIONS = [
   { id: "appointments", mark: CalendarDays, label: "Appointments",         color: "#E07A8A", desc: "Scans, retrieval, transfer",        Screen: Appointments },
   { id: "charts",       mark: TrendingUp, label: "Charts & Trends",      color: "#E07A8A", desc: "Hormone trends, follicle progress", Screen: Charts },
   { id: "tww",          mark: Hourglass, label: "Two Week Wait",        color: "#C49A3C", desc: "Countdown and daily science",       Screen: TwoWeekWait },
-  { id: "therapy",      mark: MessageCircleHeart, label: "Therapy & Coaching",   color: "#4ABFB0", desc: "Book IVF-specialist therapists",    Screen: Therapy },
+  { id: "coaching",     mark: MessageCircleHeart, label: "Coaching & support",   color: "#4ABFB0", desc: "Talk to a certified coach",         Screen: Coaching },
   { id: "videos",       mark: CirclePlay, label: "Wellbeing Videos",     color: "#4ABFB0", desc: "Movement, breathwork, meditation",  Screen: Videos },
   { id: "community",    mark: Users, label: "Community",            color: "#9B6DC5", desc: "Anonymous rooms by IVF phase",      Screen: Community },
   { id: "failed",       mark: HeartCrack, label: "After a Failed Cycle", color: "#5BADD4", desc: "Grief support and next steps",      Screen: FailedCycle },
