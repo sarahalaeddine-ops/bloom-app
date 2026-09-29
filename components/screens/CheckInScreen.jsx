@@ -122,7 +122,7 @@ export default function CheckInScreen({ user }) {
         <p className="text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: "#C49A3C" }}>{t("ci.ohss")}</p>
         <p className="text-bloom-muted text-xs mb-3">{follicles ? t("ci.ohssNote", { n: follicles }) : t("ci.ohssNoteGeneric")}</p>
         <div className="flex items-center gap-2">
-          <input value={weight} onChange={function (e) { setWeight(e.target.value); }} placeholder={lastWeight ? t("ci.last", { w: lastWeight }) : "62.4"} type="number" inputMode="decimal" step="0.1" aria-label="Weight in kg"
+          <input value={weight} onChange={function (e) { setWeight(e.target.value); }} placeholder={lastWeight ? t("ci.last", { w: lastWeight }) : "62.4"} type="number" inputMode="decimal" step="0.1" aria-label={t("ci.weightLabel")}
             className="flex-1 bg-white border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none focus:border-bloom-gold" />
           <span className="text-bloom-muted text-sm">kg</span>
         </div>

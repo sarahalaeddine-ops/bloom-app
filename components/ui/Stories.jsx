@@ -106,8 +106,8 @@ function StoryViewer({ list, index, onChange, onClose }) {
         </div>
         <div className="flex justify-center pb-3 px-4"><ReviewedBadge cat="story" onToggle={setPaused} /></div>
         <p className="text-center text-xs pb-8" style={{ color: story.ink, opacity: 0.7 }}>{t("story.tap")}</p>
-        <button onClick={prev} aria-label="Previous" className="absolute start-0 top-20 bottom-0 w-1/3" />
-        <button onClick={next} aria-label="Next" className="absolute end-0 top-20 bottom-0 w-2/3" />
+        <button onClick={prev} aria-label={t("cmn.prev")} className="absolute start-0 top-20 bottom-0 w-1/3" />
+        <button onClick={next} aria-label={t("cmn.next")} className="absolute end-0 top-20 bottom-0 w-2/3" />
       </div>
     </div>
   );
