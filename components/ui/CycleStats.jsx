@@ -48,7 +48,7 @@ export default function CycleStats({ user }) {
   var adherence = medAdherence();
   var rows = [];
   if (isStim && user.stimDay) rows.push({ id: "stimDays", v: t("stats.days", { n: user.stimDay }) });
-  if (last) rows.push({ id: "lead", v: last.leadFollicle + " mm", sub: prev ? t("stats.since", { n: (last.leadFollicle - prev.leadFollicle >= 0 ? "+" : "") + +(last.leadFollicle - prev.leadFollicle).toFixed(1) + " mm", d: prev.day }) : null });
+  if (last) rows.push({ id: "lead", v: last.leadFollicle + " mm", sub: prev ? t("stats.since", { n: "\u2066" + (last.leadFollicle - prev.leadFollicle >= 0 ? "+" : "") + +(last.leadFollicle - prev.leadFollicle).toFixed(1) + " mm\u2069", d: prev.day }) : null });
   if (last && first && last.day > first.day) rows.push({ id: "growth", v: t("stats.perDay", { n: ((last.leadFollicle - first.leadFollicle) / (last.day - first.day)).toFixed(1) }) });
   if (e2Prev && e2Last && e2Prev.e2 > 0) rows.push({ id: "e2", v: "×" + (e2Last.e2 / e2Prev.e2).toFixed(1), sub: t("stats.sinceDay", { d: e2Prev.day }) });
   if (adherence !== null) rows.push({ id: "doses", v: Math.round(adherence * 100) + "%" });
