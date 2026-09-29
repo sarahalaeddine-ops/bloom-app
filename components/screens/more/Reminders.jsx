@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { BackBtn, Label } from "../../ui/Common";
-import { Illustration } from "../../ui/Graphics";
+import ScreenHero from "../../ui/ScreenHero";
 import { getSettings, saveSettings, permission, currentPermission, requestPermission, notify, upcoming, fmtTime, doseCalendar, syncNative, LEADS } from "../../../lib/reminders";
 import { isNative } from "../../../lib/native";
 import { useT } from "../../../lib/i18n";
@@ -70,11 +70,7 @@ export default function Reminders({ onBack, openSection }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <div className="flex flex-col items-center text-center mb-5">
-          <Illustration name="bell" size={104} />
-          <h1 className="text-2xl font-bold text-bloom-text mt-3 mb-1">{t("sec.reminders")}</h1>
-          <p className="text-bloom-muted text-sm">{t("rem.sub")}</p>
-        </div>
+        <ScreenHero art="bell" title={t("sec.reminders")} sub={t("rem.sub")} tint="gold" />
 
         {msg && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{msg}</p>}
 

@@ -3,13 +3,15 @@ import { useState } from "react";
 import { Label } from "../ui/Common";
 import { Illustration, MoodFace, PetalBurst } from "../ui/Graphics";
 import { useT } from "../../lib/i18n";
-import { MOODS, SYMPTOMS } from "../../lib/demo-data";
+import { MOODS, FEELINGS, SYMPTOMS } from "../../lib/demo-data";
+import LogChips from "../ui/LogChips";
 import { getCheckins, saveCheckin, follicleStats } from "../../lib/cycle";
 
 export default function CheckInScreen({ user }) {
   var { t, locale } = useT();
   var [mood, setMood] = useState(null);
   var [symptoms, setSymptoms] = useState([]);
+  var [feelings, setFeelings] = useState([]);
   var [anxiety, setAnxiety] = useState(3);
   var [hope, setHope] = useState(3);
   var [weight, setWeight] = useState("");
@@ -27,7 +29,7 @@ export default function CheckInScreen({ user }) {
   function save() {
     if (mood === null) { setError(t("ci.pickMood")); return; }
     var w = weight ? parseFloat(weight) : null;
-    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || null, mood: mood, anxiety: anxiety, hope: hope, symptoms: symptoms, weight: w, note: note.trim() };
+    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || null, mood: mood, anxiety: anxiety, hope: hope, feelings: feelings, symptoms: symptoms, weight: w, note: note.trim() };
     var gain = w && lastWeight ? +(w - lastWeight).toFixed(1) : 0;
     setHistory(saveCheckin(entry));
     setSaved({ gain: gain });
@@ -35,7 +37,7 @@ export default function CheckInScreen({ user }) {
   }
 
   function reset() {
-    setMood(null); setSymptoms([]); setAnxiety(3); setHope(3); setWeight(""); setNote(""); setSaved(null);
+    setMood(null); setSymptoms([]); setFeelings([]); setAnxiety(3); setHope(3); setWeight(""); setNote(""); setSaved(null);
   }
 
   if (saved) return (
@@ -78,6 +80,12 @@ export default function CheckInScreen({ user }) {
         </div>
       </div>
 
+      <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
+        <Label className="mb-3">{t("ci.feelings")}</Label>
+        <LogChips kind="feeling" items={FEELINGS} selected={feelings}
+          onToggle={function (id) { setFeelings(function (p) { return p.includes(id) ? p.filter(function (x) { return x !== id; }) : p.concat(id); }); }} />
+      </div>
+
       {[[t("ci.anxiety"), anxiety, setAnxiety, "#E07A8A"], [t("ci.hope"), hope, setHope, "#9B6DC5"]].map(function (row) {
         var label = row[0], val = row[1], setVal = row[2], color = row[3];
         return (
@@ -104,18 +112,7 @@ export default function CheckInScreen({ user }) {
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
         <Label className="mb-3">{t("ci.symptoms")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {SYMPTOMS.map(function (s) {
-            var on = symptoms.includes(s);
-            return (
-              <button key={s} onClick={function () { toggle(s); }} aria-pressed={on}
-                className="px-3 py-1.5 rounded-full border text-xs transition-all"
-                style={{ borderColor: on ? "#E07A8A" : "#E8E0DB", backgroundColor: on ? "#E07A8A12" : "transparent", color: on ? "#E07A8A" : "#7A6880" }}>
-                {t("sym." + s)}
-              </button>
-            );
-          })}
-        </div>
+        <LogChips kind="symptom" items={SYMPTOMS} selected={symptoms} onToggle={toggle} />
       </div>
 
       <div className="rounded-2xl p-4 border border-amber-200 mb-3" style={{ backgroundColor: "#FFFDF0" }}>
@@ -148,7 +145,7 @@ export default function CheckInScreen({ user }) {
             <MoodFace mood={c.mood} color={m.c} size={32} />
             <div className="flex-1 min-w-0">
               <p className="text-bloom-text text-sm font-semibold">{new Date(c.date).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" })} · <span style={{ color: m.c }}>{t("mood." + c.mood)}</span></p>
-              <p className="text-bloom-dim text-xs truncate">{t("ci.anxietyShort", { n: c.anxiety })} · {t("ci.hopeShort", { n: c.hope })}{c.symptoms.length ? " · " + c.symptoms.map(function (x) { return t("sym." + x); }).join(", ") : ""}</p>
+              <p className="text-bloom-dim text-xs truncate">{t("ci.anxietyShort", { n: c.anxiety })} · {t("ci.hopeShort", { n: c.hope })}{(c.feelings || []).length ? " · " + c.feelings.map(function (x) { return t("feel." + x); }).join(", ") : ""}{c.symptoms.length ? " · " + c.symptoms.map(function (x) { return t("sym." + x); }).join(", ") : ""}</p>
             </div>
             {c.weight && <span className="text-bloom-muted text-xs">{c.weight} kg</span>}
           </div>

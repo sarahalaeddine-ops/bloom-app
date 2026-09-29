@@ -1,4 +1,5 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import { store } from "../../../lib/store";
@@ -22,8 +23,7 @@ export default function TwoWeekWait({ onBack }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("sec.tww")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{t("tww.sub")}</p>
+        <ScreenHero art="hourglass" title={t("sec.tww")} sub={t("tww.sub")} tint="gold" />
 
         <div className="rounded-2xl p-6 mb-3 text-center border" style={{ backgroundColor: "#FEF9EE", borderColor: "#C49A3C40" }}>
           <p className="text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: "#C49A3C" }}>{t("tww.dpt")}</p>

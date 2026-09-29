@@ -1,15 +1,20 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useT } from "../../lib/i18n";
+import { BloomFlower, Illustration } from "./Graphics";
+
+// Nora gets the Bloom flower; Secret Space gets the locked journal.
+function Avatar({ mark }) {
+  if (mark === "✦") return <span className="w-7 h-7 rounded-full bg-white border border-bloom-border flex items-center justify-center flex-shrink-0 mt-auto"><BloomFlower size={22} animate={false} /></span>;
+  return <span className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-auto"><Illustration name="journal" size={28} /></span>;
+}
 
 export function ChatBubble({ role, content, mark = "✦" }) {
   var isUser = role === "user";
   return (
     <div className={"flex gap-2 mb-3 " + (isUser ? "flex-row-reverse" : "")}>
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-bloom-accent flex items-center justify-center flex-shrink-0 mt-auto">
-          <span className="text-white text-xs">{mark}</span>
-        </div>
+        <Avatar mark={mark} />
       )}
       <div dir="auto" className={"max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap " +
         (isUser ? "bg-bloom-accent text-white rounded-br-sm" : "bg-white border border-bloom-border text-bloom-text rounded-bl-sm")}>
@@ -23,9 +28,7 @@ export function Typing({ mark = "✦" }) {
   var { t } = useT();
   return (
     <div className="flex gap-2 mb-3" role="status" aria-label={t("chat.typing")}>
-      <div className="w-7 h-7 rounded-full bg-bloom-accent flex items-center justify-center flex-shrink-0">
-        <span className="text-white text-xs">{mark}</span>
-      </div>
+      <Avatar mark={mark} />
       <div className="bg-white border border-bloom-border px-4 py-3 rounded-2xl rounded-bl-sm text-bloom-muted text-lg leading-none tracking-widest">
         <span className="typing-dot">·</span>
         <span className="typing-dot" style={{ animationDelay: "0.2s" }}>·</span>

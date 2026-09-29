@@ -1,4 +1,5 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import LineChart from "../../ui/LineChart";
@@ -31,8 +32,7 @@ export default function Charts({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("sec.charts")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{isStim ? t("ch.subDay", { n: stimDay }) : t("ch.sub")}</p>
+        <ScreenHero art="chart" title={t("sec.charts")} sub={isStim ? t("ch.subDay", { n: stimDay }) : t("ch.sub")} tint="rose" />
 
         {!demo && rows.length > 0 && (
           <button onClick={function () { setScanOpen(true); }} className="w-full mb-3 py-3 rounded-xl bg-white border border-bloom-accent/40 text-bloom-accent text-sm font-semibold">+ {t("scan.cta")}</button>

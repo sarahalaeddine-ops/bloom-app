@@ -1,10 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { BackBtn, Label } from "../../ui/Common";
+import ScreenHero from "../../ui/ScreenHero";
 import { Illustration } from "../../ui/Graphics";
 import { useT } from "../../../lib/i18n";
 import { upcomingAppts, pastAppts, apptAt, apptColor, fmtClock } from "../../../lib/schedule";
 import { ApptForm, apptLabel, relDay } from "../../ScheduleForms";
+
+// Illustration per appointment type (sa5), keyed by lib/schedule.js APPT_KINDS.
+var APPT_ART = { scan: "scan", bloods: "lab", consult: "clinic", trigger: "phone", retrieval: "egg", transfer: "embryo", beta: "lab", other: "calendar" };
 
 function pad(n) { return String(n).padStart(2, "0"); }
 
@@ -76,7 +80,7 @@ export default function Appointments({ onBack, user }) {
     return (
       <div key={apt.id} className={"bg-white rounded-2xl border mb-2 overflow-hidden" + (faded ? " opacity-70" : "")} style={{ borderColor: color + "30" }}>
         <button onClick={function () { setOpen(isOpen ? null : apt.id); }} aria-expanded={isOpen} className="w-full text-start p-4 flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+          <Illustration name={APPT_ART[apt.kind] || "calendar"} size={48} />
           <div className="flex-1 min-w-0">
             <p className="text-bloom-text text-sm font-semibold truncate"><bdi>{label}</bdi></p>
             <p className="text-bloom-muted text-xs">{fmtDate(apt)} · <bdi>{fmtClock(apt.time, locale)}</bdi></p>
@@ -106,14 +110,18 @@ export default function Appointments({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("sec.appointments")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{t("appt.sub")}</p>
+        <ScreenHero art="scan" title={t("sec.appointments")} sub={t("appt.sub")} />
 
         {next ? (
           <div className="bg-white rounded-2xl p-5 border mb-4" style={{ borderColor: "#9B6DC530" }}>
-            <p className="text-xs font-bold uppercase tracking-wider text-bloom-accent mb-1">{t("appt.next")}</p>
-            <h2 className="text-xl font-bold text-bloom-text mb-1"><bdi>{apptLabel(next, t)}</bdi></h2>
-            <p className="text-bloom-muted text-sm mb-4">{relDay(next, t, new Date(now))} · <bdi>{fmtClock(next.time, locale)}</bdi>{next.clinic ? " · " : ""}{next.clinic ? <bdi>{next.clinic}</bdi> : null}</p>
+            <div className="flex items-center gap-3 mb-4">
+              <Illustration name={APPT_ART[next.kind] || "calendar"} size={64} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-bloom-accent mb-1">{t("appt.next")}</p>
+                <h2 className="text-xl font-bold text-bloom-text mb-1"><bdi>{apptLabel(next, t)}</bdi></h2>
+                <p className="text-bloom-muted text-sm">{relDay(next, t, new Date(now))} · <bdi>{fmtClock(next.time, locale)}</bdi>{next.clinic ? " · " : ""}{next.clinic ? <bdi>{next.clinic}</bdi> : null}</p>
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-2 mb-4" aria-live="polite">
               {[[days, t("appt.days")], [hours, t("appt.hours")], [mins, t("appt.min")]].map(function (x) {
                 return (

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
-import { Illustration } from "../../ui/Graphics";
+import ScreenHero from "../../ui/ScreenHero";
 import { auth, store, consent } from "../../../lib/store";
 import { getCheckins, getMedHistory } from "../../../lib/cycle";
 import PinPad from "../../ui/PinPad";
@@ -134,11 +134,7 @@ export default function Privacy({ onBack, user, setUser }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <div className="flex flex-col items-center text-center mb-5">
-          <Illustration name="shield" size={110} />
-          <h1 className="text-2xl font-bold text-bloom-text mt-3 mb-1">{t("priv.title")}</h1>
-          <p className="text-bloom-muted text-sm">{t("priv.sub")}</p>
-        </div>
+        <ScreenHero art="shield" title={t("priv.title")} sub={t("priv.sub")} tint="teal" />
 
         {msg && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{msg}</p>}
 

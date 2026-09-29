@@ -66,7 +66,7 @@ function buildText(user, checkins, r) {
   lines.push("", t("rep.checkinsHead"));
   if (!checkins.length) lines.push(t("rep.noCheckins"));
   checkins.forEach(function (c) {
-    lines.push(r.date(c.date) + " / " + t("mood." + (MOODS[c.mood] ? c.mood : 2)) + " / " + c.anxiety + "/5 / " + c.hope + "/5 / " + ((c.symptoms || []).map(function (x) { return t("sym." + x); }).join(", ") || t("rep.none")));
+    lines.push(r.date(c.date) + " / " + t("mood." + (MOODS[c.mood] ? c.mood : 2)) + " / " + c.anxiety + "/5 / " + c.hope + "/5 / " + ((c.symptoms || []).map(function (x) { return t("sym." + x); }).join(", ") || t("rep.none")) + ((c.feelings || []).length ? " / " + t("ql.feelings") + ": " + c.feelings.map(function (x) { return t("feel." + x); }).join(", ") : ""));
   });
   lines.push("", t("rep.disclaimer"));
   return lines.join("\n");
@@ -258,7 +258,7 @@ export default function Report({ onBack, user }) {
                   <span className="text-bloom-text font-semibold flex items-center gap-1.5">{r.date(c.date)} · <MoodFace mood={MOODS[c.mood] ? c.mood : 2} color={m.c} size={18} /> {t("mood." + (MOODS[c.mood] ? c.mood : 2))}</span>
                   <span className="text-bloom-muted">{t("ci.anxietyShort", { n: c.anxiety })} · {t("ci.hopeShort", { n: c.hope })}</span>
                 </div>
-                {(c.symptoms || []).length > 0 && <p className="text-bloom-dim mt-0.5">{c.symptoms.map(function (x) { return t("sym." + x); }).join(", ")}</p>}
+                {((c.symptoms || []).length > 0 || (c.feelings || []).length > 0) && <p className="text-bloom-dim mt-0.5">{(c.feelings || []).map(function (x) { return t("feel." + x); }).concat((c.symptoms || []).map(function (x) { return t("sym." + x); })).join(", ")}</p>}
               </div>
             );
           })}

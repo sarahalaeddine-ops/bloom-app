@@ -1,6 +1,8 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
+import { Illustration } from "../../ui/Graphics";
 import { useState } from "react";
-import { BackBtn, Logo } from "../../ui/Common";
+import { BackBtn } from "../../ui/Common";
 import { auth } from "../../../lib/store";
 import { PLANS, FREE_TIER } from "../../../lib/demo-data";
 import { useT } from "../../../lib/i18n";
@@ -22,7 +24,7 @@ export default function Upgrade({ onBack, user, setUser }) {
     <div className="min-h-screen bg-bloom-bg flex flex-col">
       <BackBtn onBack={onBack} />
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
-        <p className="text-5xl mb-4" style={{ color: p.color }}>✦</p>
+        <div className="mb-4"><Illustration name="crown" size={140} /></div>
         <h2 className="text-2xl font-bold text-bloom-text mb-2">{t("up.welcome", { plan: p.name })}</h2>
         <p className="text-bloom-muted text-sm mb-2">{t("up.trial")}</p>
         <p className="text-bloom-dim text-xs mb-8">{t("up.demo")}</p>
@@ -35,12 +37,9 @@ export default function Upgrade({ onBack, user, setUser }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <div className="text-center mb-6">
-          <Logo size={30} />
-          <h1 className="text-2xl font-bold text-bloom-text mb-2 mt-2">{t("up.title")}</h1>
-          <p className="text-bloom-muted text-sm">{t("up.sub")}</p>
+        <ScreenHero art="crown" title={t("up.title")} sub={t("up.sub")} tint="gold">
           {user.plan && <p className="text-bloom-teal text-xs font-semibold mt-2">{t("up.current", { plan: (PLANS.find(function (x) { return x.id === user.plan; }) || {}).name || "" })}</p>}
-        </div>
+        </ScreenHero>
 
         <div className="flex bg-bloom-surface rounded-xl p-1 mb-6" role="tablist">
           {["monthly", "annual"].map(function (b) {

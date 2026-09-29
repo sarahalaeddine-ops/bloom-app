@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { BackBtn, Label, Sheet } from "../../ui/Common";
+import ScreenHero from "../../ui/ScreenHero";
 import { Illustration } from "../../ui/Graphics";
 import { getTodayMedLog, logDose, getMedHistory, doseEntry } from "../../../lib/cycle";
 import { getMeds, dosesOn, fmtClock, toDate } from "../../../lib/schedule";
@@ -26,9 +27,7 @@ function DoseCard({ dose, entry, onClick }) {
     <button onClick={onClick}
       className="w-full flex items-center gap-3 p-4 rounded-2xl border mb-2 text-start bg-white"
       style={{ borderColor: taken ? med.color + "40" : "#E8E0DB", backgroundColor: taken ? med.color + "06" : "white" }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: med.color + "18" }}>
-        <span className="text-sm" style={{ color: med.color }} aria-hidden="true">{med.type === "injection" ? "◎" : "●"}</span>
-      </div>
+      <Illustration name={med.type === "injection" ? "protocol" : "pill"} size={48} />
       <div className="flex-1 min-w-0">
         <p className="text-bloom-text text-sm font-bold truncate"><bdi>{med.name}</bdi> {med.dose && <span className="font-normal text-bloom-muted"><bdi>{med.dose}</bdi></span>}</p>
         <p className="text-bloom-dim text-xs"><bdi>{fmtClock(dose.time, locale)}</bdi>{entry && entry.site ? " · " + siteLabel(entry.site, t) : ""}</p>
@@ -112,8 +111,7 @@ export default function Medications({ onBack, user }) {
     <div className="min-h-screen bg-bloom-bg">
       <BackBtn onBack={onBack} />
       <div className="px-4 pb-2">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("sec.medications")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{isStim ? t("meds.stimDay", { n: user.stimDay }) : t("meds.sub")}</p>
+        <ScreenHero art="pill" title={t("sec.medications")} sub={isStim ? t("meds.stimDay", { n: user.stimDay }) : t("meds.sub")} />
         <div className="flex bg-bloom-surface rounded-xl p-1 mb-4" role="tablist">
           {[["today", t("meds.tab.today")], ["history", t("meds.tab.history")], ["schedule", t("meds.tab.mine")]].map(function (x) {
             return (

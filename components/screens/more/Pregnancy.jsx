@@ -1,4 +1,6 @@
 "use client";
+import ScreenHero from "../../ui/ScreenHero";
+import { FruitSize } from "../../ui/Graphics";
 import { useState } from "react";
 import { BackBtn, Label } from "../../ui/Common";
 import { store } from "../../../lib/store";
@@ -21,13 +23,12 @@ export default function Pregnancy({ onBack }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("sec.pregnant")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{t("preg.sub")}</p>
+        <ScreenHero art="baby" title={t("sec.pregnant")} sub={t("preg.sub")} tint="rose" />
 
         <div className="rounded-2xl p-6 mb-3 text-center border border-bloom-rose/30" style={{ backgroundColor: "#FEF0F2" }}>
           <p className="text-xs uppercase tracking-wider font-semibold text-bloom-rose mb-1">{t("preg.week")}</p>
           <p className="font-bold text-bloom-rose" style={{ fontSize: "64px", lineHeight: 1, letterSpacing: "-3px" }}>{w.week}</p>
-          <p className="text-5xl my-4">{w.emoji}</p>
+          <div className="my-4 flex justify-center"><FruitSize size={w.fruit} label={t("preg.w" + w.week + ".size")} px={128} /></div>
           <p className="text-bloom-muted text-sm">{sizeParts[0]}<b className="text-bloom-text">{t("preg.w" + w.week + ".size")}</b>{sizeParts[1] || ""}</p>
         </div>
 
