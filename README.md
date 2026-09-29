@@ -102,17 +102,19 @@ In the iOS/Android app, the next 7 days of reminders are scheduled as local noti
 
 ### Languages
 
-English, **Arabic (full right-to-left layout)** and French. Users can switch on the sign-in screen, during onboarding, or in Profile, and the first visit follows the browser's language. Strings live in `lib/i18n.js` and story translations in `lib/stories-i18n.js`. The core app is translated: sign-in, onboarding, Home, Quick log, Check-in, More, Nora, Insights, stories and the review badge. Article bodies and the deeper More screens are still English for now.
+English, **Arabic (full right-to-left layout)** and French. Users can switch on the sign-in screen, during onboarding, or in Profile, and the first visit follows the browser's language. Strings live in `lib/i18n.js` (plus `lib/i18n-app.js` and `lib/i18n-more.js`), story and article translations in `lib/stories-i18n.js` and `lib/articles-i18n.js`. Every screen a user can reach is translated, including the seeded content; `npm test` fails if a component uses a key missing from any language. Kept in English on purpose: guideline titles in Sources, YouTube searches, medicine brand and protocol names.
 
 ## What's in the demo
 
-- **Entry:** Splash (2.5s) → Sign up / Sign in → 7-step onboarding (incl. mandatory free therapy booking) → app.
+- **Entry:** Splash (2.5s) → Sign up / Sign in → onboarding (consent, cycle details, "Meet a coach") → app.
 - **Tabs:** Home (cycle hero, stats, follicle map by ovary, today's meds) · Check-in (mood, anxiety, hope, symptoms, OHSS weight alert, journal, history) · Nora AI · Insights (category filter, popular, articles) · More.
-- **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Therapy & Coaching · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
+- **More:** Cycle Report (share / copy) · Medications (Today / History / Schedule + log-dose sheet) · Appointments (live countdown, add to calendar) · Charts & Trends · Two Week Wait · Coaching & support · Wellbeing Videos · Community rooms · After a Failed Cycle · Partner Space · Pregnancy Journey · Secret Space · Upgrade (paywall) · Profile.
 - **Quick log (+):** tick a dose, or log mood, symptoms and weight from any main tab. Home shows a check-in streak flower and personalised daily stories.
 - **Privacy Centre:** anonymous mode, PIN app lock, download my data, delete everything.
 - **Medical Review Board:** every article and story shows who reviewed it, with sources and the editorial policy. The board members are placeholders until the real board is appointed.
 - **Reminders** and **three languages** (see above).
+- **Coaching & support:** one real professional, Tatiana F. Kutteh (Life & Relationship Coach, Beirut), listed with her permission and only facts she publishes (`COACHES` in `lib/demo-data.js`). Links go to her website, Instagram, phone and WhatsApp; Bloom takes no bookings. Her photo is `public/coaches/tatiana-kutteh.jpg`: to change it (or add a photo for another coach), drop a square JPG of at least 400×400 in `public/coaches/`, set `photo: "/coaches/<file>.jpg"` in the entry and rebuild; without it the card shows initials.
+- **Community:** the seeded posts and member counts are demo content shown only to the web demo user; real accounts and the app see real posts only, with an empty state until there are some.
 - **Landing page** at `/landing` with waitlist form.
 
 All data persists in `localStorage` (`bloom_*` keys), so the demo survives reloads. **Profile → Reset demo data** clears it. No real payments are taken.

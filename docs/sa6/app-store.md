@@ -234,7 +234,7 @@ Defaults applied on 2026-09-28 so work could continue. Each can be reversed; tel
 | 10 | Budget | Apple US$99/year, Google US$25 once, Codemagic minutes, a Mac if needed. | n/a |
 | 11 | Company details | Needed for enrolment (legal entity, D-U-N-S, Account Holder). | n/a |
 | 12 | UAE data residency | Still open: needed before a UAE launch with cloud accounts (`architecture.md` section 9). | n/a |
-| 13 | Fictional therapists and community posts | **Open (2026-09-28).** Therapy & Coaching (and the free session offered in onboarding) lists invented therapists, and Community shows seeded posts. Options: real partner therapists, a clear "example" label, or hide both in the app for v1. Suggested default: hide in the app build until real services exist (like Upgrade). | Tell sa6 which option. |
+| 13 | Fictional therapists and community posts | **Resolved (2026-09-29).** Therapists → one real coach, **Tatiana F. Kutteh** (Life & Relationship Coach, Beirut), listed with published facts only; the fake booking flow, prices, slots and the onboarding "free session" are gone (see 13.8). Community → seeded posts and member counts are hidden for real accounts and in the app (empty state until real posts exist); the web demo keeps them. | Delete `ROOM_MESSAGES` in `lib/demo-data.js` to drop the demo posts too. |
 | 14 | Nora sees her schedule | **Applied (2026-09-28).** With her AI consent, Nora receives medication names, doses and times and her next 3 appointment dates (never notes or places), so she can answer "when is my next dose?". Disclosed in the consent text and privacy policy (consent version `2026-09-28-draft2`, everyone is asked again). Lawyer to confirm the wording. | Remove `meds`/`appts` from `noraProfile` in `lib/nora.js`. |
 
 ## 12. Sources (checked 2026-09-27)
@@ -317,16 +317,47 @@ Done (2026-09-28). A real account only ever sees what she entered:
 - The demo persona (web demo only) keeps Sarah's schedule, results and check-ins.
 
 ### 13.6 Verified here vs not
+- Verified in this environment (2026-09-29): lint (0 errors), 157 unit tests, web build, app build. Playwright on the static app bundle at 390x844 in **English, Arabic and French**: new local account → onboarding (Meet a coach step shows Tatiana, no free/booking wording) → Community (no member counts; room shows the empty state, no seeded posts), After a Failed Cycle, Partner Space, Pregnancy Journey, Secret Space (create in en, unlock in ar/fr: intro in her language), Coaching & support (photo loads, alt text translated, website/Instagram/WhatsApp open externally, `tel:` link), Two Week Wait, Wellbeing Videos (list and detail), Insights article and review board: no leftover English in ar/fr (only names, brands and acronyms), no "Dr."/"therapist" wording for her, no page errors. Web demo: seeded posts and counts still shown and translated; same coach profile. (The only "Dr." left is the placeholder Medical Review Board, labelled as such.)
 - Verified in this environment (2026-09-28): lint (0 errors), 143 unit tests, web build, app build, Playwright on the static app bundle at 390x844 in **English and Arabic**: new account → onboarding → add a medication and an appointment → both on Home, planned in Reminders, offered in the quick log, listed in the Cycle Report; no persona value (Sarah, Emirates Fertility Centre, Gonal-F, Cetrotide, Progynova, 1840, Dr. Haddad, Antagonist) on Home, Medications, Appointments, Reminders, Charts, Report or Nora, nor in localStorage; no page errors. Scripted Nora evals E01–E20.
 - Earlier pass: `cap sync` (iOS + Android), CORS and gate behaviour with curl, the web demo.
 - **Not verified:** a real iOS build (needs a Mac and Xcode; the new `InfoPlist.strings` entries were added to the Xcode project by hand, so open the project once in Xcode and check the Arabic Face ID prompt on a phone) and an Android compile (CI does it). Native plugins have only run through their no-op web paths. Live Nora (no API key here). **Test on real phones before submission** (checklist step 7).
 
 ### 13.7 Still open before TestFlight / Play internal testing
 Technical items a developer can do; none needs a new package.
-1. **English-only screens a user can reach:** Community, After a Failed Cycle, Partner Space, Pregnancy Journey, Secret Space, Therapy & Coaching, Two Week Wait, Wellbeing Videos (and their content in `lib/demo-data.js`). Fine for an English-only TestFlight; must be translated before Arabic users test.
-2. **Fictional content shown to real users:** the therapists (Dr. Sarah Mitchell and others in `THERAPISTS`, also offered in onboarding), the Community rooms' seeded posts, and the demo bookings. For the stores these must be real services, clearly labelled examples, or hidden (App Store 2.3 accurate metadata / 1.4.1). **Founder decision** (see 11).
+1. ~~English-only screens~~ **Done (2026-09-29):** Community, After a Failed Cycle, Partner Space, Pregnancy Journey, Secret Space, Coaching & support, Two Week Wait, Wellbeing Videos, the Insights articles, the Medical Review Board sheet and Upgrade are in English, Arabic and French. A professional translator should still review the Arabic and French (like the legal pages).
+2. ~~Fictional content shown to real users~~ **Done (2026-09-29):** no fictional therapists anywhere (one real coach, 13.8); seeded Community posts only in the web demo. Still fictional: the Medical Review Board names (labelled "illustrative placeholders" on screen) until the real board is appointed.
 3. Real-phone checks of the native parts (step 7), including the localised Face ID prompt.
 4. `npm audit`: 0 findings in runtime dependencies. Remaining (development tools only, not in the app): `uuid` < 11.1.1 (moderate) via `@capacitor/cli` → `xcode`; the only "fix" downgrades the Capacitor CLI, so we wait for a Capacitor release.
+
+### 13.8 Coaching & support: Tatiana F. Kutteh (2026-09-29)
+**Permission.** The founder reports that Tatiana Kutteh **accepted being listed in Bloom**, including her name, title, photo, website, Instagram and phone number. **Keep her written confirmation (email or signed note) on file** before publishing the app or deploying this to the live site, and ask her again before adding anything new (extra details, prices, a booking link).
+
+**What the app shows, and where each fact comes from** (all in `COACHES`, `lib/demo-data.js`; text in `lib/i18n-more.js`, en/ar/fr):
+
+| Fact shown | Source |
+|---|---|
+| Name: Tatiana F. Kutteh (Tatiana Fadel Kutteh) | tatianakutteh.com/about.php |
+| Main title: Life & Relationship Coach | Instagram bio @tatianakutteh (supplied by the founder) |
+| Certified Life & Change Coach, Change Coach Institute (2011); NLP Practitioner | tatianakutteh.com/about.php |
+| Approaches: REBT · CBT · NLP | Instagram bio (founder) |
+| Former Vice President, ICF Lebanon (International Coaching Federation) | Instagram bio (founder) |
+| Motivational speaker (her website says "inspirational speaker") | Instagram bio (founder); tatianakutteh.com |
+| Tagline "Heal · Grow · Transform" (translated in ar/fr) | Instagram bio (founder) |
+| Based in Beirut, Lebanon | tatianakutteh.com |
+| BA Public Administration, minor in Psychology, American University of Beirut; master's degree | tatianakutteh.com/about.php |
+| Focus: women's empowerment and relationships; transitional periods and emotional challenges; self-confidence, self-esteem, work–life balance, relationships | tatianakutteh.com, tatianakutteh.com/about.php |
+| Formats: private 1-on-1 (Beirut office), couples coaching, group coaching, workshops | tatianakutteh.com |
+| Website https://tatianakutteh.com, Instagram https://www.instagram.com/tatianakutteh/, phone +961 3 382 730 (Call and WhatsApp buttons) | Website; Instagram bio (founder) |
+| Photo `public/coaches/tatiana-kutteh.jpg` (600×600) | Supplied by the founder with her permission |
+
+**Rules kept in the app** (guarded by `tests/coaches.test.mjs`): she is a **coach**, never "Dr.", "therapist", "psychologist" or "doctor"; the screen says coaching is not medical or psychological treatment and keeps the crisis line; no prices, free sessions, availability, reviews, ratings or IVF specialism; no booking inside Bloom (she arranges sessions herself). The demo and real accounts see the same profile.
+
+**Founder follow-ups**
+- [ ] File Tatiana's written confirmation (above).
+- [ ] Her Instagram category says "Psychologist", but her website and bio describe her as a coach, and "psychologist" is a protected title in Lebanon. **Ask her whether she holds a psychologist licence (and its number)** before Bloom ever uses that title. Until then the app calls her a coach only.
+- [ ] Optional: ask whether she wants Arabic and French versions of her bio checked, and whether she offers online sessions (the app only lists what she publishes: Beirut office, couples, group, workshops).
+
+**Changing or adding the photo.** Drop a square JPG of at least 400×400 at `public/coaches/<id>.jpg` (strip location metadata), set `photo: "/coaches/<id>.jpg"` in her `COACHES` entry, then rebuild (`npm run build` for the web, `npm run app:sync` for the apps: files in `public/` are bundled into the app). If the field is unset or the file fails to load, the card shows her initials instead. To add another professional, add an entry to `COACHES` with its own `key` and the matching `coach.<key>.*` strings in all three languages; the tests check both.
 
 ---
 
@@ -390,7 +421,7 @@ A developer can do this in about an hour once accounts exist. Two ways:
 ### Step 7. Test on real phones (1 to 2 weeks)
 - [ ] Install from TestFlight (iPhone) and Play internal testing (Android). Test in English and Arabic: sign up, onboarding, reminders arrive with the app closed (set one 5 minutes ahead), Face ID / fingerprint unlock, back button on Android, Nora answers, log a scan, delete an account, the privacy link opens.
 - [ ] Also test: add a medication with two times and an appointment, then check both reminders arrive and that the lock screen shows no medicine name.
-- [ ] Invite a few real patients only after 13.7 items 1 and 2 are settled (Arabic screens, fictional therapists and community posts).
+- [ ] Invite a few real patients once Tatiana's written confirmation is on file (13.8) and a translator has checked the Arabic and French screens.
 
 ### Step 8. Store listing (texts in section 15, privacy answers in section 16)
 - [ ] **Screenshots** in English and Arabic **(verify sizes at upload)**:

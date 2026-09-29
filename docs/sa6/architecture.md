@@ -2,7 +2,7 @@
 
 Owned by **sa6** (full-stack / AI). This is the living record of how Bloom is built, what data goes where, the known risks and the technical roadmap. Update it with every feature.
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ---
 
@@ -98,6 +98,13 @@ Design principles:
 - **Fallback:** works with zero env vars (local mode); the scripted Nora doesn't use the schedule (it gives the general answer).
 - **Open for the founder:** whether Nora may see the schedule at all (default: yes, with AI consent; decision 14 in `app-store.md`).
 
+### 3.8 Coaching, Community seeds and content translation (2026-09-29)
+- **User problem.** Real users were shown invented therapists (with prices, slots and a "mandatory free session" that booked nothing) and seeded Community posts, and eight reachable screens were English-only.
+- **Coaching & support** (`components/screens/more/Coaching.jsx`, section id `coaching`): one real professional, **Tatiana F. Kutteh**, a coach (never "Dr."/therapist/psychologist), from `COACHES` in `lib/demo-data.js` (published facts only, with sources and a `verified` date). Same profile for the demo and real accounts. No booking flow and no data stored: the CTAs are plain external links (website, Instagram, `tel:`, `wa.me`), so Bloom sends her nothing and no processor is added. Optional `photo` under `public/` (bundled into the app build), with an initials fallback (`components/ui/CoachAvatar.jsx`). Onboarding's free-session step is now a neutral "Meet a coach" step. The legacy `bloom_bookings` key is removed from the device when Coaching opens and is no longer read. **Founder:** keep her written permission on file before publishing (the founder reports she accepted, including photo and phone); do not use "psychologist" until she confirms a licence (`app-store.md` 13.8). Guarded by `tests/coaches.test.mjs`.
+- **Community seeds** (`lib/community.js`): seeded posts (`ROOM_MESSAGES`, one block in `lib/demo-data.js`) and member counts show only when `isDemoUser()` and not in the app build or native runtime. Real accounts see only real posts (today: her own; older saves that contain seeds are filtered) and an empty state. Community is still device-local (no shared backend): her posts reach nobody else yet. Guarded by `tests/community.test.mjs`.
+- **i18n.** New strings live in `lib/i18n-more.js` (merged into `DICTS`); seeded content in `demo-data.js` is now structure plus i18n keys (TWW days, pregnancy weeks, failed-cycle steps and questions, partner content, Secret Space replies, videos, plans). Insights articles are translated in `lib/articles-i18n.js` (same pattern as `stories-i18n.js`). Secret Space stores Bloom's own messages as keys inside the encrypted vault (older English entries are mapped back on display). Kept in English on purpose: guideline titles in Sources, YouTube search queries (the screen says videos may be in English), protocol names, medicine brand names, prices. `tests/i18n-usage.test.mjs` checks every literal `t("key")` in components exists in en/ar/fr; `tests/content-i18n.test.mjs` checks the runtime-built keys.
+- **Privacy impact:** none new. No new data leaves the device; nothing about Coaching is logged or sent to Anthropic.
+
 ### 3.5 Schema: `supabase/schema.sql`
 - `public.user_state(user_id uuid pk → auth.users on delete cascade, data jsonb, updated_at)`.
 - `public.consent_events(id, user_id → auth.users on delete cascade, version, cloud, ai, created_at)`: append-only consent log. RLS: select and insert own rows only, no update/delete policies; a trigger sets `created_at = now()` so the client can't back-date a consent.
@@ -176,7 +183,7 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Profile (name, clinic, protocol, stim day, E2, follicles) | `bloom_user` | Cloud sync; Nora gets first name (not in anonymous mode), stim day, protocol, clinic, E2 | Supabase; Anthropic (per message) |
 | Check-ins (mood, anxiety, symptoms, weight, journal text) | `bloom_checkins` | Cloud sync only | Supabase |
 | Her medication schedule and appointments (`bloom_my_meds`, `bloom_my_appts`) | `bloom_*` | Cloud sync (with consent); Nora gets names, doses, times and the next 3 appointment dates (with AI consent), never notes or places | Supabase; Anthropic (per message) |
-| Medication logs, scan results (`bloom_scans`: E2, LH, P4, follicle sizes), therapy bookings, partner invite, reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
+| Medication logs, scan results (`bloom_scans`: E2, LH, P4, follicle sizes), partner invite, Community posts she wrote (`bloom_room_*`), reminders settings, reads/likes | `bloom_*` | Cloud sync only | Supabase |
 | Nora chat history | `bloom_nora` | Cloud sync (with consent); last 20 turns sent to Anthropic per message (with AI consent) | Supabase; Anthropic |
 | Secret Space | `bloom_secret_vault` (ciphertext) | Cloud sync as ciphertext only. **Never sent to Anthropic.** | Supabase (cannot read it) |
 | App-lock PIN hash, biometric-unlock setting, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
@@ -283,8 +290,11 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 6. Consent (G11): lawyer review of the draft wording and model (granular opt-in; withdrawal removes synced health data from the cloud but keeps the account; whether to keep consent/deletion proof after erasure, which the cascade currently deletes).
 7. Sign-out with cloud sync off wipes the device, so unsynced data is lost. Warn first, or keep data on sign-out when sync is off (shared-device privacy vs data loss)?
 8. App store: whether the app build keeps the demo gate in front of `/api/nora` (it can't, see `app-store.md`) and whether signed-in users get Nora without the demo password on the web too.
+9. Coaching: file Tatiana Kutteh's written permission; confirm whether she holds a psychologist licence before that title is ever used (the app calls her a coach). More professionals: same rules (published facts, permission, no invented details).
+10. Community has no shared backend: posts stay on her device. Decide whether to build moderated rooms (new data flow, moderation, legal review) or hide Community in the app until then.
 
 ## 12. Change log
+- 2026-09-29: Eight English-only screens, the Insights articles, the review board sheet and Upgrade translated (en/ar/fr, `lib/i18n-more.js`, `lib/articles-i18n.js`); fictional therapists replaced by one real coach, Tatiana F. Kutteh (`COACHES`, Coaching screen, onboarding "Meet a coach"); seeded Community posts hidden for real accounts and in the app (`lib/community.js`); new tests for i18n key usage, content keys, coaches and community.
 - 2026-09-28 (store blockers): Next.js and eslint-config-next 16.3.6 (critical RCE advisories; `npm audit --omit=dev` clean; js-yaml dev fix). Her own medications and appointments (`lib/schedule.js`, 3.7) wired into Home, Medications, Appointments, quick log, reminders (web, .ics, native), Cycle Report and Nora (prompt `2026-09-28.1`, rule 8); per-dose log; one data owner per device (`switchOwner`); Charts and the Cycle Report translated; iOS Face ID text in en/ar/fr; persona fallbacks removed; consent `2026-09-28-draft2`.
 - 2026-09-28 (R2, native apps): Capacitor 8 iOS/Android projects; `BUILD_TARGET=app` static export (`*.app.jsx` routes only) calling the hosted API via `NEXT_PUBLIC_API_BASE`; CORS for the Capacitor origins (`lib/cors.js`); Bearer pass-through in `proxy.js`; `NORA_REQUIRE_AUTH`; native reminders, biometric unlock, privacy screen, backups excluded (`lib/native.js`); public `/privacy` (draft), `/support`, `/delete-account`; AI and medical disclosures; Upgrade and demo persona hidden in the app; real accounts see only their own scans (new `bloom_scans`), check-ins and doses. Details and founder checklist: `docs/sa6/app-store.md`.
 - 2026-09-27 (R1): Server-side Supabase token checks for `/api/nora` (G1), full account erasure route (G4), health-data consent with versioned records and enforcement (G11, draft wording), no demo persona values for real users (G15, prompt `2026-09-27.2`), Privacy Centre in en/ar/fr, `consent_events` table, `SUPABASE_SERVICE_ROLE_KEY`. App Store plan in `docs/sa6/app-store.md`.
