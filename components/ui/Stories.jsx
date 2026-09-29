@@ -21,7 +21,8 @@ export default function Stories({ user, openMore }) {
   var [open, setOpen] = useState(null); // { list, index }
   var [sleepNow] = useState(function () { return sleepScore(getSleep()[0]); });
   var fs = follicleStats();
-  var isStim = (user.phase || "stimulation") === "stimulation";
+  // Stim day tile only when she has told Bloom her stim day (no persona default for real accounts).
+  var isStim = (user.phase || "stimulation") === "stimulation" && !!user.stimDay;
   var talk = {
     id: "talk", title: t("talk.title"), art: "couple", color: "#E6F5C9", ink: "#3F6B1E",
     slides: [t("talk.s1"), t("talk.s2"), t("talk.s3")],
@@ -48,10 +49,10 @@ export default function Stories({ user, openMore }) {
             {isStim ? (
               <div className="w-[92px] h-[104px] bg-white/90 flex flex-col items-center justify-center" style={{ borderRadius: "50% 50% 50% 50% / 45% 45% 55% 55%", clipPath: "polygon(0 0,100% 0,100% 78%,50% 100%,0 78%)" }}>
                 <span className="text-[11px] font-semibold text-bloom-text">{t("tiles.stimDay")}</span>
-                <span className="text-4xl font-bold text-bloom-text leading-none">{user.stimDay || 7}</span>
+                <span className="text-4xl font-bold text-bloom-text leading-none">{user.stimDay}</span>
               </div>
             ) : (
-              <div className="flex flex-col items-center"><PhaseIcon phase={user.phase} size={70} /><span className="text-xs font-semibold text-bloom-text mt-1 text-center px-1">{t("phase." + user.phase)}</span></div>
+              <div className="flex flex-col items-center"><PhaseIcon phase={user.phase || "stimulation"} size={70} /><span className="text-xs font-semibold text-bloom-text mt-1 text-center px-1">{t("phase." + (user.phase || "stimulation"))}</span></div>
             )}
           </div>)}
         </button>
@@ -67,8 +68,8 @@ export default function Stories({ user, openMore }) {
         <button className={tile} style={{ background: "#E07A8A" }} onClick={function () { openMore("charts"); }}>
           {ring(<div className="w-full h-full p-2.5 flex flex-col" style={{ backgroundColor: "#DDF3EF" }}>
             <span className="text-bloom-text text-[13px] font-medium leading-tight">{t("tiles.follicles")}</span>
-            <span className="text-4xl font-bold text-bloom-teal leading-none mt-2">{fs.total}</span>
-            <span className="text-xs text-bloom-muted mt-1">{t("home.mature", { n: fs.mature })}</span>
+            <span className="text-4xl font-bold text-bloom-teal leading-none mt-2">{fs.none ? "—" : fs.total}</span>
+            <span className="text-xs text-bloom-muted mt-1">{fs.none ? t("scan.none") : t("home.mature", { n: fs.mature })}</span>
             <div className="flex gap-1 mt-auto">{Array.from({ length: fs.total }, function (_, i) { return <span key={i} className="rounded-full" style={{ width: 7, height: 7, backgroundColor: i < fs.mature ? "#4ABFB0" : "#fff", border: "1.5px solid #4ABFB0" }} />; })}</div>
           </div>)}
         </button>

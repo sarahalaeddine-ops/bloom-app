@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Globe, Phone, MessageCircle, AtSign } from "lucide-react";
 import { BackBtn, Label } from "../../ui/Common";
 import CoachAvatar from "../../ui/CoachAvatar";
+import ScreenHero from "../../ui/ScreenHero";
 import { store } from "../../../lib/store";
 import { COACHES } from "../../../lib/demo-data";
 import { useT } from "../../../lib/i18n";
@@ -81,8 +82,7 @@ export default function Coaching({ onBack }) {
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("coach.title")}</h1>
-        <p className="text-bloom-muted text-sm mb-4">{t("coach.sub")}</p>
+        <ScreenHero art="therapy" title={t("coach.title")} sub={t("coach.sub")} tint="teal" />
 
         <div className="bg-bloom-surface rounded-2xl p-4 mb-4">
           <p className="text-bloom-text text-xs leading-relaxed mb-2">{t("coach.notTreatment")}</p>

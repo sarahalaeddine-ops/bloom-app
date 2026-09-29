@@ -3,30 +3,32 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Sheet } from "./Common";
 import { MoodFace } from "./Graphics";
-import { APPOINTMENTS, MOODS } from "../../lib/demo-data";
+import { MOODS } from "../../lib/demo-data";
+import { getAppts, apptAt, apptColor, fmtClock } from "../../lib/schedule";
+import { apptLabel } from "../ScheduleForms";
 import { getCheckins, cycleStartDate, TRIGGER_DAY } from "../../lib/cycle";
 import { getSleep, fmtHours } from "../../lib/sleep";
 import { useT } from "../../lib/i18n";
 
 function key(d) { return new Date(d).toDateString(); }
-function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
 // Month calendar of the IVF cycle: stim days, planned days, appointments and logged days.
+// Everything is her own data (her stim day, schedule, check-ins, sleep); the demo gets the persona's.
 export default function CycleCalendar({ user, onClose }) {
   var { t, locale } = useT();
   var today = new Date();
   var [month, setMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   var [picked, setPicked] = useState(today);
-  var isStim = (user.phase || "stimulation") === "stimulation";
-  var stimDay = user.stimDay || 7;
-  var start = cycleStartDate(stimDay);
+  var stimDay = user.stimDay || null;
+  var isStim = (user.phase || "stimulation") === "stimulation" && !!stimDay;
+  var start = isStim ? cycleStartDate(stimDay) : null;
 
   var checkins = {};
   getCheckins().forEach(function (c) { if (!checkins[key(c.date)]) checkins[key(c.date)] = c; });
   var sleep = {};
   getSleep().forEach(function (s) { sleep[key(s.date)] = s; });
   var appts = {};
-  APPOINTMENTS.forEach(function (a) { var d = addDays(today, a.dayOffset); (appts[key(d)] = appts[key(d)] || []).push(a); });
+  getAppts().forEach(function (a) { var d = apptAt(a); var k = key(d); (appts[k] = appts[k] || []).push({ ...a, color: apptColor(a) }); });
 
   function stimOf(d) {
     if (!isStim) return 0;
@@ -63,7 +65,7 @@ export default function CycleCalendar({ user, onClose }) {
           var bg = n ? (past ? "#9B6DC5" : "transparent") : "transparent";
           return (
             <button key={i} onClick={function () { setPicked(c); }} aria-pressed={isPicked}
-              aria-label={c.toLocaleDateString(locale, { day: "numeric", month: "long" }) + (n ? ", " + t("ql.stimDay", { n: n }) : "") + (ap ? ", " + ap.map(function (a) { return a.type; }).join(", ") : "")}
+              aria-label={c.toLocaleDateString(locale, { day: "numeric", month: "long" }) + (n ? ", " + t("ql.stimDay", { n: n }) : "") + (ap ? ", " + ap.map(function (a) { return apptLabel(a, t); }).join(", ") : "")}
               className="flex flex-col items-center py-0.5">
               <span className="w-9 h-9 rounded-full flex items-center justify-center text-sm relative"
                 style={{
@@ -94,7 +96,7 @@ export default function CycleCalendar({ user, onClose }) {
         <p className="text-bloom-text font-bold">{picked.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</p>
         {pn > 0 && <p className="text-bloom-accent text-sm font-semibold">{t("ql.stimDay", { n: pn })}</p>}
         {pa.map(function (a) {
-          return <p key={a.id} className="text-sm text-bloom-text mt-2 flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: a.color }} />{a.type} · <bdi>{a.time}</bdi></p>;
+          return <p key={a.id} className="text-sm text-bloom-text mt-2 flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: a.color }} /><bdi>{apptLabel(a, t)}</bdi> · <bdi>{fmtClock(a.time, locale)}</bdi></p>;
         })}
         {pc && (
           <div className="flex items-center gap-2 mt-2">
@@ -102,11 +104,11 @@ export default function CycleCalendar({ user, onClose }) {
             <p className="text-sm text-bloom-muted">
               {pc.mood !== null && pc.mood !== undefined ? t("mood." + pc.mood) : ""}
               {(pc.feelings || []).map(function (f) { return " · " + t("feel." + f); }).join("")}
-              {pc.symptoms.map(function (s) { return " · " + t("sym." + s); }).join("")}
+              {(pc.symptoms || []).map(function (s) { return " · " + t("sym." + s); }).join("")}
             </p>
           </div>
         )}
-        {ps && <p className="text-sm text-bloom-muted mt-2">🌙 {t("sleep.asleep", { h: fmtHours(ps.hours) })}</p>}
+        {ps && <p className="text-sm text-bloom-muted mt-2">🌙 {t("sleep.asleep", { h: fmtHours(ps.hours, t) })}</p>}
         {!pn && !pa.length && !pc && !ps && <p className="text-sm text-bloom-dim mt-1">{t("cal.nothing")}</p>}
       </div>
     </Sheet>
