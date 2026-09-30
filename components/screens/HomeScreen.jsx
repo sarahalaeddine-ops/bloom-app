@@ -8,8 +8,11 @@ import SleepCard from "../ui/SleepCard";
 import CycleStats from "../ui/CycleStats";
 import CycleCalendar from "../ui/CycleCalendar";
 import { CalendarDays } from "lucide-react";
-import { FOLLICLES, MATURE_MM, MEDS, MOODS } from "../../lib/demo-data";
-import { getTodayMedLog, getCheckins, follicleStats, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
+import { MATURE_MM, MOODS } from "../../lib/demo-data";
+import { getTodayMedLog, doseEntry, getCheckins, follicleStats, latestFollicles, latestE2, TRIGGER_DAY, checkinStreak, lastSevenDays } from "../../lib/cycle";
+import { dosesOn, upcomingAppts, fmtClock, apptAt, daysBetween } from "../../lib/schedule";
+import { apptLabel, relDay } from "../ScheduleForms";
+import ScanLog, { ScanEmpty } from "../ScanLog";
 
 function greeting() {
   var h = new Date().getHours();
@@ -20,15 +23,26 @@ function greeting() {
 
 export default function HomeScreen({ user, openMore, goTab }) {
   var { t, lang, locale } = useT();
-  var name = user.name || "Sarah";
-  var anon = !!user.anonymous;
-  var stimDay = user.stimDay || 7;
-  var protocol = user.protocol || "Antagonist";
-  var clinic = user.clinic || "Emirates Fertility Centre";
-  var e2 = user.e2 || 1840;
+  var name = user.name || "";
+  var anon = !!user.anonymous || !name;
+  var stimDay = user.stimDay || 1;
+  var protocol = user.protocol || "";
+  var clinic = user.clinic || "";
+  var demo = user.id === "demo";
+  // Her own latest scan; the demo persona's seeded values only for the demo (lib/cycle.js).
+  var [, setScanTick] = useState(0);
+  var [scanOpen, setScanOpen] = useState(false);
+  var e2Last = latestE2();
+  var follicles = latestFollicles();
   var stats = follicleStats();
-  var daysLeft = Math.max(0, TRIGGER_DAY + 2 - stimDay);
+  // Her own schedule (lib/schedule.js): today's doses and her next appointment.
   var [log] = useState(getTodayMedLog);
+  var [doses] = useState(function () { return dosesOn(new Date()); });
+  var [appts] = useState(function () { return upcomingAppts(new Date()); });
+  var next = appts[0] || null;
+  var retrieval = appts.find(function (a) { return a.kind === "retrieval"; });
+  // Days to retrieval: the demo's estimate, or her own retrieval appointment when she has added one.
+  var daysLeft = demo ? Math.max(0, TRIGGER_DAY + 2 - stimDay) : retrieval ? Math.max(0, daysBetween(new Date(), apptAt(retrieval))) : null;
   var [checkedIn] = useState(function () {
     var last = getCheckins()[0];
     return last && new Date(last.date).toDateString() === new Date().toDateString();
@@ -57,28 +71,30 @@ export default function HomeScreen({ user, openMore, goTab }) {
             <p className="font-serif italic text-bloom-text leading-none my-1" style={{ fontSize: isStim ? "44px" : "30px" }}>
               {isStim ? t("common.day", { n: stimDay }) : t("phase." + user.phase)}
             </p>
-            {isStim && <p className="text-bloom-accent text-xs font-semibold">{t("home.toRetrieval", { n: daysLeft })}</p>}
+            {isStim && daysLeft !== null && <p className="text-bloom-accent text-xs font-semibold">{t("home.toRetrieval", { n: daysLeft })}</p>}
           </JourneyRing>
         </div>
         <div className="relative mt-3"><JourneyLegend /></div>
         <div className="relative flex justify-center mt-2">
           <button onClick={function () { openMore("profile"); }} className="text-bloom-accent text-xs font-semibold bg-white/70 rounded-full px-3 py-1">{t("home.changePhase")}</button>
         </div>
-        <p className="relative text-bloom-muted text-xs text-center mt-2">{t("home.protocol", { p: "\u2068" + protocol + "\u2069" })} · <bdi>{clinic}</bdi></p>
+        {(protocol || clinic) && <p className="relative text-bloom-muted text-xs text-center mt-2">{protocol ? t("home.protocol", { p: "⁨" + protocol + "⁩" }) : ""}{protocol && clinic ? " · " : ""}{clinic ? <bdi>{clinic}</bdi> : null}</p>}
       </div>
 
       <Stories user={user} openMore={openMore} />
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         {[
-          { val: stats.total, label: t("home.follicles"), sub: t("home.mature", { n: stats.mature }), color: "#9B6DC5", go: "charts" },
-          { val: e2 >= 1000 ? (e2 / 1000).toFixed(1) + "k" : e2, label: t("home.e2"), sub: t("common.day", { n: stimDay }), color: "#E07A8A", go: "charts" },
-          { val: "8AM", label: t("home.nextScan"), sub: t("home.tomorrow"), color: "#4ABFB0", go: "appointments" },
+          { val: stats.none ? "—" : stats.total, label: t("home.follicles"), sub: stats.none ? t("scan.none") : t("home.mature", { n: stats.mature }), color: "#9B6DC5", go: "charts" },
+          { val: !e2Last ? "—" : e2Last.value >= 1000 ? (e2Last.value / 1000).toFixed(1) + "k" : e2Last.value, label: t("home.e2"), sub: e2Last ? t("common.day", { n: e2Last.day }) : t("scan.none"), color: "#E07A8A", go: "charts" },
+          next
+            ? { val: fmtClock(next.time, locale), label: apptLabel(next, t), sub: relDay(next, t), color: "#4ABFB0", go: "appointments", ltr: true }
+            : { val: "—", label: t("home.nextAppt"), sub: t("home.addAppt"), color: "#4ABFB0", go: "appointments" },
         ].map(function (s) {
           return (
             <button key={s.label} onClick={function () { openMore(s.go); }} className="bg-white rounded-xl p-3 border text-center" style={{ borderColor: s.color + "30" }}>
-              <p className="text-xl font-semibold" style={{ color: s.color, letterSpacing: "-1px" }}>{s.val}</p>
-              <p className="text-bloom-muted text-xs mt-0.5">{s.label}</p>
+              <p className={"font-semibold " + (s.ltr ? "text-lg" : "text-xl")} style={{ color: s.color, letterSpacing: "-1px" }}><bdi>{s.val}</bdi></p>
+              <p className="text-bloom-muted text-xs mt-0.5 truncate"><bdi>{s.label}</bdi></p>
               <p className="text-bloom-dim text-xs">{s.sub}</p>
             </button>
           );
@@ -117,14 +133,17 @@ export default function HomeScreen({ user, openMore, goTab }) {
 
       <CycleStats user={user} />
 
+      {!follicles ? (
+        <ScanEmpty title={t("home.follicleMap")} body={t("scan.emptyHome")} onLog={function () { setScanOpen(true); }} />
+      ) : (
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
         <div className="flex justify-between items-center mb-3">
           <Label>{t("home.follicleMap")}</Label>
-          <span className="text-bloom-dim text-xs">{t("home.scan", { n: stimDay })}</span>
+          <span className="text-bloom-dim text-xs">{t("home.scan", { n: follicles.day })}</span>
         </div>
         <div className="flex gap-2 mb-3">
-          <Ovary label={t("home.rightOvary")} sizes={FOLLICLES.right} color="#9B6DC5" matureMm={MATURE_MM} />
-          <Ovary label={t("home.leftOvary")} sizes={FOLLICLES.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
+          <Ovary label={t("home.rightOvary")} sizes={follicles.right} color="#9B6DC5" matureMm={MATURE_MM} />
+          <Ovary label={t("home.leftOvary")} sizes={follicles.left} color="#4ABFB0" matureMm={MATURE_MM} flip />
         </div>
         <div className="flex flex-wrap gap-4 pt-2 border-t border-bloom-border">
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-bloom-accent" /><span className="text-bloom-muted text-xs">{t("home.rightOvary")}</span></div>
@@ -132,29 +151,37 @@ export default function HomeScreen({ user, openMore, goTab }) {
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-bloom-muted" /><span className="text-bloom-muted text-xs">{t("home.filled", { mm: MATURE_MM })}</span></div>
         </div>
       </div>
+      )}
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border">
         <div className="flex justify-between items-center mb-3">
           <Label>{t("home.medsToday")}</Label>
-          <button onClick={function () { openMore("medications"); }} className="text-bloom-accent text-xs font-semibold">{t("home.log")}</button>
+          <button onClick={function () { openMore("medications"); }} className="text-bloom-accent text-xs font-semibold">{doses.length ? t("home.log") : t("home.manage")}</button>
         </div>
+        {doses.length === 0 ? (
+          <button onClick={function () { openMore("medications"); }} className="w-full text-start rounded-xl border border-dashed border-bloom-accent/40 p-3">
+            <p className="text-bloom-text text-sm font-semibold">{t("home.noMeds")}</p>
+            <p className="text-bloom-muted text-xs mt-0.5">{t("home.noMedsBody")}</p>
+          </button>
+        ) : (
         <div className="flex flex-col gap-2">
-          {MEDS.map(function (m) {
-            var entry = log[m.id];
+          {doses.map(function (d) {
+            var m = d.med;
+            var entry = doseEntry(log, m.id, d.time);
             var taken = entry && entry.status === "taken";
             var missed = entry && entry.status === "missed";
             return (
-              <button key={m.id} onClick={function () { openMore("medications"); }} className="flex items-center gap-3 p-3 rounded-xl border text-start"
+              <button key={d.key} onClick={function () { openMore("medications"); }} className="flex items-center gap-3 p-3 rounded-xl border text-start"
                 style={{ borderColor: taken ? m.color + "40" : "#E8E0DB", backgroundColor: taken ? m.color + "08" : "white" }}>
-                <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-semibold"
+                <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-semibold flex-shrink-0"
                   style={{ borderColor: taken ? m.color : "#C5B8CC", color: taken ? m.color : "#C5B8CC", backgroundColor: taken ? m.color + "18" : "#F0EBE8" }}>
                   {taken ? "✓" : "○"}
                 </div>
-                <div className="flex-1">
-                  <p className="text-bloom-text text-sm font-semibold">{m.name} <span className="font-normal text-bloom-muted">{m.dose}</span></p>
-                  <p className="text-bloom-dim text-xs"><bdi dir="ltr">{m.time}</bdi></p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-bloom-text text-sm font-semibold truncate"><bdi>{m.name}</bdi> {m.dose && <span className="font-normal text-bloom-muted"><bdi>{m.dose}</bdi></span>}</p>
+                  <p className="text-bloom-dim text-xs"><bdi>{fmtClock(d.time, locale)}</bdi></p>
                 </div>
-                <span className="text-xs font-semibold px-2 py-1 rounded-lg"
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0"
                   style={{ color: taken ? "#4ABFB0" : missed ? "#E07A8A" : "#C49A3C", backgroundColor: taken ? "#4ABFB015" : missed ? "#E07A8A15" : "#C49A3C15" }}>
                   {taken ? t("med.done") : missed ? t("med.missed") : t("med.pending")}
                 </span>
@@ -162,7 +189,9 @@ export default function HomeScreen({ user, openMore, goTab }) {
             );
           })}
         </div>
+        )}
       </div>
+      {scanOpen && <ScanLog user={user} onClose={function () { setScanOpen(false); }} onSaved={function () { setScanOpen(false); setScanTick(function (n) { return n + 1; }); }} />}
       {cal && <CycleCalendar user={user} onClose={function () { setCal(false); }} />}
     </div>
   );

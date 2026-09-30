@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Native projects: web assets copied in by `cap sync` and build outputs.
+    "android/**",
+    "ios/**",
   ]),
 ]);
 

@@ -73,7 +73,7 @@ export default function SleepCard() {
               <p className="text-white font-bold leading-none px-2" style={{ fontSize: fitSize(t("sleep.score." + score.key)) }}>{t("sleep.score." + score.key)}</p>
               <p className="text-white/60 text-sm mt-1">{t("sleep.scoreLabel")}</p>
             </SleepRing>
-            <p className="text-white/60 text-sm font-semibold mt-3">{t("sleep.asleep", { h: fmtHours(last.hours) })}</p>
+            <p className="text-white/60 text-sm font-semibold mt-3">{t("sleep.asleep", { h: fmtHours(last.hours, t) })}</p>
             <p className="text-white text-[15px] leading-snug mt-2 mb-4 px-2">{t("sleep.msg." + score.key)}</p>
           </div>
         ) : (
@@ -110,9 +110,9 @@ function SleepSheet({ nights, onSaved, onClose }) {
     <Sheet onClose={onClose}>
       <div className="w-10 h-1 bg-bloom-border rounded-full mx-auto -mt-2 mb-4" />
       <h2 className="text-xl font-bold text-bloom-text mb-1">{t("sleep.sheetTitle")}</h2>
-      <p className="text-bloom-muted text-sm mb-4">{t("sleep.avg", { h: fmtHours(avg) })}</p>
+      <p className="text-bloom-muted text-sm mb-4">{week.length ? t("sleep.avg", { h: fmtHours(avg, t) }) : t("sleep.empty")}</p>
 
-      <div className="flex items-end justify-between gap-2 h-36 mb-1" role="img" aria-label={week.map(function (n) { return n.hours + "h"; }).join(", ")}>
+      <div className="flex items-end justify-between gap-2 h-36 mb-1" role="img" aria-label={week.map(function (n) { return fmtHours(n.hours, t); }).join(", ")}>
         {week.map(function (n, i) {
           var sc = sleepScore(n);
           return (
@@ -132,7 +132,7 @@ function SleepSheet({ nights, onSaved, onClose }) {
       <Label className="mb-2">{t("sleep.lastNight")}</Label>
       <div className="flex items-center justify-center gap-5 mb-4">
         <button onClick={function () { setHours(Math.max(3, hours - 0.5)); }} aria-label={t("sleep.less")} className="w-11 h-11 rounded-full bg-bloom-surface flex items-center justify-center text-bloom-accent"><Minus size={20} /></button>
-        <p className="text-4xl font-light text-bloom-text w-28 text-center" dir="ltr">{fmtHours(hours)}</p>
+        <p className="text-4xl font-light text-bloom-text w-28 text-center"><bdi>{fmtHours(hours, t)}</bdi></p>
         <button onClick={function () { setHours(Math.min(12, hours + 0.5)); }} aria-label={t("sleep.more")} className="w-11 h-11 rounded-full bg-bloom-surface flex items-center justify-center text-bloom-accent"><Plus size={20} /></button>
       </div>
       <div className="flex gap-2 mb-4">

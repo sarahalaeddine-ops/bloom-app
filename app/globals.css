@@ -20,6 +20,24 @@ body {
   min-height: 100vh;
 }
 
+/* Native app build (app/layout.app.jsx sets body.native-app). The WebView runs edge to edge
+   (viewport-fit=cover, Capacitor SystemBars "css"), so keep content clear of the status bar / notch
+   and the home indicator. env() is 0 where there is no inset. The web build is unaffected. */
+.native-app { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+.native-app .app-column { padding-top: env(safe-area-inset-top); }
+.native-app::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top);
+  background: #FAF7F4; z-index: 55; pointer-events: none;
+}
+.native-app .sticky.top-0 { top: env(safe-area-inset-top); }
+.native-app .fixed.top-4 { top: calc(1rem + env(safe-area-inset-top)); }
+.native-app .fixed.inset-0[role="dialog"] { padding-top: env(safe-area-inset-top); }
+.native-app .bottom-\[76px\] { bottom: calc(76px + env(safe-area-inset-bottom)); }
+.native-app .bottom-\[64px\] { bottom: calc(64px + env(safe-area-inset-bottom)); }
+.native-app .animate-sheet { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+/* Text fields stay selectable; the rest of the UI doesn't show the web text-selection callout. */
+.native-app button, .native-app nav { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
 ::-webkit-scrollbar { display: none; }
 
 .logo {

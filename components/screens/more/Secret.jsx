@@ -6,11 +6,22 @@ import { Illustration } from "../../ui/Graphics";
 import { store } from "../../../lib/store";
 import { randomB64, deriveKey, encryptJSON, decryptJSON } from "../../../lib/crypto";
 import { SECRET_PROMPTS, SECRET_REPLIES } from "../../../lib/demo-data";
+import { useT, DICTS } from "../../../lib/i18n";
 
-var INTRO = { role: "assistant", content: "This is your Secret Space.\n\nEverything here is encrypted on your device with your passphrase. Not even Bloom can read it. Say what you really feel." };
+// Bloom's own messages are stored as i18n keys (k) so they read in her current language. Entries
+// saved before 2026-09-29 hold the English text: map it back to its key.
+var INTRO = { role: "assistant", k: "secret.intro" };
+var EN_TO_KEY = {};
+["secret.intro"].concat(SECRET_REPLIES).forEach(function (k) { EN_TO_KEY[DICTS.en[k]] = k; });
+
+function bloomKey(m) {
+  if (m.role !== "assistant") return null;
+  return m.k || EN_TO_KEY[m.content] || null;
+}
 
 // Vault shape (stored as "secret_vault", safe to sync): { v: 1, salt, check: {iv, ct}, msgs: {iv, ct} }
 export default function Secret({ onBack }) {
+  var { t } = useT();
   var [vault, setVault] = useState(function () { return store.get("secret_vault", null); });
   var [key, setKey] = useState(null);
   var [pass, setPass] = useState("");
@@ -31,8 +42,8 @@ export default function Secret({ onBack }) {
 
   async function create(e) {
     e.preventDefault();
-    if (pass.length < 6) { setError("Use at least 6 characters."); return; }
-    if (pass !== pass2) { setError("Passphrases don't match."); return; }
+    if (pass.length < 6) { setError(t("secret.errShort")); return; }
+    if (pass !== pass2) { setError(t("secret.errMatch")); return; }
     setBusy(true);
     try {
       var salt = randomB64(16);
@@ -44,7 +55,7 @@ export default function Secret({ onBack }) {
       store.remove("secret");
       setVault(v); setKey(k); setMsgs(list); setPass(""); setPass2(""); setError("");
     } catch {
-      setError("This browser can't encrypt data. Please update it and try again.");
+      setError(t("secret.errCrypto"));
     }
     setBusy(false);
   }
@@ -58,7 +69,7 @@ export default function Secret({ onBack }) {
       setMsgs(await decryptJSON(k, vault.msgs));
       setKey(k); setPass(""); setError("");
     } catch {
-      setError("That passphrase didn't work.");
+      setError(t("secret.errWrong"));
     }
     setBusy(false);
   }
@@ -79,7 +90,7 @@ export default function Secret({ onBack }) {
     setTyping(true);
     var reply = SECRET_REPLIES[next.filter(function (m) { return m.role === "user"; }).length % SECRET_REPLIES.length];
     setTimeout(function () {
-      var withReply = next.concat({ role: "assistant", content: reply });
+      var withReply = next.concat({ role: "assistant", k: reply });
       setMsgs(withReply);
       persist(key, withReply);
       setTyping(false);
@@ -93,30 +104,30 @@ export default function Secret({ onBack }) {
       <BackBtn onBack={onBack} />
       <form onSubmit={vault ? unlock : create} className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-24">
         <Illustration name="journal" size={110} />
-        <h2 className="text-xl font-bold text-bloom-text mt-3 mb-2">Secret Space</h2>
+        <h2 className="text-xl font-bold text-bloom-text mt-3 mb-2">{t("sec.secret")}</h2>
         <p className="text-bloom-muted text-sm mb-6 leading-relaxed">
-          {vault ? "Enter your passphrase to unlock." : "Choose a passphrase. Your entries are encrypted with it on this device, so only you can read them."}
+          {vault ? t("secret.unlockHint") : t("secret.createHint")}
         </p>
-        <label htmlFor="sp-pass" className="sr-only">Passphrase</label>
-        <input id="sp-pass" type="password" value={pass} onChange={function (e) { setPass(e.target.value); }} placeholder="Passphrase" autoComplete={vault ? "current-password" : "new-password"} className={inputCls} />
+        <label htmlFor="sp-pass" className="sr-only">{t("secret.pass")}</label>
+        <input id="sp-pass" type="password" value={pass} onChange={function (e) { setPass(e.target.value); }} placeholder={t("secret.pass")} autoComplete={vault ? "current-password" : "new-password"} className={inputCls} />
         {!vault && (
           <>
-            <label htmlFor="sp-pass2" className="sr-only">Repeat passphrase</label>
-            <input id="sp-pass2" type="password" value={pass2} onChange={function (e) { setPass2(e.target.value); }} placeholder="Repeat passphrase" autoComplete="new-password" className={inputCls} />
+            <label htmlFor="sp-pass2" className="sr-only">{t("secret.pass2")}</label>
+            <input id="sp-pass2" type="password" value={pass2} onChange={function (e) { setPass2(e.target.value); }} placeholder={t("secret.pass2")} autoComplete="new-password" className={inputCls} />
           </>
         )}
         {error && <p className="text-red-500 text-xs mb-3" role="alert">{error}</p>}
         <button type="submit" disabled={busy} className="text-white font-semibold px-10 py-3 rounded-xl disabled:opacity-60" style={{ backgroundColor: "#8B7AC5" }}>
-          {busy ? "Working…" : vault ? "Unlock" : "Create my Secret Space"}
+          {busy ? t("secret.working") : vault ? t("secret.unlock") : t("secret.create")}
         </button>
-        <p className="text-bloom-dim text-xs mt-4 leading-relaxed">AES-256 encryption. If you forget your passphrase, nobody can recover your entries, including us.</p>
-        {vault && !forgot && <button type="button" onClick={function () { setForgot(true); }} className="text-bloom-dim text-xs mt-3 underline">Forgot passphrase?</button>}
+        <p className="text-bloom-dim text-xs mt-4 leading-relaxed">{t("secret.aes")}</p>
+        {vault && !forgot && <button type="button" onClick={function () { setForgot(true); }} className="text-bloom-dim text-xs mt-3 underline">{t("secret.forgot")}</button>}
         {vault && forgot && (
           <div className="mt-4 bg-white rounded-2xl p-4 border border-red-200">
-            <p className="text-bloom-text text-sm mb-3">Your entries can&apos;t be recovered without the passphrase. Erase Secret Space and start again?</p>
+            <p className="text-bloom-text text-sm mb-3">{t("secret.forgotBody")}</p>
             <div className="flex gap-2">
-              <button type="button" onClick={function () { setForgot(false); }} className="flex-1 py-2.5 rounded-xl bg-bloom-surface text-bloom-muted text-sm font-semibold">Cancel</button>
-              <button type="button" onClick={erase} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Erase</button>
+              <button type="button" onClick={function () { setForgot(false); }} className="flex-1 py-2.5 rounded-xl bg-bloom-surface text-bloom-muted text-sm font-semibold">{t("common.cancel")}</button>
+              <button type="button" onClick={erase} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">{t("secret.erase")}</button>
             </div>
           </div>
         )}
@@ -129,26 +140,27 @@ export default function Secret({ onBack }) {
       <div className="sticky top-0 z-30 bg-bloom-bg">
         <div className="flex items-center justify-between">
           <BackBtn onBack={onBack} />
-          <button onClick={function () { setKey(null); setMsgs([INTRO]); }} className="px-4 text-bloom-muted text-xs">Lock ▣</button>
+          <button onClick={function () { setKey(null); setMsgs([INTRO]); }} className="px-4 text-bloom-muted text-xs">{t("secret.lock")} ▣</button>
         </div>
         <div className="mx-4 mb-3 bg-purple-50 rounded-xl p-3 flex items-center gap-2 border border-purple-200">
           <span style={{ color: "#8B7AC5" }}>▣</span>
-          <p className="text-xs font-bold" style={{ color: "#8B7AC5" }}>Encrypted on your device · only you can read this</p>
+          <p className="text-xs font-bold" style={{ color: "#8B7AC5" }}>{t("secret.banner")}</p>
         </div>
+        <p className="mx-4 mb-2 -mt-1 text-bloom-dim text-[10px]">{t("secret.crisis")}</p>
       </div>
       <div className="flex-1 px-4 pb-36">
-        {msgs.map(function (m, i) { return <ChatBubble key={i} role={m.role} content={m.content} mark="▣" />; })}
+        {msgs.map(function (m, i) { var k = bloomKey(m); return <ChatBubble key={i} role={m.role} content={k ? t(k) : m.content} mark="▣" />; })}
         {msgs.length <= 1 && (
           <div className="flex flex-col items-start gap-2 mt-2">
             {SECRET_PROMPTS.map(function (p) {
-              return <button key={p} onClick={function () { send(p); }} className="text-xs text-bloom-muted bg-white border border-bloom-border rounded-full px-3 py-2 text-start">&ldquo;{p}&rdquo;</button>;
+              return <button key={p} onClick={function () { send(t(p)); }} className="text-xs text-bloom-muted bg-white border border-bloom-border rounded-full px-3 py-2 text-start">&ldquo;{t(p)}&rdquo;</button>;
             })}
           </div>
         )}
         {typing && <Typing mark="▣" />}
         <div ref={bottomRef} />
       </div>
-      <ChatInput value={input} onChange={setInput} onSend={function () { send(); }} disabled={typing} placeholder="Say what you really feel..." />
+      <ChatInput value={input} onChange={setInput} onSend={function () { send(); }} disabled={typing} placeholder={t("secret.ph")} />
     </div>
   );
 }

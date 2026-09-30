@@ -1,12 +1,18 @@
 "use client";
 import { useState } from "react";
-import { store } from "../../lib/store";
+import { store, consent } from "../../lib/store";
+import { askNora } from "../../lib/api";
 import { ChatBubble, Typing, ChatInput, useScrollToBottom } from "../ui/Chat";
 import { useT } from "../../lib/i18n";
+import { noraProfile } from "../../lib/nora";
+import { getMeds, getAppts } from "../../lib/schedule";
 import { BloomFlower, Blobs } from "../ui/Graphics";
 
+// The demo persona gets her cycle summary; a real user never sees Sarah's numbers (G15).
 function welcome(user, t) {
-  return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
+  if (user.id === "demo") return { role: "assistant", content: t("nora.welcome", { name: user.name || "Sarah", day: user.stimDay || 7, e2: (user.e2 || 1840).toLocaleString() }) };
+  var first = user.anonymous ? "" : (user.name || "").trim().split(" ")[0];
+  return { role: "assistant", content: first ? t("nora.welcomeUser", { name: first }) : t("nora.welcomeNoName") };
 }
 
 export default function NoraScreen({ user }) {
@@ -16,6 +22,7 @@ export default function NoraScreen({ user }) {
   var [input, setInput] = useState("");
   var [loading, setLoading] = useState(false);
   var [demo, setDemo] = useState(false);
+  var [aiOff, setAiOff] = useState(false);
   var bottomRef = useScrollToBottom([msgs, loading]);
 
   function update(next) {
@@ -31,18 +38,21 @@ export default function NoraScreen({ user }) {
     update(next);
     setLoading(true);
     try {
-      var res = await fetch("/api/nora", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user: { name: user.name, stimDay: user.stimDay, protocol: user.protocol, clinic: user.clinic, e2: user.e2 },
-          messages: next,
-          lang: lang,
-        }),
+      var res = await askNora({
+        // Only what Nora needs: first name (never in anonymous mode) and cycle context. In cloud mode
+        // the server reads her synced profile instead. See docs/sa6/architecture.md.
+        // Her schedule: medication names, doses and times and her next appointments (no notes).
+        user: noraProfile(user, { meds: getMeds(), appts: getAppts() }),
+        messages: next,
+        lang: lang,
+        // Her consent to AI processing (G11). Cloud accounts: the server checks her stored consent too.
+        ai: consent.aiAllowed(user),
       });
-      var data = await res.json();
-      setDemo(!!data.demo);
-      update(next.concat({ role: "assistant", content: data.text || t("nora.error") }));
+      // Her cloud session is no longer valid (the route's 401, not the demo gate's): ask her to sign in again.
+      var reply = res.status === 401 && res.data.error === "Not signed in" ? t("nora.signInAgain") : res.data.text || t("nora.error");
+      setDemo(!!res.data.demo);
+      setAiOff(!!res.data.aiOff);
+      update(next.concat({ role: "assistant", content: reply }));
     } catch {
       update(next.concat({ role: "assistant", content: t("nora.error") }));
     }
@@ -61,7 +71,7 @@ export default function NoraScreen({ user }) {
           <BloomFlower size={30} animate={false} />
         </div>
         <div className="flex-1">
-          <p className="text-bloom-text text-sm font-semibold">Nora</p>
+          <p className="text-bloom-text text-sm font-semibold flex items-center gap-1.5">Nora <span className="text-[9px] font-bold uppercase tracking-wider text-bloom-accent bg-purple-50 border border-purple-200 rounded px-1 py-px" title={t("nora.aiBadge.d")}>{t("nora.aiBadge")}</span></p>
           <p className="text-bloom-teal text-xs">{t("nora.status")}</p>
         </div>
         {msgs.length > 1 && <button onClick={clear} className="text-bloom-dim text-xs">{t("nora.newChat")}</button>}
@@ -92,7 +102,9 @@ export default function NoraScreen({ user }) {
         )}
 
         {loading && <Typing />}
-        {demo && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
+        {aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.aiOff")}</p>}
+        {demo && !aiOff && !loading && <p className="text-bloom-dim text-[10px] text-center mt-1">{t("nora.demo")}</p>}
+        {/* AI disclosure (App Store 5.1.2(i), 1.4.1): always visible under the chat. */}
         <p className="text-bloom-dim text-[10px] text-center mt-3">{t("nora.notDoctor")}</p>
         <div ref={bottomRef} />
       </div>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { store } from "../../lib/store";
 import { CATS, ARTICLES, PHASE_ARTICLES, NEXT_PHASE } from "../../lib/demo-data";
+import { localizeArticle } from "../../lib/articles-i18n";
 import { useT } from "../../lib/i18n";
 import { Illustration } from "../ui/Graphics";
 import ReviewedBadge, { BoardSheet } from "../ui/Reviewed";
@@ -29,6 +30,7 @@ export default function InsightsScreen({ user }) {
   var [read, setRead] = useState(function () { return store.get("read", []); });
   var [board, setBoard] = useState(false);
   var [query, setQuery] = useState("");
+  var articles = ARTICLES.map(function (a) { return localizeArticle(a, lang); });
   var [saved, setSaved] = useState(function () { return store.get("saved_articles", []); });
   var [showSaved, setShowSaved] = useState(false);
 
@@ -38,13 +40,13 @@ export default function InsightsScreen({ user }) {
     store.set("saved_articles", next);
   }
   function byIds(ids) {
-    return ids.map(function (id) { return ARTICLES.find(function (a) { return a.id === id; }); })
+    return ids.map(function (id) { return articles.find(function (a) { return a.id === id; }); })
       .filter(function (a) { return a && (cat === "all" || a.cat === cat); });
   }
   var userPhase = user.phase && PHASE_ARTICLES[user.phase] ? user.phase : "stimulation";
   var nextPhase = NEXT_PHASE[userPhase];
   var q = query.trim().toLowerCase();
-  var results = q ? ARTICLES.filter(function (a) { return (a.title + " " + a.body + " " + a.tag + " " + t("cat." + a.cat)).toLowerCase().indexOf(q) !== -1; }) : null;
+  var results = q ? articles.filter(function (a) { return (a.title + " " + a.body + " " + a.tag + " " + t("cat." + a.cat)).toLowerCase().indexOf(q) !== -1; }) : null;
 
   function Card(a, wide) {
     var isSaved = saved.includes(a.id);
@@ -81,9 +83,9 @@ export default function InsightsScreen({ user }) {
     );
   }
 
-  var filtered = cat === "all" ? ARTICLES : ARTICLES.filter(function (a) { return a.cat === cat; });
+  var filtered = cat === "all" ? articles : articles.filter(function (a) { return a.cat === cat; });
   var popular = filtered.filter(function (a) { return a.popular; });
-  var phase = (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 7 }) : t("phase." + user.phase);
+  var phase = (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 1 }) : t("phase." + user.phase);
 
   function gotIt() {
     if (!read.includes(selected.id)) {
@@ -113,14 +115,14 @@ export default function InsightsScreen({ user }) {
         </div>
       </div>
       <div className="px-4">
-        {lang !== "en" && <p className="text-bloom-muted text-xs bg-bloom-surface rounded-xl px-3 py-2 mb-4">{t("ins.enOnly")}</p>}
+        {lang !== "en" && !selected.translated && <p className="text-bloom-muted text-xs bg-bloom-surface rounded-xl px-3 py-2 mb-4">{t("ins.enOnly")}</p>}
         {selected.body.split("\n\n").map(function (p, i) {
           return <p key={i} className="text-bloom-muted text-base leading-relaxed mb-4">{p}</p>;
         })}
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-4">
           <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-2">{t("ins.sources")}</p>
           <ul className="list-disc ps-4">
-            {reviewFor(selected.cat).sources.map(function (s) { return <li key={s} className="text-bloom-muted text-xs mb-1">{s}</li>; })}
+            {reviewFor(selected.cat).sources.map(function (s) { return <li key={s} className="text-bloom-muted text-xs mb-1"><bdi>{s}</bdi></li>; })}
           </ul>
         </div>
         <p className="text-bloom-dim text-xs mb-6">{t("ins.general")}</p>

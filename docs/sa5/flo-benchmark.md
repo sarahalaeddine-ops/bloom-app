@@ -20,7 +20,7 @@ Owned by the **sa5** agent (`.claude/agents/sa5.md`). Last updated 2026-09-27 (p
 
 - **IVF-specific**: follicle map, E2 trends, stim meds, OHSS alert, 2WW. Flo has none of these.
 - **Nora AI** is available 24/7 and knows about the cycle.
-- **Mandatory free therapy session**: no competitor does this.
+- ~~**Mandatory free therapy session**~~: superseded 2026-09-29 (founder decision): Bloom lists a real certified coach (Coaching & support) with no free-session or booking claim; see `docs/sa6/app-store.md` 13.8.
 
 ## Shipped in this pass
 

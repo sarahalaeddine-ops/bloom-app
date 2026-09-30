@@ -1,0 +1,2 @@
+/* Face ID permission text (iOS shows it the first time Bloom asks). Keep in step with Info.plist. */
+"NSFaceIDUsageDescription" = "يستخدم Bloom بصمة الوجه لفتح يومياتكِ الخاصة وبيانات دورة أطفال الأنابيب. لا تغادر بيانات وجهكِ جهاز iPhone أبدًا.";
