@@ -59,3 +59,9 @@ jobs:
       - run: npm run app:sync
       - run: ./gradlew assembleDebug --no-daemon
         working-directory: android
+      # Installable test build for the founder's phone (Actions run → Artifacts → bloom-android-debug).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bloom-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
