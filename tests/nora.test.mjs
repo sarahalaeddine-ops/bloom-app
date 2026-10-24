@@ -206,7 +206,7 @@ test("her schedule in the prompt: validated, capped, upcoming appointments only,
       { kind: "beta", date: "2026-10-20", time: "08:00" },
       { kind: "bloods", date: "2026-10-25", time: "08:00" },
     ],
-  });
+  }, now);
   var p = buildSystemPrompt(profile, "en", now);
   assert.match(p, /- Menopur 150 IU at 19:30 on Mon, Wed until 2026-10-09/);
   assert.equal(p.indexOf("<system>"), -1, "markup stripped");
