@@ -2,16 +2,14 @@
 // store "bloom-waitlist" (Vercel dashboard → Storage), so nothing is lost and
 // re-joining the same email just overwrites its entry.
 // Talks to the Blob REST API directly to avoid adding the @vercel/blob package.
-var BLOB_API = "https://vercel.com/api/blob";
-var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
+import { isValidEmail } from "../../../lib/validate";
 
-function blobHeaders(token) {
-  return {
-    authorization: "Bearer " + token,
-    "x-api-version": "12",
-    "x-vercel-blob-store-id": token.split("_")[3] || "",
-  };
-}
+var BLOB_API = "https://vercel.com/api/blob";
+var MAX_BODY_CHARS = 2000;
+
+// Per-IP, per server instance (see lib/rate-limit.js).
+var signupLimit = createRateLimiter({ limit: 5, windowMs: 10 * 60 * 1000 });
 
 // Number of people on the waitlist, shown on the homepage. Cached for a minute at the edge.
 export async function GET() {
@@ -40,15 +38,21 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!signupLimit.check(clientIp(request)).ok) {
+    return Response.json({ error: "Too many attempts. Please try again in a few minutes." }, { status: 429 });
+  }
+
   var body;
   try {
-    body = await request.json();
+    var raw = await request.text();
+    if (raw.length > MAX_BODY_CHARS) throw new Error("too large");
+    body = JSON.parse(raw);
   } catch {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  var email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (!EMAIL_RE.test(email) || email.length > 254) {
+  var email = body && typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!isValidEmail(email)) {
     return Response.json({ error: "Please enter a valid email" }, { status: 400 });
   }
 

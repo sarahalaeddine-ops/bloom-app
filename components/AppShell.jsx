@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
-import { startScheduler, registerSW, getSettings } from "../lib/reminders";
+import { useState, useEffect, useRef } from "react";
+import { startScheduler, registerSW, getSettings, syncNative } from "../lib/reminders";
+import { onBackButton, onAppState, onNotificationTap } from "../lib/native";
 import HomeScreen from "./screens/HomeScreen";
 import CheckInScreen from "./screens/CheckInScreen";
 import NoraScreen from "./screens/NoraScreen";
@@ -34,6 +35,34 @@ export default function AppShell({ user, setUser }) {
     return startScheduler(function (text) {
       setToast(text);
       setTimeout(function () { setToast(""); }, 6000);
+    });
+  }, []);
+
+  // Native app: keep the phone's scheduled reminders in step with her settings and today's log.
+  useEffect(function () { syncNative(); }, [version]);
+
+  useEffect(function () {
+    var offState = onAppState(function (active) { if (active) syncNative(); });
+    var offTap = onNotificationTap(function (extra) {
+      setQuick(false);
+      setTab("more");
+      setMoreSection(extra && extra.kind === "appt" ? "appointments" : "medications");
+    });
+    return function () { offState(); offTap(); };
+  }, []);
+
+  // Android back button: close the quick log, then the open More screen, then go to Home; on Home
+  // Bloom goes to the background (lib/native.js).
+  var backState = { quick: quick, moreSection: moreSection, tab: tab };
+  var backRef = useRef(backState);
+  useEffect(function () { backRef.current = backState; });
+  useEffect(function () {
+    return onBackButton(function () {
+      var st = backRef.current;
+      if (st.quick) { setQuick(false); return true; }
+      if (st.moreSection) { setMoreSection(null); return true; }
+      if (st.tab !== "home") { setTab("home"); return true; }
+      return false;
     });
   }, []);
 

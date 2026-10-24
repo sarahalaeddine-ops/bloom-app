@@ -3,12 +3,14 @@ import { PLANS } from "../../lib/demo-data";
 import { useT } from "../../lib/i18n";
 import { Illustration } from "../ui/Graphics";
 import ScreenHero from "../ui/ScreenHero";
-import { follicleStats } from "../../lib/cycle";
+import { follicleStats, latestE2 } from "../../lib/cycle";
+import { IS_APP_BUILD } from "../../lib/config";
+import { isNative } from "../../lib/native";
 import Medications from "./more/Medications";
 import Appointments from "./more/Appointments";
 import Charts from "./more/Charts";
 import TwoWeekWait from "./more/TwoWeekWait";
-import Therapy from "./more/Therapy";
+import Coaching from "./more/Coaching";
 import Videos from "./more/Videos";
 import Community from "./more/Community";
 import FailedCycle from "./more/FailedCycle";
@@ -22,27 +24,29 @@ import Privacy from "./more/Privacy";
 import Reminders from "./more/Reminders";
 
 var SECTIONS = [
-  { id: "report", art: "report",       label: "My Cycle Report",      color: "#9B6DC5", desc: "Download and share with clinic",    Screen: Report },
-  { id: "medications", art: "pill",  label: "Medications",          color: "#9B6DC5", desc: "Injection tracker and log",         Screen: Medications },
-  { id: "appointments", art: "scan", label: "Appointments",         color: "#E07A8A", desc: "Scans, retrieval, transfer",        Screen: Appointments },
-  { id: "charts", art: "chart",       label: "Charts & Trends",      color: "#E07A8A", desc: "Hormone trends, follicle progress", Screen: Charts },
-  { id: "tww", art: "hourglass",          label: "Two Week Wait",        color: "#C49A3C", desc: "Countdown and daily science",       Screen: TwoWeekWait },
-  { id: "therapy", art: "therapy",      label: "Therapy & Coaching",   color: "#4ABFB0", desc: "Book IVF-specialist therapists",    Screen: Therapy },
-  { id: "videos", art: "leaf",       label: "Wellbeing Videos",     color: "#4ABFB0", desc: "Movement, breathwork, meditation",  Screen: Videos },
-  { id: "community", art: "community",    label: "Community",            color: "#9B6DC5", desc: "Anonymous rooms by IVF phase",      Screen: Community },
-  { id: "failed", art: "rainbow",       label: "After a Failed Cycle", color: "#5BADD4", desc: "Grief support and next steps",      Screen: FailedCycle },
-  { id: "partner", art: "couple",      label: "Partner Space",        color: "#FDBA74", desc: "Invite and connect your partner",   Screen: Partner },
-  { id: "pregnant", art: "baby",     label: "Pregnancy Journey",    color: "#E07A8A", desc: "Week-by-week pregnancy guide",      Screen: Pregnancy },
-  { id: "secret", art: "journal",       label: "Secret Space",         color: "#8B7AC5", desc: "Private journal, only you can see", Screen: Secret },
-  { id: "reminders", art: "bell",    label: "Reminders",           color: "#C49A3C", desc: "Dose and appointment alerts",       Screen: Reminders },
-  { id: "privacy", art: "shield",      label: "Privacy Centre",   color: "#4ABFB0", desc: "App lock, anonymous mode, your data", Screen: Privacy },
-  { id: "upgrade", art: "crown",      label: "Upgrade to Bloom+",    color: "#9B6DC5", desc: "Unlock all features",               Screen: Upgrade },
+  { id: "report",       art: "report",    color: "#9B6DC5", Screen: Report },
+  { id: "medications",  art: "pill",      color: "#9B6DC5", Screen: Medications },
+  { id: "appointments", art: "scan",      color: "#E07A8A", Screen: Appointments },
+  { id: "charts",       art: "chart",     color: "#E07A8A", Screen: Charts },
+  { id: "tww",          art: "hourglass", color: "#C49A3C", Screen: TwoWeekWait },
+  { id: "coaching",     art: "therapy",   color: "#4ABFB0", Screen: Coaching },
+  { id: "videos",       art: "leaf",      color: "#4ABFB0", Screen: Videos },
+  { id: "community",    art: "community", color: "#9B6DC5", Screen: Community },
+  { id: "failed",       art: "rainbow",   color: "#5BADD4", Screen: FailedCycle },
+  { id: "partner",      art: "couple",    color: "#FDBA74", Screen: Partner },
+  { id: "pregnant",     art: "baby",      color: "#E07A8A", Screen: Pregnancy },
+  { id: "secret",       art: "journal",   color: "#8B7AC5", Screen: Secret },
+  { id: "reminders",    art: "bell",      color: "#C49A3C", Screen: Reminders },
+  { id: "privacy",      art: "shield",    color: "#4ABFB0", Screen: Privacy },
+  // Hidden in the native app for v1 (App Store 3.1.1: paid features need in-app purchase).
+  { id: "upgrade",      webOnly: true, art: "crown", color: "#9B6DC5", Screen: Upgrade },
   { id: "profile",      hidden: true,                                                                                           Screen: Profile },
 ];
 
 export default function MoreScreen({ user, setUser, active, setActive }) {
   var { t } = useT();
-  var section = SECTIONS.find(function (s) { return s.id === active; });
+  var inApp = IS_APP_BUILD || isNative();
+  var section = SECTIONS.find(function (s) { return s.id === active && !(inApp && s.webOnly); });
 
   if (section) {
     var Screen = section.Screen;
@@ -50,13 +54,14 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
   }
 
   var stats = follicleStats();
+  var e2Last = latestE2(); // her own logged value; the persona's only for the demo
   var plan = user.plan ? PLANS.find(function (p) { return p.id === user.plan; }) : null;
   var STATS = [
-    { l: t("more.name"),      v: user.anonymous ? t("more.hidden") : user.name || "Sarah", c: "#9B6DC5" },
-    { l: t("more.phase"),     v: (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 7 }) : t("phase." + user.phase), c: "#1A1014" },
-    { l: t("more.protocol"),  v: user.protocol || "Antagonist", c: "#1A1014" },
-    { l: t("more.follicles"), v: t("more.follicleVal", { t: stats.total, m: stats.mature }), c: "#4ABFB0" },
-    { l: t("more.e2"),        v: (user.e2 || 1840).toLocaleString() + " pg/mL", c: "#E07A8A" },
+    { l: t("more.name"),      v: user.anonymous ? t("more.hidden") : user.name || "—", c: "#9B6DC5" },
+    { l: t("more.phase"),     v: (user.phase || "stimulation") === "stimulation" ? t("more.stimDay", { n: user.stimDay || 1 }) : t("phase." + user.phase), c: "#1A1014" },
+    { l: t("more.protocol"),  v: user.protocol || "—", c: "#1A1014" },
+    { l: t("more.follicles"), v: stats.none ? t("scan.none") : t("more.follicleVal", { t: stats.total, m: stats.mature }), c: "#4ABFB0" },
+    { l: t("more.e2"),        v: e2Last ? e2Last.value.toLocaleString() + " pg/mL" : t("scan.none"), c: "#E07A8A" },
   ];
 
   return (
@@ -68,17 +73,17 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
       <button onClick={function () { setActive("profile"); }}
         className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-purple-200 mb-4">
         <div className="w-12 h-12 rounded-full bg-bloom-accent flex items-center justify-center">
-          <span className="text-white text-xl font-bold">{(user.name || "S")[0].toUpperCase()}</span>
+          <span className="text-white text-xl font-bold">{(user.name || "✦")[0].toUpperCase()}</span>
         </div>
         <div className="flex-1 text-start">
-          <p className="text-bloom-text font-bold text-sm">{user.name || "Sarah"}</p>
+          <p className="text-bloom-text font-bold text-sm"><bdi>{user.name || ""}</bdi></p>
           <p className="text-bloom-muted text-xs">{user.email || ""}</p>
         </div>
         <span className="text-bloom-accent text-sm font-semibold">{t("more.edit")}</span>
       </button>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {SECTIONS.filter(function (s) { return !s.hidden; }).map(function (sec) {
+        {SECTIONS.filter(function (s) { return !s.hidden && !(inApp && s.webOnly); }).map(function (sec) {
           var label = sec.id === "upgrade" && plan ? t("more.plan", { p: plan.name }) : t("sec." + sec.id);
           return (
             <button key={sec.id} onClick={function () { setActive(sec.id); }}

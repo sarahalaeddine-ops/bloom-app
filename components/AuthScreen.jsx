@@ -3,6 +3,8 @@ import { useState } from "react";
 import { auth } from "../lib/store";
 import { BloomFlower, Blobs } from "./ui/Graphics";
 import { useT, LANGS } from "../lib/i18n";
+import { IS_APP_BUILD, siteUrl } from "../lib/config";
+import { isNative } from "../lib/native";
 
 export default function AuthScreen({ onLogin }) {
   var { t, lang, setLang } = useT();
@@ -59,7 +61,7 @@ export default function AuthScreen({ onLogin }) {
           {mode === "signup" && (
             <div className="mb-4">
               <label htmlFor="name" className="text-xs font-semibold text-bloom-muted uppercase tracking-wide mb-2 block">{t("auth.name")}</label>
-              <input id="name" value={name} onChange={function (e) { setName(e.target.value); }} placeholder="Sarah" autoComplete="given-name" className={inputCls} />
+              <input id="name" value={name} onChange={function (e) { setName(e.target.value); }} autoComplete="given-name" className={inputCls} />
             </div>
           )}
 
@@ -89,12 +91,22 @@ export default function AuthScreen({ onLogin }) {
           </button>
         </form>
 
-        <button onClick={function () { onLogin(auth.demo()); }}
-          className="w-full mt-4 py-3.5 rounded-2xl border-2 border-dashed border-bloom-accent/40 text-bloom-accent text-sm font-semibold bg-white/60">
-          {t("auth.demo")}
-        </button>
+        {/* No demo persona in the store app (App Store 2.2: demos belong in TestFlight). Reviewers
+            sign in with a reviewer account instead (docs/sa6/app-store.md). */}
+        {!(IS_APP_BUILD || isNative()) && (
+          <button onClick={function () { onLogin(auth.demo()); }}
+            className="w-full mt-4 py-3.5 rounded-2xl border-2 border-dashed border-bloom-accent/40 text-bloom-accent text-sm font-semibold bg-white/60">
+            {t("auth.demo")}
+          </button>
+        )}
 
         <p className="text-bloom-dim text-xs text-center mt-6">{t("auth.private")}</p>
+        <p className="text-bloom-dim text-xs text-center mt-2 leading-relaxed">{t("app.medical")}</p>
+        <p className="text-xs text-center mt-2">
+          <a href={siteUrl("/privacy")} target="_blank" rel="noopener noreferrer" className="text-bloom-accent font-semibold underline">{t("legal.privacy")}</a>
+          <span className="text-bloom-dim"> · </span>
+          <a href={siteUrl("/support")} target="_blank" rel="noopener noreferrer" className="text-bloom-accent font-semibold underline">{t("legal.support")}</a>
+        </p>
         <div className="flex justify-center gap-2 mt-4" role="group" aria-label={t("lang")}>
           {LANGS.map(function (l) {
             var on = lang === l.id;

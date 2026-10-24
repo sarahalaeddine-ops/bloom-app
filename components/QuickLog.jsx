@@ -4,14 +4,17 @@ import { Sheet, Label } from "./ui/Common";
 import { MoodFace } from "./ui/Graphics";
 import LogChips, { matchItems } from "./ui/LogChips";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { MEDS, MOODS, FEELINGS, SYMPTOM_GROUPS } from "../lib/demo-data";
+import { MOODS, FEELINGS, SYMPTOM_GROUPS } from "../lib/demo-data";
 import { useT } from "../lib/i18n";
-import { getTodayMedLog, logDose, saveCheckin, getCheckins } from "../lib/cycle";
+import { getTodayMedLog, logDose, doseEntry, saveCheckin, getCheckins } from "../lib/cycle";
+import { dosesOn, fmtClock } from "../lib/schedule";
 
-// Flo's "+" quick log, for IVF: tick a dose, or log mood, symptoms and weight in a few taps.
+// Flo's "+" quick log, for IVF: tick a dose, or log mood, feelings, symptoms and weight in a few taps,
+// for today or up to 6 days back (sa5). Doses are her own schedule (lib/schedule.js), today only.
 export default function QuickLog({ user, onClose, onSaved }) {
-  var { t } = useT();
+  var { t, locale } = useT();
   var [log, setLog] = useState(getTodayMedLog);
+  var [doses] = useState(function () { return dosesOn(new Date()); });
   var [mood, setMood] = useState(null);
   var [symptoms, setSymptoms] = useState([]);
   var [feelings, setFeelings] = useState([]);
@@ -19,11 +22,12 @@ export default function QuickLog({ user, onClose, onSaved }) {
   var [back, setBack] = useState(0); // days before today being logged (0 = today)
   var [weight, setWeight] = useState("");
   var [alert, setAlert] = useState(null);
-  var pending = MEDS.filter(function (m) { return !(log[m.id] && log[m.id].status === "taken"); });
+  // Her own doses due today (lib/schedule.js); nothing for an account that hasn't added any.
+  var pending = doses.filter(function (d) { var e = doseEntry(log, d.med.id, d.time); return !(e && e.status === "taken"); });
 
-  function take(m) {
-    setLog(logDose(m.id, { status: "taken", site: "", note: "" }));
-    onSaved(t("ql.doseLogged", { med: m.name }));
+  function take(d) {
+    setLog(logDose(d.med.id, d.time, { status: "taken", site: "", note: "" }));
+    onSaved(t("ql.doseLogged", { med: d.med.name }));
   }
 
   function toggler(set) {
@@ -33,7 +37,9 @@ export default function QuickLog({ user, onClose, onSaved }) {
   var when = new Date();
   when.setDate(when.getDate() - back);
   if (back) when.setHours(12, 0, 0, 0);
-  var stimDay = Math.max(1, (user.stimDay || 7) - back);
+  // Her stim day only if she is in stimulation and told Bloom her day (no persona default).
+  var isStim = (user.phase || "stimulation") === "stimulation" && !!user.stimDay;
+  var stimDay = isStim ? Math.max(1, user.stimDay - back) : null;
   var dayLabel = back === 0 ? t("ql.today") : back === 1 ? t("ql.yesterday") : t("ql.daysAgo", { n: back });
   var feelingHits = matchItems(FEELINGS, "feel.", query, t);
   var groupHits = SYMPTOM_GROUPS.map(function (g) { return { id: g.id, items: matchItems(g.items, "sym.", query, t) }; });
@@ -71,7 +77,7 @@ export default function QuickLog({ user, onClose, onSaved }) {
         </button>
         <div className="text-center">
           <h2 className="text-xl font-bold text-bloom-text">{dayLabel}</h2>
-          <p className="text-bloom-muted text-xs">{t("ql.stimDay", { n: stimDay })}</p>
+          <p className="text-bloom-muted text-xs">{stimDay ? t("ql.stimDay", { n: stimDay }) : t("ql.sub")}</p>
         </div>
         <button onClick={function () { setBack(Math.max(0, back - 1)); }} disabled={back === 0} aria-label={t("ql.nextDay")}
           className="w-10 h-10 rounded-full flex items-center justify-center text-bloom-text disabled:opacity-30">
@@ -86,16 +92,19 @@ export default function QuickLog({ user, onClose, onSaved }) {
       </div>
 
       {!query && back === 0 && <Label className="mb-2">{t("ql.doses")}</Label>}
-      {query || back > 0 ? null : pending.length === 0 ? (
+      {query || back > 0 ? null : doses.length === 0 ? (
+        <p className="text-bloom-muted text-sm mb-5">{t("ql.noMeds")}</p>
+      ) : pending.length === 0 ? (
         <p className="text-bloom-teal text-sm font-semibold mb-5">{t("ql.allDone")}</p>
       ) : (
         <div className="flex flex-wrap gap-2 mb-5">
-          {pending.map(function (m) {
+          {pending.map(function (d) {
+            var m = d.med;
             return (
-              <button key={m.id} onClick={function () { take(m); }} className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold"
+              <button key={d.key} onClick={function () { take(d); }} className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold min-h-[40px]"
                 style={{ borderColor: m.color + "55", color: m.color, backgroundColor: m.color + "0D" }}>
-                <span className="w-4 h-4 rounded-full border-2" style={{ borderColor: m.color }} />
-                <bdi dir="ltr">{m.name} · {m.time}</bdi>
+                <span className="w-4 h-4 rounded-full border-2 flex-shrink-0" style={{ borderColor: m.color }} />
+                <bdi>{m.name}</bdi> · <bdi>{fmtClock(d.time, locale)}</bdi>
               </button>
             );
           })}

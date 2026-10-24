@@ -1,40 +1,59 @@
 "use client";
-import ScreenHero from "../../ui/ScreenHero";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BackBtn, Label } from "../../ui/Common";
-import { getSettings, saveSettings, permission, requestPermission, notify, upcoming, fmtTime, doseCalendar, LEADS } from "../../../lib/reminders";
+import ScreenHero from "../../ui/ScreenHero";
+import { getSettings, saveSettings, permission, currentPermission, requestPermission, notify, upcoming, fmtTime, doseCalendar, syncNative, LEADS } from "../../../lib/reminders";
+import { isNative } from "../../../lib/native";
+import { useT } from "../../../lib/i18n";
+import { getMeds } from "../../../lib/schedule";
+import { apptLabel } from "../../ScheduleForms";
 
 function Toggle({ on, onChange, label }) {
   return (
     <button role="switch" aria-checked={on} aria-label={label} onClick={function () { onChange(!on); }}
       className="w-12 h-7 rounded-full relative transition-colors flex-shrink-0" style={{ backgroundColor: on ? "#4ABFB0" : "#E8E0DB" }}>
-      <span className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: on ? 24 : 4 }} />
+      <span className="absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ insetInlineStart: on ? 24 : 4 }} />
     </button>
   );
 }
 
-export default function Reminders({ onBack }) {
+export default function Reminders({ onBack, openSection }) {
+  var { t } = useT();
+  var hasMeds = getMeds().length > 0;
+  var native = isNative();
   var [s, setS] = useState(getSettings);
   var [perm, setPerm] = useState(permission);
   var [msg, setMsg] = useState("");
   var next = upcoming(s, new Date(), 36).slice(0, 5);
 
-  function flash(t) { setMsg(t); setTimeout(function () { setMsg(""); }, 3000); }
-  function update(patch) { setS(saveSettings({ ...s, ...patch })); }
+  // The native permission can only be read asynchronously.
+  useEffect(function () {
+    if (!native) return;
+    var live = true;
+    currentPermission().then(function (p) { if (live) setPerm(p); });
+    return function () { live = false; };
+  }, [native]);
 
+  function flash(text) { setMsg(text); setTimeout(function () { setMsg(""); }, 3000); }
+  function update(patch) {
+    setS(saveSettings({ ...s, ...patch }));
+    syncNative(); // native app: re-plan the phone's scheduled reminders
+  }
+
+  // Permission is asked here, when she turns reminders on, never at launch.
   async function enable(on) {
     if (!on) { update({ enabled: false }); return; }
     var p = await requestPermission();
     setPerm(p);
     update({ enabled: true });
-    if (p === "granted") flash("Reminders are on ✓");
-    else if (p === "denied") flash("Notifications are blocked, so reminders will show inside Bloom instead.");
-    else if (p === "unsupported") flash("This browser can't show notifications. Reminders will show inside Bloom.");
+    if (p === "granted") flash(t("rem.on"));
+    else if (p === "denied") flash(native ? t("rem.nativeBlocked") : t("rem.blockedFlash"));
+    else if (p === "unsupported") flash(t("rem.unsupported"));
   }
 
   async function test() {
-    var ok = await notify("Bloom test reminder 💜", "This is how your dose reminders will look.", "bloom-test");
-    flash(ok ? "Test reminder sent ✓" : "Couldn't show a notification here. Turn notifications on first.");
+    var ok = await notify(t("rem.testTitle"), t("rem.testBody"), "bloom-test");
+    flash(ok ? t("rem.testSent") : t("rem.testFailed"));
   }
 
   function addToCalendar() {
@@ -44,38 +63,38 @@ export default function Reminders({ onBack }) {
     a.download = "bloom-dose-reminders.ics";
     a.click();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    flash("Calendar file downloaded. Open it to add your dose alarms.");
+    flash(t("rem.calDone"));
   }
 
   return (
     <div className="min-h-screen bg-bloom-bg pb-6">
       <BackBtn onBack={onBack} />
       <div className="px-4">
-        <ScreenHero art="bell" title="Reminders" sub="Never miss a dose, a scan or a call from your clinic." tint="gold" />
+        <ScreenHero art="bell" title={t("sec.reminders")} sub={t("rem.sub")} tint="gold" />
 
         {msg && <p className="text-bloom-teal text-sm text-center font-semibold mb-3" role="status">{msg}</p>}
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
           <div className="flex items-center gap-3 py-1">
             <div className="flex-1">
-              <p className="text-bloom-text text-sm font-semibold">Reminders</p>
+              <p className="text-bloom-text text-sm font-semibold">{t("sec.reminders")}</p>
               <p className="text-bloom-muted text-xs">
-                {perm === "granted" ? "Notifications allowed on this device." : perm === "denied" ? "Notifications blocked in browser settings. You'll get in-app reminders." : "We'll ask your browser for permission."}
+                {perm === "granted" ? (native ? t("rem.nativeAllowed") : t("rem.allowed")) : perm === "denied" ? (native ? t("rem.nativeBlocked") : t("rem.blocked")) : (native ? t("rem.nativeAsk") : t("rem.ask"))}
               </p>
             </div>
-            <Toggle on={s.enabled} onChange={enable} label="Reminders" />
+            <Toggle on={s.enabled} onChange={enable} label={t("sec.reminders")} />
           </div>
           <div className={s.enabled ? "" : "opacity-40 pointer-events-none"}>
             <div className="flex items-center gap-3 py-3 border-t border-bloom-border mt-2">
-              <p className="flex-1 text-bloom-text text-sm">Medication doses</p>
-              <Toggle on={s.meds} onChange={function (v) { update({ meds: v }); }} label="Medication reminders" />
+              <p className="flex-1 text-bloom-text text-sm">{t("rem.meds")}</p>
+              <Toggle on={s.meds} onChange={function (v) { update({ meds: v }); }} label={t("rem.meds")} />
             </div>
             <div className="flex items-center gap-3 py-3 border-t border-bloom-border">
-              <p className="flex-1 text-bloom-text text-sm">Appointments <span className="text-bloom-dim text-xs">(1 hour before)</span></p>
-              <Toggle on={s.appts} onChange={function (v) { update({ appts: v }); }} label="Appointment reminders" />
+              <p className="flex-1 text-bloom-text text-sm">{t("rem.appts")} <span className="text-bloom-dim text-xs">{t("rem.apptsLead")}</span></p>
+              <Toggle on={s.appts} onChange={function (v) { update({ appts: v }); }} label={t("rem.appts")} />
             </div>
             <div className="py-3 border-t border-bloom-border">
-              <p className="text-bloom-text text-sm mb-2">Remind me before each dose</p>
+              <p className="text-bloom-text text-sm mb-2">{t("rem.lead")}</p>
               <div className="flex gap-2">
                 {LEADS.map(function (l) {
                   var on = s.lead === l;
@@ -83,42 +102,52 @@ export default function Reminders({ onBack }) {
                     <button key={l} onClick={function () { update({ lead: l }); }} aria-pressed={on}
                       className="flex-1 py-2 rounded-xl border-2 text-xs font-semibold"
                       style={{ borderColor: on ? "#9B6DC5" : "#E8E0DB", color: on ? "#9B6DC5" : "#7A6880", backgroundColor: on ? "#9B6DC50D" : "white" }}>
-                      {l === 0 ? "On time" : l + " min"}
+                      {l === 0 ? t("rem.onTime") : t("rem.min", { n: l })}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <button onClick={test} className="w-full mt-1 py-3 rounded-xl bg-bloom-surface text-bloom-text font-semibold text-sm">Send a test reminder</button>
+            <button onClick={test} className="w-full mt-1 py-3 rounded-xl bg-bloom-surface text-bloom-text font-semibold text-sm">{t("rem.test")}</button>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
-          <Label className="mb-3">Coming up</Label>
-          {next.length === 0 && <p className="text-bloom-muted text-sm">Nothing in the next 36 hours.</p>}
+          <Label className="mb-3">{t("rem.coming")}</Label>
+          {next.length === 0 && <p className="text-bloom-muted text-sm">{t("rem.nothing")}</p>}
+          {!hasMeds && openSection && (
+            <button onClick={function () { openSection("medications"); }} className="mt-2 text-bloom-accent text-xs font-semibold py-2">{t("rem.addMeds")}</button>
+          )}
           {next.map(function (r) {
             return (
               <div key={r.id} className="flex items-center gap-3 py-2 border-t border-bloom-border first:border-0">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-bloom-text text-sm font-semibold truncate">{r.kind === "med" ? r.title : r.title.replace(" in 1 hour", "")}</p>
-                  <p className="text-bloom-dim text-xs">{r.kind === "med" ? "Due " + fmtTime(r.due) : r.body}</p>
+                  <p className="text-bloom-text text-sm font-semibold truncate"><bdi>{r.kind === "med" ? r.title : apptLabel(r.appt, t)}</bdi></p>
+                  <p className="text-bloom-dim text-xs"><bdi>{r.kind === "med" ? t("rem.due", { time: fmtTime(r.due) }) : r.body}</bdi></p>
                 </div>
                 <span className="text-bloom-muted text-xs whitespace-nowrap">
-                  {r.at.toDateString() === new Date().toDateString() ? "" : "Tmrw "}{fmtTime(r.at)}
+                  {r.at.toDateString() === new Date().toDateString() ? "" : t("rem.tmrw") + " "}<bdi>{fmtTime(r.at)}</bdi>
                 </span>
               </div>
             );
           })}
         </div>
 
-        <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200 mb-3">
-          <p className="text-bloom-text text-sm font-semibold mb-1">Reminders even when Bloom is closed</p>
-          <p className="text-bloom-muted text-xs leading-relaxed mb-3">Add every dose to your phone&apos;s calendar with an alarm. It works on any phone, even offline.</p>
-          <button onClick={addToCalendar} className="w-full py-3 rounded-xl bg-bloom-accent text-white font-semibold text-sm">Add dose alarms to my calendar</button>
-        </div>
+        {native ? (
+          <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200 mb-3">
+            <p className="text-bloom-text text-sm font-semibold mb-1">{t("rem.closedTitle")}</p>
+            <p className="text-bloom-muted text-xs leading-relaxed">{t("rem.nativeClosed")}</p>
+          </div>
+        ) : (
+          <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200 mb-3">
+            <p className="text-bloom-text text-sm font-semibold mb-1">{t("rem.closedTitle")}</p>
+            <p className="text-bloom-muted text-xs leading-relaxed mb-3">{t("rem.calBody")}</p>
+            <button onClick={addToCalendar} disabled={!hasMeds} className="w-full py-3 rounded-xl bg-bloom-accent text-white font-semibold text-sm disabled:opacity-40">{t("rem.calBtn")}</button>
+          </div>
+        )}
 
-        <p className="text-bloom-dim text-xs leading-relaxed">On iPhone, notifications need iOS 16.4+ and Bloom added to your Home Screen (Share → Add to Home Screen). Always follow your clinic&apos;s dosing instructions.</p>
+        <p className="text-bloom-dim text-xs leading-relaxed">{native ? "" : t("rem.iosNote") + " "}{t("rem.follow")}</p>
       </div>
     </div>
   );

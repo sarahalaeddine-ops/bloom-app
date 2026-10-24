@@ -719,7 +719,7 @@ export function WellbeingScene({ cat, className = "", animate = true }) {
   );
 }
 
-// ── Friendly person avatar (therapists, community), varied by seed ───────
+// ── Friendly person avatar (community), varied by seed ───────
 var AV_SKIN = ["#E8B996", "#C68B64", "#8D5B3E", "#F1C9A5", "#B07A56"];
 var AV_HAIR = ["#3B2A33", "#6B3E26", "#1E1A1D", "#A0522D", "#2E2429"];
 var AV_BG = [C.accent, C.rose, C.teal, C.gold, "#8B7AC5"];
@@ -756,7 +756,8 @@ export function FlowerAvatar({ name, size = 36 }) {
 }
 
 // ── Baby-size fruits for the Pregnancy Journey (drawn, so every phone shows them) ──
-export function FruitSize({ size, px = 120 }) {
+// size: fruit id ("poppy seed"…); label: the translated name for screen readers.
+export function FruitSize({ size, label, px = 120 }) {
   var k = (size || "").replace(/^an? /, "");
   var f;
   switch (k) {
@@ -775,7 +776,7 @@ export function FruitSize({ size, px = 120 }) {
     default: f = <circle cx="60" cy="60" r="10" fill={C.rose} />;
   }
   return (
-    <svg width={px} height={px} viewBox="0 0 120 120" role="img" aria-label={size}>
+    <svg width={px} height={px} viewBox="0 0 120 120" role="img" aria-label={label || size}>
       <circle cx="60" cy="60" r="58" fill="#fff" />
       <circle cx="60" cy="60" r="58" fill={C.rose} opacity="0.06" />
       {f}

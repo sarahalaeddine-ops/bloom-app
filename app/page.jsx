@@ -18,7 +18,7 @@ var FEATURES = [
   { mark: "◎", color: "#9B6DC5", title: "Your cycle, day by day", body: "Stimulation days, follicle sizes and hormone levels in one calm place, with charts that show how things are moving." },
   { mark: "◔", color: "#E07A8A", title: "Injections and appointments", body: "Reminders for every dose and every scan, retrieval and transfer, so nothing slips through on the hardest days." },
   { mark: "✦", color: "#C49A3C", title: "Nora, day and night", body: "An AI companion who knows where you are in your cycle and answers the 2 AM questions without judgement." },
-  { mark: "◇", color: "#4ABFB0", title: "Support for your mind", body: "IVF-specialist therapists, breathwork and movement videos, and a private journal only you can read." },
+  { mark: "◇", color: "#4ABFB0", title: "Support for your mind", body: "A certified coach for the emotional side, breathwork and movement videos, and a private journal only you can read." },
   { mark: "◑", color: "#FDBA74", title: "Room for your partner", body: "Invite your partner in so they can follow along, understand each step and know how to show up for you." },
   { mark: "◈", color: "#5BADD4", title: "Whatever the outcome", body: "From the two-week wait to a positive test, or gentle support and next steps after a cycle that did not work." },
 ];

@@ -29,7 +29,7 @@ export default function CheckInScreen({ user }) {
   function save() {
     if (mood === null) { setError(t("ci.pickMood")); return; }
     var w = weight ? parseFloat(weight) : null;
-    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || 7, mood: mood, anxiety: anxiety, hope: hope, feelings: feelings, symptoms: symptoms, weight: w, note: note.trim() };
+    var entry = { date: new Date().toISOString(), stimDay: user.stimDay || null, mood: mood, anxiety: anxiety, hope: hope, feelings: feelings, symptoms: symptoms, weight: w, note: note.trim() };
     var gain = w && lastWeight ? +(w - lastWeight).toFixed(1) : 0;
     setHistory(saveCheckin(entry));
     setSaved({ gain: gain });
@@ -117,9 +117,9 @@ export default function CheckInScreen({ user }) {
 
       <div className="rounded-2xl p-4 border border-amber-200 mb-3" style={{ backgroundColor: "#FFFDF0" }}>
         <p className="text-xs uppercase tracking-wider font-semibold mb-2" style={{ color: "#C49A3C" }}>{t("ci.ohss")}</p>
-        <p className="text-bloom-muted text-xs mb-3">{t("ci.ohssNote", { n: follicles })}</p>
+        <p className="text-bloom-muted text-xs mb-3">{follicles ? t("ci.ohssNote", { n: follicles }) : t("ci.ohssNoteGeneric")}</p>
         <div className="flex items-center gap-2">
-          <input value={weight} onChange={function (e) { setWeight(e.target.value); }} placeholder={lastWeight ? t("ci.last", { w: lastWeight }) : "62.4"} type="number" inputMode="decimal" step="0.1" aria-label="Weight in kg"
+          <input value={weight} onChange={function (e) { setWeight(e.target.value); }} placeholder={lastWeight ? t("ci.last", { w: lastWeight }) : "62.4"} type="number" inputMode="decimal" step="0.1" aria-label={t("ci.weightLabel")}
             className="flex-1 bg-white border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none focus:border-bloom-gold" />
           <span className="text-bloom-muted text-sm">kg</span>
         </div>

@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
-import { auth, store } from "../lib/store";
-import { PHASES, THERAPISTS } from "../lib/demo-data";
+import { auth, consent } from "../lib/store";
+import { cloudEnabled } from "../lib/supabase";
+import ConsentPanel from "./ConsentPanel";
+import { PHASES, COACHES } from "../lib/demo-data";
+import CoachAvatar from "./ui/CoachAvatar";
 import { BloomFlower, Illustration } from "./ui/Graphics";
 import { useT, LANGS } from "../lib/i18n";
 
@@ -14,17 +17,12 @@ export default function OnboardingScreen({ user, onComplete }) {
   const [protocol, setProtocol] = useState("");
   const [phase, setPhase] = useState("");
   const [stimDay, setStimDay] = useState(7);
-  const [booked, setBooked] = useState(false);
+  // Explicit consent comes before we ask for any cycle details (G11). Both choices start unticked.
+  const [choice, setChoice] = useState({ cloud: false, ai: false });
 
-  const steps = ["welcome", "clinic", "protocol", "phase", "day", "therapy", "done"];
+  const steps = ["welcome", "consent", "clinic", "protocol", "phase", "day", "support", "done"];
   const current = steps[step];
   const progress = (step / (steps.length - 1)) * 100;
-
-  function book() {
-    var th = THERAPISTS[0];
-    store.push("bookings", { id: Date.now(), therapist: th.name, when: th.next, free: true });
-    setBooked(true);
-  }
 
   function finish() {
     const updated = auth.updateUser({ clinic: clinic || "My Clinic", protocol: protocol || "Antagonist", phase: phase || "stimulation", stimDay, onboarded: true });
@@ -59,6 +57,7 @@ export default function OnboardingScreen({ user, onComplete }) {
                 </div>
               ))}
             </div>
+            <p className="text-bloom-muted text-xs leading-relaxed mt-4 px-2" role="note">{t("app.medical")}</p>
             <div className="flex justify-center gap-2 mt-5" role="group" aria-label={t("lang")}>
               {LANGS.map(function (l) {
                 var on = lang === l.id;
@@ -70,6 +69,14 @@ export default function OnboardingScreen({ user, onComplete }) {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {current === "consent" && (
+          <div className="pt-4">
+            <div className="mb-4"><Illustration name="shield" size={88} /></div>
+            <h1 className="text-2xl font-bold text-bloom-text mb-2">{t("cons.title")}</h1>
+            <ConsentPanel cloud={cloudEnabled() && !!user.cloud} value={choice} onChange={setChoice} />
           </div>
         )}
 
@@ -149,22 +156,29 @@ export default function OnboardingScreen({ user, onComplete }) {
           </div>
         )}
 
-        {current === "therapy" && (
+        {current === "support" && (
           <div className="pt-4">
             <div className="mb-4"><Illustration name="therapy" size={88} /></div>
-            <h1 className="text-2xl font-bold text-bloom-text mb-2">{t("onb.therapy")}</h1>
-            <p className="text-bloom-muted text-sm leading-relaxed mb-6">{t("onb.therapyBody")}</p>
-            <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
-              <p className="font-semibold text-bloom-accent text-base mb-1">Dr. Sarah Mitchell</p>
-              <p className="text-bloom-muted text-sm mb-1">{t("onb.therapyRole")}</p>
-              <p className="text-bloom-muted text-sm mb-4">{t("onb.therapyNext")}</p>
-              <button onClick={book} disabled={booked}
-                className="w-full text-white font-semibold py-3 rounded-xl transition-colors"
-                style={{ backgroundColor: booked ? "#4ABFB0" : "#9B6DC5" }}>
-                {booked ? t("onb.booked") : t("onb.book")}
-              </button>
-              <p className="text-bloom-dim text-xs text-center mt-3">{t("onb.later")}</p>
-            </div>
+            <h1 className="text-2xl font-bold text-bloom-text mb-2">{t("onb.support")}</h1>
+            <p className="text-bloom-muted text-sm leading-relaxed mb-6">{t("onb.supportBody")}</p>
+            <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-2">{t("onb.meetCoach")}</p>
+            {COACHES.slice(0, 1).map((c) => (
+              <div key={c.id} className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <CoachAvatar coach={c} size={56} />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-bloom-accent text-base"><bdi>{c.name}</bdi></p>
+                    <p className="text-bloom-muted text-sm">{t("coach." + c.key + ".title")}</p>
+                    <p className="text-bloom-muted text-xs">{t("coach." + c.key + ".city")}</p>
+                  </div>
+                </div>
+                <a href={c.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-white border border-bloom-accent text-bloom-accent font-semibold py-3 rounded-xl">
+                  {t("coach.website")}
+                </a>
+                <p className="text-bloom-dim text-xs text-center mt-3">{t("onb.supportLater")}</p>
+              </div>
+            ))}
+            <p className="text-bloom-dim text-[11px] leading-relaxed mt-3">{t("coach.notTreatment")}</p>
           </div>
         )}
 
@@ -174,7 +188,7 @@ export default function OnboardingScreen({ user, onComplete }) {
             <h1 className="text-2xl font-bold text-bloom-text mb-3">{t("onb.ready")}</h1>
             <p className="text-bloom-muted text-sm leading-relaxed mb-6">{t("onb.readyBody")}</p>
             <div className="w-full bg-white rounded-2xl p-5 border border-bloom-border text-start">
-              {[[t("onb.sumName"), user.name], [t("onb.sumClinic"), clinic || "My Clinic"], [t("onb.sumProtocol"), protocol === "Not sure yet" ? t("onb.notSure") : protocol || "Antagonist"], [t("onb.sumPhase"), t("phase." + (phase || "stimulation"))], [t("onb.sumDay"), t("common.day", { n: stimDay })], [t("onb.sumTherapy"), booked ? t("onb.sumBooked") : t("onb.sumLater")]].map(([label, value]) => (
+              {[[t("onb.sumName"), user.name], [t("onb.sumClinic"), clinic || "My Clinic"], [t("onb.sumProtocol"), protocol === "Not sure yet" ? t("onb.notSure") : protocol || "Antagonist"], [t("onb.sumPhase"), t("phase." + (phase || "stimulation"))], [t("onb.sumDay"), t("common.day", { n: stimDay })]].map(([label, value]) => (
                 <div key={label} className="flex justify-between py-3 border-b border-bloom-border last:border-0">
                   <span className="text-bloom-muted text-sm">{label}</span>
                   <span className="text-bloom-text text-sm font-semibold">{value}</span>
@@ -186,10 +200,10 @@ export default function OnboardingScreen({ user, onComplete }) {
       </div>
 
       <div className="px-6 pb-8 pt-4">
-        <button onClick={current === "done" ? finish : () => setStep(step + 1)}
+        <button onClick={current === "done" ? finish : current === "consent" ? () => { consent.set(choice); setStep(step + 1); } : () => setStep(step + 1)}
           disabled={!canNext}
           className="w-full bg-bloom-accent text-white font-semibold py-4 rounded-2xl disabled:opacity-40 transition-opacity text-base">
-          {current === "done" ? t("onb.open") : current === "welcome" ? t("onb.start") : t("onb.continue")}
+          {current === "done" ? t("onb.open") : current === "welcome" ? t("onb.start") : current === "consent" ? t("cons.save") : t("onb.continue")}
         </button>
       </div>
     </div>
