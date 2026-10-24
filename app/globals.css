@@ -132,3 +132,7 @@ html[dir="rtl"] .flip-rtl { display: inline-block; transform: scaleX(-1); }
 @keyframes breath-guide { 0% { transform: scale(0.55); } 50% { transform: scale(1); } 100% { transform: scale(0.55); } }
 .breath-guide { animation: breath-guide 8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .breathe, .heartbeat, .breath-guide { animation: none; } }
+
+/* Investor demo finger (components/AutoDemo.jsx) */
+@keyframes autoplay-ripple { from { transform: scale(0.3); opacity: 0.9; } to { transform: scale(1.4); opacity: 0; } }
+.autoplay-ripple { animation: autoplay-ripple 0.55s ease-out both; }
