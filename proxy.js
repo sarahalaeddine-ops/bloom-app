@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-// Password gate for the private app demo and the Nora API it uses.
+// Password gate for the private app demo and the APIs it uses (Nora, and the demo's voice-over).
 // The browser asks for the password once (any username works); after that a
 // cookie keeps the visitor in for 30 days. Without DEMO_PASSWORD set, both stay locked.
 //
-// The native app (docs/sa6/app-store.md) has no demo cookie. For the API only:
+// The native app (docs/sa6/app-store.md) has no demo cookie. For the Nora API only:
 // - requests carrying "Authorization: Bearer <token>" go through to the route, which verifies the
 //   Supabase session itself and answers 401 when it is not valid;
 // - CORS preflights (OPTIONS) go through so the route can answer them (they carry no data).
@@ -49,7 +49,8 @@ export async function proxy(request) {
   if (expected && sameToken(request.cookies.get(COOKIE)?.value, expected)) return NextResponse.next();
 
   if (isApi) {
-    if (request.method === "OPTIONS" || hasBearer(request)) return NextResponse.next();
+    var nora = request.nextUrl.pathname === "/api/nora";
+    if (nora && (request.method === "OPTIONS" || hasBearer(request))) return NextResponse.next();
     return Response.json({ error: "Not authorized" }, { status: 401 });
   }
 
@@ -67,5 +68,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/demo-7q4x", "/demo-7q4x/:path*", "/api/nora"],
+  matcher: ["/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/voice"],
 };
