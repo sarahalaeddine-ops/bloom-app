@@ -6,7 +6,7 @@ import { useT, LANGS } from "../lib/i18n";
 import { IS_APP_BUILD, siteUrl } from "../lib/config";
 import { isNative } from "../lib/native";
 
-export default function AuthScreen({ onLogin }) {
+export default function AuthScreen({ onLogin, onTour }) {
   var { t, lang, setLang } = useT();
   var [mode, setMode] = useState("signup");
   var [name, setName] = useState("");
@@ -97,6 +97,11 @@ export default function AuthScreen({ onLogin }) {
           <button onClick={function () { onLogin(auth.demo()); }}
             className="w-full mt-4 py-3.5 rounded-2xl border-2 border-dashed border-bloom-accent/40 text-bloom-accent text-sm font-semibold bg-white/60">
             {t("auth.demo")}
+          </button>
+        )}
+        {onTour && !isNative() && (
+          <button onClick={onTour} className="w-full mt-2 py-3.5 rounded-2xl text-white text-sm font-semibold" style={{ background: "linear-gradient(135deg,#1A1014,#4A2D5C)" }}>
+            {t("auth.tour")}
           </button>
         )}
 
