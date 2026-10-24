@@ -12,9 +12,7 @@ import QuickLog from "./QuickLog";
 import { Toast } from "./ui/Common";
 import { PetalBurst } from "./ui/Graphics";
 import { useT } from "../lib/i18n";
-import { auth } from "../lib/store";
-import { stateAt } from "../lib/tour";
-import InvestorTour from "./InvestorTour";
+import AutoDemo from "./AutoDemo";
 
 var TABS = [
   { id: "home",     label: "tab.home",     icon: House },
@@ -25,15 +23,15 @@ var TABS = [
 ];
 
 export default function AppShell({ user, setUser, tourOnStart }) {
-  var { t, lang, setLang } = useT();
+  var { t, setLang } = useT();
   var [tab, setTab] = useState("home");
   var [moreSection, setMoreSection] = useState(null);
   var [quick, setQuick] = useState(false);
   var [toast, setToast] = useState("");
   var [burst, setBurst] = useState(0);
   var [version, setVersion] = useState(0);
-  // Investor tour (lib/tour.js): the current step, or null when the tour is off.
-  var [tourIdx, setTourIdx] = useState(tourOnStart ? 0 : null);
+  // Investor demo (components/AutoDemo.jsx): the app plays Sarah's story by itself.
+  var [film, setFilm] = useState(!!tourOnStart);
 
   useEffect(function () {
     if (getSettings().enabled) registerSW();
@@ -87,43 +85,14 @@ export default function AppShell({ user, setUser, tourOnStart }) {
 
   function openMore(section) { go("more", section); }
 
-  // Moves the app to a tour step: its screen, phase, language and, for one step, the quick log.
-  function tourGo(i) {
-    var st = stateAt(i);
-    var u = user;
-    if (u.phase !== st.phase) { u = auth.updateUser({ phase: st.phase }); setUser(u); }
-    if (lang !== st.lang) setLang(st.lang);
-    setQuick(st.quick);
-    go(st.tab, st.section);
-    setTourIdx(i);
-  }
-
-  // Starts from a fresh demo persona in English, so every run tells the same story.
-  function startTour() {
-    setUser(auth.demo());
-    setLang("en");
-    setQuick(false);
-    go("home");
-    setTourIdx(0);
-  }
-
-  function endTour() {
-    setTourIdx(null);
-    setQuick(false);
-    if (user.phase !== "stimulation") setUser(auth.updateUser({ phase: "stimulation" }));
-    if (lang !== "en") setLang("en");
-    go("home");
-  }
-
   return (
     <div className="min-h-screen bg-bloom-bg flex flex-col">
-      {tourIdx !== null && <InvestorTour index={tourIdx} onGo={tourGo} onExit={endTour} />}
       <main className="flex-1 pb-20">
         {tab === "home"     && <HomeScreen key={version} user={user} openMore={openMore} goTab={go} />}
         {tab === "checkin"  && <CheckInScreen key={version} user={user} />}
         {tab === "nora"     && <NoraScreen user={user} />}
         {tab === "insights" && <InsightsScreen user={user} />}
-        {tab === "more"     && <MoreScreen user={user} setUser={setUser} active={moreSection} setActive={openMore} goTab={go} startTour={user.id === "demo" && tourIdx === null ? startTour : null} />}
+        {tab === "more"     && <MoreScreen user={user} setUser={setUser} active={moreSection} setActive={openMore} goTab={go} startTour={user.id === "demo" && !film ? function () { setFilm(true); } : null} />}
       </main>
       {tab !== "nora" && !moreSection && (
         <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 flex justify-end pointer-events-none z-40">
@@ -137,6 +106,7 @@ export default function AppShell({ user, setUser, tourOnStart }) {
       {quick && <QuickLog user={user} onClose={function () { setQuick(false); }} onSaved={celebrate} />}
       <Toast text={toast} />
       <PetalBurst key={burst} show={!!burst} />
+      {film && <AutoDemo app={{ go: go, setUser: setUser, setLang: setLang, setQuick: setQuick }} onExit={function () { setFilm(false); }} />}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-bloom-border flex z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {TABS.map(function (tb) {
           var on = tab === tb.id;

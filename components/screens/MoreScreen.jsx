@@ -75,8 +75,8 @@ export default function MoreScreen({ user, setUser, active, setActive, startTour
           className="w-full flex items-center gap-3 rounded-2xl p-4 mb-3 text-start text-white" style={{ background: "linear-gradient(135deg,#1A1014,#4A2D5C)" }}>
           <span className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-lg">▶</span>
           <span className="flex-1">
-            <span className="block text-sm font-bold">Investor tour</span>
-            <span className="block text-xs text-white/70">A guided story through every part of Bloom</span>
+            <span className="block text-sm font-bold">Investor demo</span>
+            <span className="block text-xs text-white/70">Watch Sarah&apos;s story play by itself</span>
           </span>
         </button>
       )}
