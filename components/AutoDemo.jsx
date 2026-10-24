@@ -11,15 +11,25 @@ import { SCENES, STORY } from "../lib/demo-film";
 // Investor-facing, so the controls are English and always left to right.
 
 // Each run starts from the same clean day for the demo persona: today's doses not yet taken, no
-// check-in today, the persona's own schedule, no partner, a fresh Nora chat and community room.
+// check-in today, the persona's own schedule, reminders on, no partner, no Secret Space, and a
+// fresh Nora chat and community rooms.
 function freshDemoDay() {
+  auth.demo(); // switches storage to the demo persona first
   var log = store.get("medlog", {});
   delete log[todayKey()];
   store.set("medlog", log);
   var today = new Date().toDateString();
   store.set("checkins", getCheckins().filter(function (c) { return new Date(c.date).toDateString() !== today; }));
-  ["my_meds", "my_appts", "partner", "pregWeek", "twwDay", "nora", "room_failed"].forEach(function (k) { store.remove(k); });
-  return auth.demo();
+  ["my_meds", "my_appts", "partner", "pregWeek", "twwDay", "nora", "secret_vault", "room_failed", "room_tww"].forEach(function (k) { store.remove(k); });
+  store.set("reminders", { ...store.get("reminders", {}), enabled: true, meds: true, appts: true, lead: 5 });
+  return auth.updateUser({ phase: "stimulation", anonymous: false });
+}
+
+// The sign-up scene starts on a wiped device, signed out (this demo device only holds demo data).
+async function signedOut(app) {
+  await store.resetDemo();
+  app.setLang("en");
+  app.setUser(null);
 }
 
 function Finger({ pos, taps }) {
@@ -51,8 +61,8 @@ export default function AutoDemo({ app, onExit }) {
     var a = appRef.current;
     a.setLang("en");
     a.setQuick(false);
-    a.setUser(freshDemoDay());
-    a.go("home");
+    if (SCENES[from].signup) await signedOut(a);
+    else { a.setUser(freshDemoDay()); a.go("home"); }
     setMode("playing");
     setPaused(false);
     setLine("");
@@ -73,7 +83,15 @@ export default function AutoDemo({ app, onExit }) {
         setScene(i);
         var s = SCENES[i];
         var u = auth.getUser();
-        if (u && u.phase !== s.phase) appRef.current.setUser(auth.updateUser({ phase: s.phase }));
+        // After the sign-up scene the story jumps to day 7, as the demo persona with her data.
+        if (!s.signup && (!u || u.id !== "demo")) {
+          appRef.current.setUser(freshDemoDay());
+          await sleep(900);
+          appRef.current.go("home");
+          await sleep(600);
+        } else if (u && u.phase !== s.phase) {
+          appRef.current.setUser(auth.updateUser({ phase: s.phase }));
+        }
         await p.play(s.steps);
       }
       setMode("done");
@@ -101,7 +119,8 @@ export default function AutoDemo({ app, onExit }) {
     a.setQuick(false);
     a.setLang("en");
     var u = auth.getUser();
-    if (u && (u.phase !== "stimulation" || u.anonymous)) a.setUser(auth.updateUser({ phase: "stimulation", anonymous: false }));
+    if (!u || u.id !== "demo") a.setUser(freshDemoDay());
+    else if (u.phase !== "stimulation" || u.anonymous) a.setUser(auth.updateUser({ phase: "stimulation", anonymous: false }));
     a.go("home");
     onExit();
   }

@@ -12,7 +12,6 @@ import QuickLog from "./QuickLog";
 import { Toast } from "./ui/Common";
 import { PetalBurst } from "./ui/Graphics";
 import { useT } from "../lib/i18n";
-import AutoDemo from "./AutoDemo";
 
 var TABS = [
   { id: "home",     label: "tab.home",     icon: House },
@@ -22,16 +21,14 @@ var TABS = [
   { id: "more",     label: "tab.more",     icon: Ellipsis },
 ];
 
-export default function AppShell({ user, setUser, tourOnStart }) {
-  var { t, setLang } = useT();
+export default function AppShell({ user, setUser, navRef, onStartFilm }) {
+  var { t } = useT();
   var [tab, setTab] = useState("home");
   var [moreSection, setMoreSection] = useState(null);
   var [quick, setQuick] = useState(false);
   var [toast, setToast] = useState("");
   var [burst, setBurst] = useState(0);
   var [version, setVersion] = useState(0);
-  // Investor demo (components/AutoDemo.jsx): the app plays Sarah's story by itself.
-  var [film, setFilm] = useState(!!tourOnStart);
 
   useEffect(function () {
     if (getSettings().enabled) registerSW();
@@ -85,6 +82,12 @@ export default function AppShell({ user, setUser, tourOnStart }) {
 
   function openMore(section) { go("more", section); }
 
+  // The investor demo (components/AutoDemo.jsx, run from BloomApp) moves between screens with these.
+  // go only uses state setters, so the first render's copy stays valid.
+  useEffect(function () {
+    if (navRef) navRef.current = { go: go, setQuick: setQuick };
+  }, [navRef]);
+
   return (
     <div className="min-h-screen bg-bloom-bg flex flex-col">
       <main className="flex-1 pb-20">
@@ -92,7 +95,7 @@ export default function AppShell({ user, setUser, tourOnStart }) {
         {tab === "checkin"  && <CheckInScreen key={version} user={user} />}
         {tab === "nora"     && <NoraScreen user={user} />}
         {tab === "insights" && <InsightsScreen user={user} />}
-        {tab === "more"     && <MoreScreen user={user} setUser={setUser} active={moreSection} setActive={openMore} goTab={go} startTour={user.id === "demo" && !film ? function () { setFilm(true); } : null} />}
+        {tab === "more"     && <MoreScreen user={user} setUser={setUser} active={moreSection} setActive={openMore} goTab={go} startTour={user.id === "demo" ? onStartFilm : null} />}
       </main>
       {tab !== "nora" && !moreSection && (
         <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 flex justify-end pointer-events-none z-40">
@@ -106,7 +109,6 @@ export default function AppShell({ user, setUser, tourOnStart }) {
       {quick && <QuickLog user={user} onClose={function () { setQuick(false); }} onSaved={celebrate} />}
       <Toast text={toast} />
       <PetalBurst key={burst} show={!!burst} />
-      {film && <AutoDemo app={{ go: go, setUser: setUser, setLang: setLang, setQuick: setQuick }} onExit={function () { setFilm(false); }} />}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-bloom-border flex z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {TABS.map(function (tb) {
           var on = tab === tb.id;
