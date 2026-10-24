@@ -7,37 +7,57 @@
 // Provider (Vercel environment variables, server-side only):
 //   ELEVENLABS_API_KEY (+ optional ELEVENLABS_VOICE_ID), preferred, or
 //   OPENAI_API_KEY (+ optional OPENAI_TTS_VOICE).
-import { filmLines } from "../../../lib/voice-lines";
+//
+// Tuned to sound like a warm human narrator rather than a reader: an expressive, reassuring voice,
+// slightly slower than default, and each line is voiced knowing the lines around it so the
+// intonation flows from one to the next.
+import { filmLines, filmSequence } from "../../../lib/voice-lines";
 
 var BLOB_API = "https://vercel.com/api/blob";
-var ELEVEN_VOICE = "21m00Tcm4TlvDq8ikWAM"; // "Rachel": calm, warm, clear
-var OPENAI_VOICE = "nova";
-var STYLE = "Warm, calm and gentle, like a caring narrator for a women's health app. Unhurried, never salesy.";
+// Warm, reassuring female voices from ElevenLabs' default library, best first; if one isn't
+// available on her account, the next is tried.
+var ELEVEN_VOICES = ["EXAVITQu4vr4xnSDxMaL", "XrExE9yKIg1WjnnlVkGX", "21m00Tcm4TlvDq8ikWAM"]; // Sarah, Matilda, Rachel
+var OPENAI_VOICE = "coral";
+var STYLE = "You are the narrator of a short film about a woman going through IVF, shown to investors. " +
+  "Speak like a warm, caring friend telling her story: gentle, natural and human, with soft smiles in your voice. " +
+  "Unhurried pace with natural pauses at commas and full stops. Never robotic, never salesy, never over-dramatic.";
+// Bump when the voice or its settings change, so stored recordings are made again.
+var TUNING = "v2";
 
 function provider() {
   if (process.env.ELEVENLABS_API_KEY) {
-    var voiceId = process.env.ELEVENLABS_VOICE_ID || ELEVEN_VOICE;
-    return { id: "elevenlabs", cacheId: "el-" + voiceId, make: function (text) { return eleven(text, voiceId); } };
+    var voices = process.env.ELEVENLABS_VOICE_ID ? [process.env.ELEVENLABS_VOICE_ID] : ELEVEN_VOICES;
+    return { id: "elevenlabs", cacheId: "el-" + TUNING + "-" + voices[0], make: function (text, around) { return eleven(text, voices, around); } };
   }
   if (process.env.OPENAI_API_KEY) {
     var name = process.env.OPENAI_TTS_VOICE || OPENAI_VOICE;
-    return { id: "openai", cacheId: "oa-" + name, make: function (text) { return openai(text, name); } };
+    return { id: "openai", cacheId: "oa-" + TUNING + "-" + name, make: function (text) { return openai(text, name); } };
   }
   return null;
 }
 
-async function eleven(text, voiceId) {
-  var res = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + encodeURIComponent(voiceId) + "?output_format=mp3_44100_128", {
-    method: "POST",
-    headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({
-      text: text,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.15, use_speaker_boost: true },
-    }),
-  });
-  if (!res.ok) throw new Error("ElevenLabs " + res.status + ": " + (await res.text()).slice(0, 200));
-  return new Uint8Array(await res.arrayBuffer());
+async function eleven(text, voices, around) {
+  var last = "";
+  for (var i = 0; i < voices.length; i++) {
+    var res = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + encodeURIComponent(voices[i]) + "?output_format=mp3_44100_128", {
+      method: "POST",
+      headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+      body: JSON.stringify({
+        text: text,
+        model_id: "eleven_multilingual_v2",
+        // Lower stability and some style = more expressive and human; slightly slower than default.
+        voice_settings: { stability: 0.38, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true, speed: 0.95 },
+        // The neighbouring lines, so this one is read as part of a story rather than on its own.
+        previous_text: around && around.previous ? around.previous : undefined,
+        next_text: around && around.next ? around.next : undefined,
+      }),
+    });
+    if (res.ok) return new Uint8Array(await res.arrayBuffer());
+    last = "ElevenLabs " + res.status + ": " + (await res.text()).slice(0, 200);
+    // Only a missing voice moves on to the next one; anything else (key, quota) is a real error.
+    if (!(res.status === 404 || (res.status === 400 && /voice/i.test(last)))) break;
+  }
+  throw new Error(last);
 }
 
 async function openai(text, voice) {
@@ -96,7 +116,9 @@ export async function GET(request) {
       var hit = await cached(token, pathname);
       if (hit) return mp3(hit);
     }
-    var bytes = await p.make(text);
+    var seq = filmSequence();
+    var at = seq.indexOf(text);
+    var bytes = await p.make(text, { previous: at > 0 ? seq[at - 1] : "", next: at !== -1 && at < seq.length - 1 ? seq[at + 1] : "" });
     if (token) await store(token, pathname, bytes).catch(function (err) { console.error("Voice cache error:", err.message); });
     return mp3(bytes);
   } catch (err) {
