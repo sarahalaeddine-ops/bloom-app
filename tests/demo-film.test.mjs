@@ -22,11 +22,16 @@ test("every scene has an id, title, phase and only known actions", function () {
   });
 });
 
-test("the story covers documenting, appointments, Nora, both outcomes and privacy", function () {
-  ["quick", "meds", "appts", "checkin", "nora", "wait", "positive", "failed", "privacy"].forEach(function (id) {
+test("the story runs from sign-up through every stage to both outcomes", function () {
+  var order = SCENES.map(function (s) { return s.id; });
+  assert.equal(order[0], "start", "it begins with her signing up");
+  assert.equal(SCENES[0].signup, true);
+  assert.equal(SCENES.filter(function (s) { return s.signup; }).length, 1, "only the first scene starts signed out");
+  ["home", "quick", "meds", "reminders", "appts", "checkin", "results", "nora", "retrieval", "transfer", "wait", "positive", "failed", "privacy"].forEach(function (id) {
     assert.equal(SCENES[sceneIndex(id)].id, id, "scene " + id);
   });
-  assert.equal(sceneIndex("home"), 0);
+  assert.ok(order.indexOf("retrieval") < order.indexOf("transfer") && order.indexOf("transfer") < order.indexOf("wait"), "stages in treatment order");
+  assert.ok(order.indexOf("wait") < order.indexOf("positive") && order.indexOf("wait") < order.indexOf("failed"), "results after the wait");
 });
 
 test("the film really logs things: it taps and types in every documenting scene", function () {
