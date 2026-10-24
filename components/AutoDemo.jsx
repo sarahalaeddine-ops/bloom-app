@@ -6,10 +6,12 @@ import { getCheckins } from "../lib/cycle";
 import { createPlayer, sleep } from "../lib/autoplay";
 import { SCENES, STORY } from "../lib/demo-film";
 import * as voice from "../lib/voice";
+import { TEST_LINE, spokenText } from "../lib/voice-lines";
 
 // The investor demo: Bloom plays itself (lib/demo-film.js, run by lib/autoplay.js). A finger moves
 // over the real app, taps, types and saves, with a one-line subtitle that a voice-over reads aloud
-// (lib/voice.js, the browser's built-in speech). Tapping anywhere pauses.
+// (lib/voice.js: the studio narrator when the server has a voice provider, else the browser's own
+// speech). Tapping anywhere pauses.
 // Investor-facing, so the controls are English and always left to right.
 
 // Each run starts from the same clean day for the demo persona: today's doses not yet taken, no
@@ -58,8 +60,10 @@ export default function AutoDemo({ app, onExit }) {
   useEffect(function () { appRef.current = app; });
   useEffect(function () { return function () { if (player.current) player.current.stop(); voice.stopSpeech(); }; }, []);
 
-  // Voice-over: on by default where the browser can speak; her choice of voice is remembered.
-  var [canSpeak, setCanSpeak] = useState(false);
+  // Voice-over: on by default; the studio narrator when available, else a device voice. Her
+  // choice is remembered.
+  var [browserVoice, setBrowserVoice] = useState(false);
+  var [studio, setStudio] = useState(false);
   var [voices, setVoices] = useState([]);
   var [prefs, setPrefs] = useState({ on: true, name: "" });
   var prefsRef = useRef(prefs);
@@ -67,11 +71,28 @@ export default function AutoDemo({ app, onExit }) {
   useEffect(function () {
     function load() { setVoices(voice.englishVoices()); }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- speech support and saved choice are only readable in the browser
-    setCanSpeak(voice.supported());
+    setBrowserVoice(voice.supported());
     setPrefs(voice.loadPrefs());
     load();
-    return voice.onVoicesChanged(load);
+    var live = true;
+    voice.studioAvailable().then(function (ok) { if (live) setStudio(ok); });
+    var off = voice.onVoicesChanged(load);
+    return function () { live = false; off(); };
   }, []);
+
+  var canSpeak = studio || browserVoice;
+  // The voice actually used: the studio narrator if chosen and set up, else her device voice.
+  var chosen = prefs.name === voice.STUDIO && !studio ? (voices[0] ? voices[0].name : "") : prefs.name;
+  var chosenRef = useRef(chosen);
+  useEffect(function () { chosenRef.current = chosen; });
+
+  // Lines of these scenes, so the studio recordings can be made before they're needed.
+  function prefetchScenes(from, count) {
+    if (!prefsRef.current.on || chosenRef.current !== voice.STUDIO) return;
+    SCENES.slice(from, from + count).forEach(function (s) {
+      voice.prefetch(s.steps.filter(function (a) { return a.say; }).map(spokenText));
+    });
+  }
 
   function changePrefs(patch) {
     var next = { ...prefsRef.current, ...patch };
@@ -82,20 +103,23 @@ export default function AutoDemo({ app, onExit }) {
   }
 
   function testVoice() {
+    voice.unlockAudio();
     voice.stopSpeech();
-    voice.speak("Hi, I'm the voice of Bloom. Let me show you Sarah's story.", prefsRef.current.name);
+    voice.speak(TEST_LINE, chosenRef.current);
   }
 
   // The player asks for every line; it is spoken only while the voice-over is on. With it off, the
   // line stays on screen long enough to read.
   function speakLine(text) {
     if (!prefsRef.current.on) return sleep(Math.max(1600, text.split(/\s+/).length * 260));
-    return voice.speak(text, prefsRef.current.name);
+    return voice.speak(text, chosenRef.current);
   }
 
   async function start(from, only) {
+    voice.unlockAudio(); // first thing in the tap, so phones and Safari allow the narration
     if (player.current) player.current.stop();
     voice.stopSpeech();
+    prefetchScenes(from, 2);
     var a = appRef.current;
     a.setLang("en");
     a.setQuick(false);
@@ -120,6 +144,7 @@ export default function AutoDemo({ app, onExit }) {
     try {
       for (var i = from; i < last; i++) {
         setScene(i);
+        prefetchScenes(i + 1, 1);
         var s = SCENES[i];
         var u = auth.getUser();
         // After the sign-up scene the story jumps to day 7, as the demo persona with her data.
@@ -188,12 +213,13 @@ export default function AutoDemo({ app, onExit }) {
                   <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: prefs.on ? 22 : 2 }} />
                 </button>
               </div>
-              {prefs.on && voices.length > 0 && (
+              {prefs.on && (studio || voices.length > 0) && (
                 <div className="flex items-center gap-2 mt-2">
                   <label htmlFor="film-voice" className="sr-only">Voice</label>
-                  <select id="film-voice" value={prefs.name || voices[0].name} onChange={function (e) { changePrefs({ name: e.target.value }); }}
+                  <select id="film-voice" value={chosen} onChange={function (e) { changePrefs({ name: e.target.value }); }}
                     className="flex-1 min-w-0 bg-white border border-bloom-border rounded-lg px-2 py-1.5 text-xs text-bloom-text">
-                    {voices.map(function (v) { return <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>; })}
+                    {studio && <option value={voice.STUDIO}>Bloom narrator (studio voice)</option>}
+                    {voices.map(function (v) { return <option key={v.name} value={v.name}>{v.name} · device voice</option>; })}
                   </select>
                   <button onClick={testVoice} className="px-3 py-1.5 rounded-lg bg-white border border-bloom-border text-xs font-semibold text-bloom-accent">Test voice</button>
                 </div>

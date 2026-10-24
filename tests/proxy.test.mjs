@@ -11,8 +11,16 @@ function passedThrough(res) { return res.status === 200 && res.headers.get("x-mi
 
 afterEach(function () { delete process.env.DEMO_PASSWORD; });
 
-test("gates the demo page and the Nora API only", function () {
-  assert.deepEqual(config.matcher, ["/demo-7q4x", "/demo-7q4x/:path*", "/api/nora"]);
+test("gates the demo page, the Nora API and the demo voice-over only", function () {
+  assert.deepEqual(config.matcher, ["/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/voice"]);
+});
+
+test("voice-over API needs the demo cookie; the native app's Bearer pass is for Nora only", async function () {
+  process.env.DEMO_PASSWORD = "pw-123";
+  assert.equal((await proxy(req("/api/voice?line=0123abcd"))).status, 401);
+  assert.equal((await proxy(req("/api/voice", { authorization: "Bearer abc.def.ghi" }))).status, 401);
+  assert.equal((await proxy(new NextRequest("https://bloom.test/api/voice", { method: "OPTIONS" }))).status, 401);
+  assert.ok(passedThrough(await proxy(req("/api/voice", { cookie: "bloom_demo=" + token("pw-123") }))));
 });
 
 test("stays locked when DEMO_PASSWORD is not set", async function () {
