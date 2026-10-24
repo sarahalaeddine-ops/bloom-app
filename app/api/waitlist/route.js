@@ -8,6 +8,14 @@ import { isValidEmail } from "../../../lib/validate";
 var BLOB_API = "https://vercel.com/api/blob";
 var MAX_BODY_CHARS = 2000;
 
+function blobHeaders(token) {
+  return {
+    authorization: "Bearer " + token,
+    "x-api-version": "12",
+    "x-vercel-blob-store-id": token.split("_")[3] || "",
+  };
+}
+
 // Per-IP, per server instance (see lib/rate-limit.js).
 var signupLimit = createRateLimiter({ limit: 5, windowMs: 10 * 60 * 1000 });
 
