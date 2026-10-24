@@ -43,7 +43,7 @@ var SECTIONS = [
   { id: "profile",      hidden: true,                                                                                           Screen: Profile },
 ];
 
-export default function MoreScreen({ user, setUser, active, setActive }) {
+export default function MoreScreen({ user, setUser, active, setActive, startTour }) {
   var { t } = useT();
   var inApp = IS_APP_BUILD || isNative();
   var section = SECTIONS.find(function (s) { return s.id === active && !(inApp && s.webOnly); });
@@ -69,6 +69,17 @@ export default function MoreScreen({ user, setUser, active, setActive }) {
       <div className="pt-5">
         <ScreenHero art="menu" title={t("more.title")} sub={t("more.sub") + (plan ? " · " + plan.name : "")} />
       </div>
+
+      {startTour && (
+        <button onClick={startTour} dir="ltr" lang="en"
+          className="w-full flex items-center gap-3 rounded-2xl p-4 mb-3 text-start text-white" style={{ background: "linear-gradient(135deg,#1A1014,#4A2D5C)" }}>
+          <span className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-lg">▶</span>
+          <span className="flex-1">
+            <span className="block text-sm font-bold">Investor tour</span>
+            <span className="block text-xs text-white/70">A guided story through every part of Bloom</span>
+          </span>
+        </button>
+      )}
 
       <button onClick={function () { setActive("profile"); }}
         className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 border border-purple-200 mb-4">

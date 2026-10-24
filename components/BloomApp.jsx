@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { auth, store, consent } from "../lib/store";
+import { useT } from "../lib/i18n";
 import LockScreen from "./LockScreen";
 import { supabase } from "../lib/supabase";
 import { LangProvider } from "../lib/i18n";
@@ -10,6 +11,7 @@ import OnboardingScreen from "./OnboardingScreen";
 import ConsentScreen from "./ConsentScreen";
 import AppShell from "./AppShell";
 import { initShell, onAppState, setPrivacyScreen } from "../lib/native";
+import { IS_APP_BUILD } from "../lib/config";
 
 // Native app: lock again when she comes back after this long in the background (PIN set).
 var RELOCK_MS = 60 * 1000;
@@ -23,6 +25,15 @@ function App() {
   var [user, setUser] = useState(null);
   var [locked, setLocked] = useState(false);
   var [, setConsentTick] = useState(0);
+  // Investor tour: started from the sign-in screen or a ?tour link (web demo only).
+  var [tourOnStart, setTourOnStart] = useState(false);
+  var { setLang } = useT();
+
+  function startTour() {
+    setLang("en");
+    setTourOnStart(true);
+    setUser(auth.demo());
+  }
   var endSplash = useCallback(function () { setStage("main"); }, []);
 
   // Native shell (status bar, splash) and, with the app lock on, the privacy screen and re-locking
@@ -42,6 +53,14 @@ function App() {
     var saved = auth.getUser();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- restore session from localStorage after hydration
     if (saved) setUser(saved);
+    if (!IS_APP_BUILD && new URLSearchParams(window.location.search).has("tour")) {
+      // Saved rather than set: LangProvider reads it from storage when it starts, after this effect.
+      store.set("lang", "en");
+      setTourOnStart(true);
+      setUser(auth.demo());
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     if (saved && store.get("lock_pin", null)) setLocked(true);
     // A synced account whose session has expired must sign in again before it can sync.
     if (saved && saved.cloud && supabase) {
@@ -56,7 +75,7 @@ function App() {
   }
 
   if (!user) {
-    return <AuthScreen onLogin={setUser} />;
+    return <AuthScreen onLogin={setUser} onTour={IS_APP_BUILD ? null : startTour} />;
   }
 
   if (locked) {
@@ -72,5 +91,5 @@ function App() {
     return <ConsentScreen user={user} onDone={function () { setConsentTick(function (n) { return n + 1; }); }} />;
   }
 
-  return <AppShell user={user} setUser={setUser} />;
+  return <AppShell user={user} setUser={setUser} tourOnStart={tourOnStart} />;
 }
