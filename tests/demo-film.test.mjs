@@ -18,6 +18,7 @@ test("every scene has an id, title, phase and only known actions", function () {
       assert.equal(kinds.length, 1, s.id + " step " + i + ": exactly one action");
       if (a.type) assert.equal(typeof a.text, "string", s.id + " step " + i + ": type needs text");
       if (a.say) assert.ok(a.say.length <= 110, s.id + " step " + i + ": subtitle fits on two lines");
+      if ("voice" in a) assert.ok(a.say && typeof a.voice === "string", s.id + " step " + i + ": voice only overrides a subtitle");
     });
   });
 });
