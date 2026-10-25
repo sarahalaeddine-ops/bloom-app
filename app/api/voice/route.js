@@ -14,15 +14,15 @@
 import { filmLines, filmSequence } from "../../../lib/voice-lines";
 
 var BLOB_API = "https://vercel.com/api/blob";
-// Warm, reassuring female voices from ElevenLabs' default library, best first; if one isn't
+// Warm British female voices from ElevenLabs' default library, best first; if one isn't
 // available on her account, the next is tried.
-var ELEVEN_VOICES = ["EXAVITQu4vr4xnSDxMaL", "XrExE9yKIg1WjnnlVkGX", "21m00Tcm4TlvDq8ikWAM"]; // Sarah, Matilda, Rachel
+var ELEVEN_VOICES = ["pFZP5JQG7iQjIQuC4Bku", "Xb7hH8MSUJpSbSDYk0k2"]; // Lily (warm British), Alice (clear British)
 var OPENAI_VOICE = "coral";
 var STYLE = "You are the narrator of a short film about a woman going through IVF, shown to investors. " +
-  "Speak like a warm, caring friend telling her story: gentle, natural and human, with soft smiles in your voice. " +
+  "Speak with a soft, natural British accent (southern English), like a warm, caring friend telling her story: gentle, natural and human, with soft smiles in your voice. " +
   "Unhurried pace with natural pauses at commas and full stops. Never robotic, never salesy, never over-dramatic.";
 // Bump when the voice or its settings change, so stored recordings are made again.
-var TUNING = "v2";
+var TUNING = "v3";
 
 function provider() {
   if (process.env.ELEVENLABS_API_KEY) {
