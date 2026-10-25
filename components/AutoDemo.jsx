@@ -10,8 +10,8 @@ import { TEST_LINE, spokenText } from "../lib/voice-lines";
 
 // The investor demo: Bloom plays itself (lib/demo-film.js, run by lib/autoplay.js). A finger moves
 // over the real app, taps, types and saves, with a one-line subtitle that a voice-over reads aloud
-// (lib/voice.js: the studio narrator when the server has a voice provider, else the browser's own
-// speech). Tapping anywhere pauses.
+// (lib/voice.js: a recorded British woman's voice by default, device voices as a fallback).
+// Tapping anywhere pauses.
 // Investor-facing, so the controls are English and always left to right.
 
 // Each run starts from the same clean day for the demo persona: today's doses not yet taken, no
@@ -60,10 +60,9 @@ export default function AutoDemo({ app, onExit }) {
   useEffect(function () { appRef.current = app; });
   useEffect(function () { return function () { if (player.current) player.current.stop(); voice.stopSpeech(); }; }, []);
 
-  // Voice-over: on by default; the studio narrator when available, else a device voice. Her
-  // choice is remembered.
-  var [browserVoice, setBrowserVoice] = useState(false);
-  var [studio, setStudio] = useState(false);
+  // Voice-over: on by default, read by the recorded British narrator (Emma, or the server's
+  // ElevenLabs/OpenAI voice when set up); device voices are a fallback choice. Remembered.
+  var [provider, setProvider] = useState(false);
   var [voices, setVoices] = useState([]);
   var [prefs, setPrefs] = useState({ on: true, name: "" });
   var prefsRef = useRef(prefs);
@@ -71,18 +70,17 @@ export default function AutoDemo({ app, onExit }) {
   useEffect(function () {
     function load() { setVoices(voice.englishVoices()); }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- speech support and saved choice are only readable in the browser
-    setBrowserVoice(voice.supported());
     setPrefs(voice.loadPrefs());
     load();
     var live = true;
-    voice.studioAvailable().then(function (ok) { if (live) setStudio(ok); });
+    voice.useProviderVoiceIfSetUp().then(function (ok) { if (live) setProvider(ok); });
     var off = voice.onVoicesChanged(load);
     return function () { live = false; off(); };
   }, []);
 
-  var canSpeak = studio || browserVoice;
-  // The voice actually used: the studio narrator if chosen and set up, else her device voice.
-  var chosen = prefs.name === voice.STUDIO && !studio ? (voices[0] ? voices[0].name : "") : prefs.name;
+  var canSpeak = true; // the recorded narrator needs nothing from the device
+  // The voice actually used: a device voice only if she picked one that this device has.
+  var chosen = prefs.name !== voice.STUDIO && voices.some(function (v) { return v.name === prefs.name; }) ? prefs.name : voice.STUDIO;
   var chosenRef = useRef(chosen);
   useEffect(function () { chosenRef.current = chosen; });
 
@@ -213,12 +211,12 @@ export default function AutoDemo({ app, onExit }) {
                   <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: prefs.on ? 22 : 2 }} />
                 </button>
               </div>
-              {prefs.on && (studio || voices.length > 0) && (
+              {prefs.on && (
                 <div className="flex items-center gap-2 mt-2">
                   <label htmlFor="film-voice" className="sr-only">Voice</label>
                   <select id="film-voice" value={chosen} onChange={function (e) { changePrefs({ name: e.target.value }); }}
                     className="flex-1 min-w-0 bg-white border border-bloom-border rounded-lg px-2 py-1.5 text-xs text-bloom-text">
-                    {studio && <option value={voice.STUDIO}>Bloom narrator (studio voice)</option>}
+                    <option value={voice.STUDIO}>Bloom narrator · British woman{provider ? " (studio)" : ""}</option>
                     {voices.map(function (v) { return <option key={v.name} value={v.name}>{v.name} · device voice</option>; })}
                   </select>
                   <button onClick={testVoice} className="px-3 py-1.5 rounded-lg bg-white border border-bloom-border text-xs font-semibold text-bloom-accent">Test voice</button>
