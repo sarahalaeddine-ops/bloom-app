@@ -73,14 +73,14 @@ test("first request voices the line with ElevenLabs and stores it privately", as
   assert.equal(res.headers.get("content-type"), "audio/mpeg");
   assert.deepEqual(new Uint8Array(await res.arrayBuffer()), new Uint8Array([73, 68, 51]));
   var tts = calls.find(function (c) { return c.url.indexOf("elevenlabs") !== -1; });
-  assert.match(tts.url, /text-to-speech\/EXAVITQu4vr4xnSDxMaL\?output_format=mp3_44100_128/);
+  assert.match(tts.url, /text-to-speech\/pFZP5JQG7iQjIQuC4Bku\?output_format=mp3_44100_128/);
   assert.equal(tts.headers["xi-api-key"], "el-test");
   var body = JSON.parse(tts.body);
   assert.equal(body.text, TEST_LINE);
   assert.equal(body.model_id, "eleven_multilingual_v2");
   assert.ok(body.voice_settings.stability < 0.5 && body.voice_settings.style > 0, "expressive, not flat");
   var put = calls.find(function (c) { return c.method === "PUT"; });
-  assert.match(put.url, new RegExp("pathname=voice%2Fel-v2-EXAVITQu4vr4xnSDxMaL%2F" + key + "\\.mp3"));
+  assert.match(put.url, new RegExp("pathname=voice%2Fel-v3-pFZP5JQG7iQjIQuC4Bku%2F" + key + "\\.mp3"));
   assert.equal(put.headers["x-vercel-blob-access"], "private");
 });
 
@@ -90,7 +90,7 @@ test("later requests are served from the store without calling the provider", as
   process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_STORE_secret";
   var key = lineKey(TEST_LINE);
   var stored = {};
-  stored["voice/el-v2-voice42/" + key + ".mp3"] = new Uint8Array([1, 2, 3]);
+  stored["voice/el-v3-voice42/" + key + ".mp3"] = new Uint8Array([1, 2, 3]);
   var calls = stubNetwork(stored);
   var res = await get("?line=" + key);
   assert.deepEqual(new Uint8Array(await res.arrayBuffer()), new Uint8Array([1, 2, 3]));
@@ -107,6 +107,7 @@ test("OpenAI is used when it is the only key, with Bloom's narrator style", asyn
   assert.equal(body.voice, "coral");
   assert.equal(body.input, TEST_LINE);
   assert.match(body.instructions, /warm, caring friend/);
+  assert.match(body.instructions, /British accent/);
 });
 
 test("a provider error is a 502, not a crash", async function () {
@@ -128,7 +129,7 @@ test("each film line is voiced with the lines around it, so it flows like one st
   assert.equal(body.next_text, seq[2]);
 });
 
-test("a voice that isn't on her account falls back to the next warm voice; a bad key does not", async function () {
+test("a voice that isn't on her account falls back to the next British voice; a bad key does not", async function () {
   process.env.ELEVENLABS_API_KEY = "el-test";
   var tried = [];
   globalThis.fetch = async function (url) {
@@ -139,7 +140,7 @@ test("a voice that isn't on her account falls back to the next warm voice; a bad
     return new Response(new Uint8Array([9]));
   };
   assert.equal((await get("?line=" + lineKey(TEST_LINE))).status, 200);
-  assert.deepEqual(tried, ["EXAVITQu4vr4xnSDxMaL", "XrExE9yKIg1WjnnlVkGX"]);
+  assert.deepEqual(tried, ["pFZP5JQG7iQjIQuC4Bku", "Xb7hH8MSUJpSbSDYk0k2"]);
   tried = [];
   globalThis.fetch = async function (url) { tried.push(String(url)); return Response.json({ detail: "invalid_api_key" }, { status: 401 }); };
   assert.equal((await get("?line=" + lineKey(TEST_LINE))).status, 502);
