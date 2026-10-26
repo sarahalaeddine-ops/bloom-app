@@ -29,9 +29,10 @@ function freshDemoDay() {
   return auth.updateUser({ phase: "stimulation", anonymous: false });
 }
 
-// The sign-up scene starts on a wiped device, signed out (this demo device only holds demo data).
+// The sign-up scene starts on a wiped device, signed out. A real account signed in here is saved
+// and signed out, never deleted, and the film's sign-up stays on this device.
 async function signedOut(app) {
-  await store.resetDemo();
+  await store.resetDemo({ keepCloud: true });
   app.setLang("en");
   app.setUser(null);
 }
@@ -58,7 +59,10 @@ export default function AutoDemo({ app, onExit }) {
   var player = useRef(null);
   var appRef = useRef(app);
   useEffect(function () { appRef.current = app; });
-  useEffect(function () { return function () { if (player.current) player.current.stop(); voice.stopSpeech(); }; }, []);
+  useEffect(function () {
+    auth.localOnly(true);
+    return function () { auth.localOnly(false); if (player.current) player.current.stop(); voice.stopSpeech(); };
+  }, []);
 
   // Voice-over: on by default, read by the recorded British narrator (Emma, or the server's
   // ElevenLabs/OpenAI voice when set up); device voices are a fallback choice. Remembered.

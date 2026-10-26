@@ -134,3 +134,32 @@ test("eraseAccount: a server failure deletes nothing locally", async function ()
   assert.deepEqual(await store.eraseAccount(), { error: "session" });
   assert.ok(auth.getUser());
 });
+
+test("the investor film's reset saves and signs out a real account instead of deleting it", async function () {
+  await signIn();
+  store.set("checkins", [{ mood: 1 }]);
+  await consent.set({ cloud: true, ai: true });
+  calls = [];
+  await store.resetDemo({ keepCloud: true });
+  assert.equal(calls.filter(function (c) { return c.method === "DELETE"; }).length, 0, "her synced data is not deleted");
+  var up = upserts();
+  assert.equal(up.length, 1, "latest changes saved first");
+  assert.deepEqual(up[0].body.data.checkins, [{ mood: 1 }]);
+  assert.equal(store.get("checkins", null), null, "device wiped for the film");
+  assert.equal(auth.getUser(), null);
+});
+
+test("while the film plays, sign-up and sign-in stay on this device", async function () {
+  auth.localOnly(true);
+  try {
+    assert.equal(auth.mode(), "local");
+    var res = await auth.signUp("Sarah", "sarah.demo@bloomivfcompanion.com", "bloom2026");
+    assert.equal(res.error, null);
+    assert.equal(res.data.cloud, undefined);
+    assert.equal((await auth.signIn("sarah.demo@bloomivfcompanion.com", "bloom2026")).error, null);
+    assert.equal(calls.filter(function (c) { return c.url.indexOf(SB) === 0; }).length, 0, "no Supabase calls");
+  } finally {
+    auth.localOnly(false);
+  }
+  assert.equal(auth.mode(), "cloud");
+});
