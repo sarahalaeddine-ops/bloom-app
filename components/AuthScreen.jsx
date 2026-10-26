@@ -3,7 +3,7 @@ import { useState } from "react";
 import { auth } from "../lib/store";
 import { BloomFlower, Blobs } from "./ui/Graphics";
 import { useT, LANGS } from "../lib/i18n";
-import { IS_APP_BUILD, siteUrl } from "../lib/config";
+import { isRealApp, siteUrl } from "../lib/config";
 import { isNative } from "../lib/native";
 
 export default function AuthScreen({ onLogin, onTour }) {
@@ -93,7 +93,7 @@ export default function AuthScreen({ onLogin, onTour }) {
 
         {/* No demo persona in the store app (App Store 2.2: demos belong in TestFlight). Reviewers
             sign in with a reviewer account instead (docs/sa6/app-store.md). */}
-        {!(IS_APP_BUILD || isNative()) && (
+        {!(isRealApp() || isNative()) && (
           <button onClick={function () { onLogin(auth.demo()); }}
             className="w-full mt-4 py-3.5 rounded-2xl border-2 border-dashed border-bloom-accent/40 text-bloom-accent text-sm font-semibold bg-white/60">
             {t("auth.demo")}
