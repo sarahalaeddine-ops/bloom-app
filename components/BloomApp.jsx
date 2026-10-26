@@ -12,7 +12,7 @@ import ConsentScreen from "./ConsentScreen";
 import AppShell from "./AppShell";
 import AutoDemo from "./AutoDemo";
 import { initShell, onAppState, setPrivacyScreen } from "../lib/native";
-import { IS_APP_BUILD } from "../lib/config";
+import { isRealApp } from "../lib/config";
 
 // Native app: lock again when she comes back after this long in the background (PIN set).
 var RELOCK_MS = 60 * 1000;
@@ -37,7 +37,7 @@ function App() {
     go: function (tab, section) { if (navRef.current.go) navRef.current.go(tab, section); },
     setQuick: function (v) { if (navRef.current.setQuick) navRef.current.setQuick(v); },
   };
-  var openFilm = IS_APP_BUILD ? null : function () { setFilm(true); };
+  var openFilm = isRealApp() ? null : function () { setFilm(true); };
   var endSplash = useCallback(function () { setStage("main"); }, []);
 
   // Native shell (status bar, splash) and, with the app lock on, the privacy screen and re-locking
@@ -55,9 +55,11 @@ function App() {
 
   useEffect(function () {
     var saved = auth.getUser();
+    // The real app never opens as the demo persona (the demo at /demo-7q4x shares this browser storage).
+    if (saved && saved.id === "demo" && isRealApp()) saved = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- restore session from localStorage after hydration
     if (saved) setUser(saved);
-    if (!IS_APP_BUILD && new URLSearchParams(window.location.search).has("tour")) {
+    if (!isRealApp() && new URLSearchParams(window.location.search).has("tour")) {
       // Saved rather than set: LangProvider reads it from storage when it starts, after this effect.
       store.set("lang", "en");
       setFilm(true);

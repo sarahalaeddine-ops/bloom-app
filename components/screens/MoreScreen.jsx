@@ -4,7 +4,7 @@ import { useT } from "../../lib/i18n";
 import { Illustration } from "../ui/Graphics";
 import ScreenHero from "../ui/ScreenHero";
 import { follicleStats, latestE2 } from "../../lib/cycle";
-import { IS_APP_BUILD } from "../../lib/config";
+import { isRealApp } from "../../lib/config";
 import { isNative } from "../../lib/native";
 import Medications from "./more/Medications";
 import Appointments from "./more/Appointments";
@@ -38,14 +38,14 @@ var SECTIONS = [
   { id: "secret",       art: "journal",   color: "#8B7AC5", Screen: Secret },
   { id: "reminders",    art: "bell",      color: "#C49A3C", Screen: Reminders },
   { id: "privacy",      art: "shield",    color: "#4ABFB0", Screen: Privacy },
-  // Hidden in the native app for v1 (App Store 3.1.1: paid features need in-app purchase).
+  // Demo only: hidden in the real app (no payments yet; in the native app, App Store 3.1.1 needs in-app purchase).
   { id: "upgrade",      webOnly: true, art: "crown", color: "#9B6DC5", Screen: Upgrade },
   { id: "profile",      hidden: true,                                                                                           Screen: Profile },
 ];
 
 export default function MoreScreen({ user, setUser, active, setActive, startTour }) {
   var { t } = useT();
-  var inApp = IS_APP_BUILD || isNative();
+  var inApp = isRealApp() || isNative();
   var section = SECTIONS.find(function (s) { return s.id === active && !(inApp && s.webOnly); });
 
   if (section) {

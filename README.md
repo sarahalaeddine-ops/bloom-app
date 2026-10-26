@@ -64,6 +64,8 @@ All optional: with none set, Bloom builds and runs as an offline demo (the priva
 | Env var | Secret | Purpose |
 |---|---|---|
 | `DEMO_PASSWORD` | Yes | Password for `/demo-7q4x` and `/api/nora` (`proxy.js`). Any username works; a cookie keeps visitors in for 30 days. Changing it signs everyone out. |
+| `TESTER_PASSWORD` | Yes | Password for the real app (`app.bloomivfcompanion.com` and `/app`: real accounts only, no demo persona or film). Separate from `DEMO_PASSWORD`; its cookie also opens `/api/nora` but not the demo or its voice-over. Unset = locked. |
+| `APP_OPEN` | No | `1` removes the tester password from the real app on launch day. The demo stays gated. |
 | `ANTHROPIC_API_KEY` | Yes | Live Nora replies. Without it Nora uses scripted replies. |
 | `NORA_MODEL` | No | Nora model id (default `claude-sonnet-4-6`). |
 | `BLOB_READ_WRITE_TOKEN` | Yes | Waitlist storage in Vercel Blob. Added automatically when a Blob store is connected. |
@@ -134,7 +136,7 @@ app/
   api/nora/route.js            Nora chat (server-side Anthropic call + scripted fallback)
   api/waitlist/route.js        waitlist sign-ups and count (Vercel Blob)
   api/account/delete/route.js  full erasure of a cloud account (verifies her session, service-role key)
-proxy.js                       password gate for the demo and the Nora API (DEMO_PASSWORD)
+proxy.js                       password gates for the demo (DEMO_PASSWORD) and the real app (TESTER_PASSWORD)
 components/
   SplashScreen, AuthScreen, OnboardingScreen, AppShell
   screens/                     Home, CheckIn, Nora, Insights, More

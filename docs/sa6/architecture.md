@@ -166,6 +166,8 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Var | Where used | Secret? | Notes |
 |---|---|---|---|
 | `DEMO_PASSWORD` | `proxy.js` | Yes | Unlocks `/demo-7q4x` and `/api/nora`. Unset = locked. |
+| `TESTER_PASSWORD` | `proxy.js` | Yes | Unlocks the real app (`app.` host and `/app`) and `/api/nora`, cookie `bloom_tester`. Unset = locked. |
+| `APP_OPEN` | `proxy.js` | No | `1` = the real app needs no password (launch). |
 | `ANTHROPIC_API_KEY` | `app/api/nora/route.js` | Yes | Enables live Nora. Unset = scripted replies. |
 | `NORA_MODEL` | `app/api/nora/route.js` | No | Default `claude-sonnet-4-6`. |
 | `BLOB_READ_WRITE_TOKEN` | `app/api/waitlist/route.js` | Yes | Set automatically when a Vercel Blob store is connected. |

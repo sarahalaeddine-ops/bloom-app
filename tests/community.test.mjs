@@ -62,3 +62,17 @@ test("every room, seeded post, prompt and flower is translated", function () {
     });
   });
 });
+
+test("in the real web app (app.bloomivfcompanion.com or /app) even the demo user gets no seeded posts", function () {
+  asDemo();
+  try {
+    globalThis.window.location = { hostname: "app.bloomivfcompanion.com", pathname: "/" };
+    assert.equal(showSeeds(), false);
+    globalThis.window.location = { hostname: "bloomivfcompanion.com", pathname: "/app" };
+    assert.equal(showSeeds(), false);
+    globalThis.window.location = { hostname: "bloomivfcompanion.com", pathname: "/demo-7q4x" };
+    assert.equal(showSeeds(), true);
+  } finally {
+    delete globalThis.window.location;
+  }
+});
