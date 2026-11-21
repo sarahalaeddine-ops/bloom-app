@@ -9,11 +9,12 @@ import { NextResponse } from "next/server";
 //   app.bloomivfcompanion.com (its homepage is served from /app) and at bloomivfcompanion.com/app.
 //   APP_OPEN=1 removes this gate on launch day. The public website at / is never gated.
 //
-// The native app (docs/sa6/app-store.md) has no cookie. For the Nora API only:
+// The native app (docs/sa6/app-store.md) has no cookie. For Nora's APIs only (/api/nora, the chat,
+// and /api/ai, Nora inside the screens):
 // - requests carrying "Authorization: Bearer <token>" go through to the route, which verifies the
 //   Supabase session itself and answers 401 when it is not valid;
 // - CORS preflights (OPTIONS) go through so the route can answer them (they carry no data).
-// Otherwise Nora needs the demo or the tester cookie; the voice-over needs the demo cookie.
+// Otherwise they need the demo or the tester cookie; the voice-over needs the demo cookie.
 var DEMO = { cookie: "bloom_demo", salt: "bloom-demo:", env: "DEMO_PASSWORD", realm: "Bloom demo", page: "This page is private." };
 var TESTERS = { cookie: "bloom_tester", salt: "bloom-tester:", env: "TESTER_PASSWORD", realm: "Bloom", page: "Bloom is not open yet." };
 var MAX_AGE = 60 * 60 * 24 * 30;
@@ -84,7 +85,7 @@ export async function proxy(request) {
 
   if (path.startsWith("/api/")) {
     if (await hasCookie(request, DEMO)) return NextResponse.next();
-    if (path === "/api/nora") {
+    if (path === "/api/nora" || path === "/api/ai") {
       if (request.method === "OPTIONS" || hasBearer(request)) return NextResponse.next();
       if (await hasCookie(request, TESTERS)) return NextResponse.next();
     }
@@ -103,5 +104,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/voice"],
+  matcher: ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/ai", "/api/voice"],
 };

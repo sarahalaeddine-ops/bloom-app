@@ -1,6 +1,6 @@
 import { buildSystemPrompt, demoReply, detectEmergency, emergencyReply, rateLimitedReply, sanitizeUser, noraProfile, NORA_PROMPT_VERSION } from "../../../lib/nora";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
-import { supabaseServerConfig, bearerToken, verifyUser, readUserState } from "../../../lib/supabase-server";
+import { resolveCaller, limited, requireAuth, aiAllowedFor } from "../../../lib/ai-server";
 import { withCors, preflight } from "../../../lib/cors";
 
 // Nora chat. Calls the Anthropic Messages API server-side so the key never reaches the browser.
@@ -35,34 +35,6 @@ var perDay = createRateLimiter({ limit: 200, windowMs: 24 * 60 * 60 * 1000 });
 // Per signed-in account, on top of the per-IP limits (also per instance until G2 is done).
 var userPerMinute = createRateLimiter({ limit: 10, windowMs: 60 * 1000 });
 var userPerDay = createRateLimiter({ limit: 200, windowMs: 24 * 60 * 60 * 1000 });
-
-// Resolves the caller. Returns { mode: "local" } (no token, or cloud mode off on the server),
-// { mode: "user", userId, stored } or { error: "invalid" | "unavailable" }.
-async function resolveCaller(request) {
-  var cfg = supabaseServerConfig();
-  var token = bearerToken(request);
-  if (token === null) return { mode: "local" };
-  // A Bearer header passes the demo gate, so without Supabase on the server it can't be verified:
-  // refuse it rather than treat the caller as a local demo user.
-  if (!cfg) return { error: "invalid" };
-  if (!token) return { error: "invalid" };
-  var v = await verifyUser(cfg, token);
-  if (v.error) return { error: v.error };
-  var st = await readUserState(cfg, token, v.user.id);
-  if (st.error) return { error: "unavailable" };
-  return { mode: "user", userId: v.user.id, stored: st.data || {} };
-}
-
-function limited(check, key) {
-  var minute = check[0].check(key);
-  var day = minute.ok ? check[1].check(key) : minute;
-  return !minute.ok || !day.ok ? day : null;
-}
-
-function requireAuth() {
-  var v = (process.env.NORA_REQUIRE_AUTH || "").trim().toLowerCase();
-  return v === "1" || v === "true" || v === "yes";
-}
 
 function logUsage(fields) {
   // Token counts and timings only: never message content, profile fields or IPs.
@@ -153,9 +125,7 @@ async function handle(request) {
   // Live AI only for verified accounts when NORA_REQUIRE_AUTH is on.
   if (caller.mode !== "user" && requireAuth()) return Response.json({ text: offline(), demo: true, authRequired: true, ...flags });
 
-  var consent = caller.mode === "user" ? caller.stored.consent : null;
-  var aiAllowed = caller.mode === "user" ? !!consent && consent.ai === true && body.ai !== false : body.ai === true;
-  if (!aiAllowed) return Response.json({ text: offline(), demo: true, aiOff: true, ...flags });
+  if (!aiAllowedFor(caller, body)) return Response.json({ text: offline(), demo: true, aiOff: true, ...flags });
 
   var key = process.env.ANTHROPIC_API_KEY;
   if (!key) return Response.json({ text: offline(), demo: true, ...flags });

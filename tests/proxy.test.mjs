@@ -12,8 +12,8 @@ function passedThrough(res) { return res.status === 200 && res.headers.get("x-mi
 
 afterEach(function () { delete process.env.DEMO_PASSWORD; delete process.env.TESTER_PASSWORD; delete process.env.APP_OPEN; });
 
-test("runs on the homepage, the real app, the demo page, the Nora API and the demo voice-over only", function () {
-  assert.deepEqual(config.matcher, ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/voice"]);
+test("runs on the homepage, the real app, the demo page, Nora's APIs and the demo voice-over only", function () {
+  assert.deepEqual(config.matcher, ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/ai", "/api/voice"]);
 });
 
 test("voice-over API needs the demo cookie; the native app's Bearer pass is for Nora only", async function () {
@@ -107,4 +107,13 @@ test("APP_OPEN=1 opens the real app on launch day, not the demo or Nora without 
   assert.equal(new URL((await proxy(req("/", {}, "app.bloomivfcompanion.com"))).headers.get("x-middleware-rewrite")).pathname, "/app");
   assert.equal((await proxy(req("/demo-7q4x"))).status, 401);
   assert.equal((await proxy(req("/api/nora"))).status, 401);
+});
+
+test("Nora-in-the-screens API (/api/ai) has the same gate as the Nora chat", async function () {
+  process.env.DEMO_PASSWORD = "pw-123";
+  process.env.TESTER_PASSWORD = "testers-1";
+  assert.equal((await proxy(req("/api/ai"))).status, 401);
+  assert.ok(passedThrough(await proxy(req("/api/ai", { cookie: "bloom_demo=" + token("pw-123") }))));
+  assert.ok(passedThrough(await proxy(req("/api/ai", { cookie: "bloom_tester=" + testerToken("testers-1") }))));
+  assert.ok(passedThrough(await proxy(req("/api/ai", { authorization: "Bearer abc.def.ghi" }))));
 });

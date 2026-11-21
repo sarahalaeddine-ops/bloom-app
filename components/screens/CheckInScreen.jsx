@@ -6,9 +6,13 @@ import { useT } from "../../lib/i18n";
 import { MOODS, FEELINGS, SYMPTOMS } from "../../lib/demo-data";
 import LogChips from "../ui/LogChips";
 import { getCheckins, saveCheckin, follicleStats } from "../../lib/cycle";
+import MicButton from "../ui/MicButton";
+import { appendSpoken } from "../../lib/dictation";
+import { runAi } from "../../lib/ai-client";
+import { detectEmergency } from "../../lib/nora";
 
-export default function CheckInScreen({ user }) {
-  var { t, locale } = useT();
+export default function CheckInScreen({ user, openMore }) {
+  var { t, locale, lang } = useT();
   var [mood, setMood] = useState(null);
   var [symptoms, setSymptoms] = useState([]);
   var [feelings, setFeelings] = useState([]);
@@ -19,6 +23,10 @@ export default function CheckInScreen({ user }) {
   var [history, setHistory] = useState(getCheckins);
   var [saved, setSaved] = useState(null);
   var [error, setError] = useState("");
+  // "Tell Nora": what she writes or says becomes the entries below, for her to check and save.
+  var [said, setSaid] = useState("");
+  var [reading, setReading] = useState(false);
+  var [nora, setNora] = useState(null); // { reply, warning, filled } | { offline, reason, warning }
   var follicles = follicleStats().total;
   var lastWeight = (history.find(function (c) { return c.weight; }) || {}).weight;
 
@@ -36,7 +44,28 @@ export default function CheckInScreen({ user }) {
     setError("");
   }
 
+  async function tellNora() {
+    var text = said.trim();
+    if (!text || reading) return;
+    setReading(true);
+    setNora(null);
+    var out = await runAi("log", user, lang, { text: text });
+    setReading(false);
+    var urgent = !!out.urgent || !!detectEmergency(text);
+    if (!out.log) { setNora({ offline: true, reason: out.reason || out.error || "failed", warning: urgent }); return; }
+    var r = out.log;
+    var filled = 0;
+    if (r.mood !== null) { setMood(r.mood); filled++; }
+    if (r.anxiety !== null) { setAnxiety(r.anxiety); filled++; }
+    if (r.hope !== null) { setHope(r.hope); filled++; }
+    if (r.feelings.length) { setFeelings(function (p) { return p.concat(r.feelings.filter(function (x) { return !p.includes(x); })); }); filled += r.feelings.length; }
+    if (r.symptoms.length) { setSymptoms(function (p) { return p.concat(r.symptoms.filter(function (x) { return !p.includes(x); })); }); filled += r.symptoms.length; }
+    setError("");
+    setNora({ reply: r.reply, warning: r.warning || urgent, filled: filled });
+  }
+
   function reset() {
+    setSaid(""); setNora(null);
     setMood(null); setSymptoms([]); setFeelings([]); setAnxiety(3); setHope(3); setWeight(""); setNote(""); setSaved(null);
   }
 
@@ -61,6 +90,37 @@ export default function CheckInScreen({ user }) {
       <div className="py-5">
         <h1 className="text-2xl font-bold text-bloom-text mb-1">{t("ci.title")}</h1>
         <p className="text-bloom-muted text-sm">{t("ci.sub")}</p>
+      </div>
+
+      <div className="rounded-2xl p-4 border border-purple-200 mb-3" style={{ background: "linear-gradient(160deg,#F6F0FC 0%,#FFFFFF 100%)" }}>
+        <p className="text-bloom-accent text-xs uppercase tracking-wider font-semibold mb-1">✦ {t("tl.title")}</p>
+        <p className="text-bloom-muted text-xs mb-3">{t("tl.sub")}</p>
+        <div className="flex gap-2 items-start">
+          <textarea value={said} onChange={function (e) { setSaid(e.target.value); }} placeholder={t("tl.ph")} aria-label={t("tl.title")} dir="auto" maxLength={1500}
+            className="flex-1 bg-white border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20 focus:border-bloom-accent" />
+          <MicButton onText={function (x) { setSaid(function (p) { return appendSpoken(p, x); }); }} />
+        </div>
+        <button onClick={tellNora} disabled={!said.trim() || reading} className="w-full mt-3 py-3 rounded-xl bg-bloom-accent text-white text-sm font-semibold disabled:opacity-40">
+          {reading ? t("tl.reading") : t("tl.fill")}
+        </button>
+        {nora && nora.warning && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mt-3" role="alert">
+            <p className="text-red-600 text-sm font-bold mb-1">{t("tl.urgentTitle")}</p>
+            <p className="text-bloom-muted text-xs leading-relaxed">{t("tl.urgentBody")}</p>
+          </div>
+        )}
+        {nora && nora.reply && (
+          <div className="mt-3" aria-live="polite">
+            <p className="text-bloom-text text-sm leading-relaxed"><bdi>{nora.reply}</bdi></p>
+            <p className="text-bloom-dim text-xs mt-1">{nora.filled ? t("tl.filled") : t("tl.nothing")}</p>
+          </div>
+        )}
+        {nora && nora.offline && (
+          nora.reason === "consent"
+            ? <button onClick={function () { if (openMore) openMore("privacy"); }} className="text-bloom-muted text-xs mt-3 underline underline-offset-2 text-start">{t("ai.needsConsent")}</button>
+            : <p className="text-bloom-muted text-xs mt-3" role="status">{nora.reason === "busy" ? t("ai.busy") : t("ai.unavailable")}</p>
+        )}
+        <p className="text-bloom-dim text-[11px] mt-3">{t("tl.privacy")}</p>
       </div>
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-3">
@@ -127,8 +187,11 @@ export default function CheckInScreen({ user }) {
 
       <div className="bg-white rounded-2xl p-4 border border-bloom-border mb-4">
         <Label className="mb-3">{t("ci.journal")}</Label>
-        <textarea value={note} onChange={function (e) { setNote(e.target.value); }} placeholder={t("ci.journalPh")} aria-label={t("ci.journal")}
-          className="w-full bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20 focus:border-bloom-accent" />
+        <div className="flex gap-2 items-start">
+          <textarea id="ci-journal" value={note} onChange={function (e) { setNote(e.target.value); }} placeholder={t("ci.journalPh")} aria-label={t("ci.journal")} dir="auto"
+            className="flex-1 bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20 focus:border-bloom-accent" />
+          <MicButton onText={function (x) { setNote(function (p) { return appendSpoken(p, x); }); }} />
+        </div>
       </div>
 
       {error && <p className="text-red-500 text-sm text-center mb-3" role="alert">{error}</p>}

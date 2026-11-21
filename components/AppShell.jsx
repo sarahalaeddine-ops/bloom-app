@@ -92,7 +92,7 @@ export default function AppShell({ user, setUser, navRef, onStartFilm }) {
     <div className="min-h-screen bg-bloom-bg flex flex-col">
       <main className="flex-1 pb-20">
         {tab === "home"     && <HomeScreen key={version} user={user} openMore={openMore} goTab={go} />}
-        {tab === "checkin"  && <CheckInScreen key={version} user={user} />}
+        {tab === "checkin"  && <CheckInScreen key={version} user={user} openMore={openMore} />}
         {tab === "nora"     && <NoraScreen user={user} />}
         {tab === "insights" && <InsightsScreen user={user} />}
         {tab === "more"     && <MoreScreen user={user} setUser={setUser} active={moreSection} setActive={openMore} goTab={go} startTour={user.id === "demo" ? onStartFilm : null} />}

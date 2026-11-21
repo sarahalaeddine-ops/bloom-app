@@ -1,15 +1,48 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import { Sheet } from "./ui/Common";
 import { buildScan, saveScan } from "../lib/cycle";
 import { useT } from "../lib/i18n";
+import { prepareFile, runAi } from "../lib/ai-client";
 
 // "Log a scan result": the E2 level and follicle sizes her clinic gave her. Opened from the empty
 // states on Home, Charts and the Cycle Report, so a real account fills them with her own numbers.
+//
+// "Read my results": she photographs (or picks a PDF of) her clinic's results and Nora fills in the
+// form (lib/ai-tasks.js "results"). Nothing is saved until she has checked the numbers and taps
+// Save. The photo itself is not kept by Bloom.
 export default function ScanLog({ user, onClose, onSaved }) {
-  var { t } = useT();
+  var { t, lang } = useT();
   var [f, setF] = useState({ day: String(user.stimDay || 1), e2: "", lh: "", p4: "", right: "", left: "" });
   var [error, setError] = useState("");
+  var [reading, setReading] = useState(false);
+  var [read, setRead] = useState(null); // { ok, converted, unitUnknown, note } | { problem }
+  var fileRef = useRef(null);
+
+  async function readFile(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setRead(null);
+    var prepared = await prepareFile(file);
+    if (prepared.error) { setRead({ problem: prepared.error === "size" ? "size" : "type" }); return; }
+    setReading(true);
+    var out = await runAi("results", user, lang, { file: prepared });
+    setReading(false);
+    if (!out.results) { setRead({ problem: out.reason === "consent" ? "consent" : out.error === "busy" ? "busy" : "unavailable" }); return; }
+    var r = out.results;
+    if (!r.readable) { setRead({ problem: "unreadable", note: r.note }); return; }
+    setF(function (x) {
+      return {
+        day: r.day ? String(r.day) : x.day,
+        e2: r.e2 !== null ? String(r.e2) : "", lh: r.lh !== null ? String(r.lh) : "", p4: r.p4 !== null ? String(r.p4) : "",
+        right: r.right.join(", "), left: r.left.join(", "),
+      };
+    });
+    setError("");
+    setRead({ ok: true, converted: r.converted, unitUnknown: r.unitUnknown, note: r.note });
+  }
 
   function set(k) { return function (e) { var v = e.target.value; setF(function (x) { return { ...x, [k]: v }; }); setError(""); }; }
 
@@ -29,6 +62,23 @@ export default function ScanLog({ user, onClose, onSaved }) {
       <form onSubmit={save}>
         <h2 className="text-lg font-bold text-bloom-text mb-1">{t("scan.title")}</h2>
         <p className="text-bloom-muted text-xs mb-4">{t("scan.sub")}</p>
+        <div className="rounded-xl border border-purple-200 p-3 mb-4" style={{ background: "#F8F3FC" }}>
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={readFile} className="hidden" aria-hidden="true" tabIndex={-1} />
+          <button type="button" onClick={function () { if (fileRef.current) fileRef.current.click(); }} disabled={reading}
+            className="w-full py-3 rounded-xl bg-bloom-accent text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+            <Camera size={16} /> {reading ? t("rr.reading") : t("rr.cta")}
+          </button>
+          <p className="text-bloom-dim text-[11px] mt-2 leading-relaxed">{t("rr.privacy")}</p>
+          {read && read.ok && (
+            <div className="mt-2" role="status">
+              <p className="text-bloom-text text-xs font-semibold">{t("rr.check")}</p>
+              {read.converted && <p className="text-bloom-muted text-[11px] mt-1">{t("rr.converted")}</p>}
+              {read.unitUnknown && <p className="text-bloom-muted text-[11px] mt-1">{t("rr.unitUnknown")}</p>}
+              {read.note && <p className="text-bloom-muted text-[11px] mt-1"><bdi>{read.note}</bdi></p>}
+            </div>
+          )}
+          {read && read.problem && <p className="text-bloom-muted text-xs mt-2" role="status">{t("rr.err." + read.problem)}{read.note ? " " : ""}{read.note ? <bdi>{read.note}</bdi> : null}</p>}
+        </div>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
             <label htmlFor="sc-day" className={labelCls}>{t("scan.day")}</label>

@@ -68,6 +68,7 @@ All optional: with none set, Bloom builds and runs as an offline demo (the priva
 | `APP_OPEN` | No | `1` removes the tester password from the real app on launch day. The demo stays gated. |
 | `ANTHROPIC_API_KEY` | Yes | Live Nora replies. Without it Nora uses scripted replies. |
 | `NORA_MODEL` | No | Nora model id (default `claude-sonnet-4-6`). |
+| `NORA_TASK_MODEL` | No | Model for Nora inside the screens: Today with Nora, Tell Nora, Read my results, Prepare with Nora (default `claude-opus-5-5`). |
 | `BLOB_READ_WRITE_TOKEN` | Yes | Waitlist storage in Vercel Blob. Added automatically when a Blob store is connected. |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No (public) | Turn on cloud accounts and sync. Row-level security protects the data. Never expose the service-role key. |
 | `NORA_REQUIRE_AUTH` | No | `1` = live Nora (Anthropic) only for verified Supabase accounts; local/demo callers, including the web demo, get scripted offline answers. Recommended in production once the native app is live. Unset = today's behaviour. |
