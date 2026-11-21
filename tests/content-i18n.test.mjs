@@ -57,3 +57,21 @@ test("medical screens end with a confirm-with-your-clinic line in every language
     assert.match(DICTS.fr[k], /clinique/i, k);
   });
 });
+
+test("More menu by stage: every stage lists 4 to 6 real screens, never the failed-cycle screen", async function () {
+  var { STAGE_SECTIONS, splitSections, stageOf } = await import("../lib/more-sections.js");
+  var ids = ["report", "medications", "appointments", "charts", "tww", "coaching", "videos", "community", "failed", "partner", "pregnant", "secret", "reminders", "privacy", "upgrade"];
+  Object.keys(STAGE_SECTIONS).forEach(function (stage) {
+    var list = STAGE_SECTIONS[stage];
+    assert.ok(list.length >= 4 && list.length <= 6, stage);
+    list.forEach(function (id) { assert.ok(ids.indexOf(id) !== -1, stage + ": " + id); });
+    assert.equal(list.indexOf("failed"), -1, stage);
+    assert.ok(("phase." + stage) in DICTS.en, stage);
+  });
+  var s = splitSections(ids, { phase: "tww" });
+  assert.equal(s.now[0], "tww");
+  assert.equal(s.now.length + s.rest.length, ids.length, "nothing lost");
+  assert.equal(stageOf({}), "stimulation");
+  assert.equal(stageOf({ phase: "nonsense" }), "stimulation");
+  assert.deepEqual(splitSections(["report", "privacy"], { phase: "stimulation" }), { now: ["report"], rest: ["privacy"] });
+});

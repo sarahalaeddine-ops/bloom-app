@@ -22,6 +22,7 @@ import Upgrade from "./more/Upgrade";
 import Profile from "./more/Profile";
 import Privacy from "./more/Privacy";
 import Reminders from "./more/Reminders";
+import { splitSections, stageOf } from "../../lib/more-sections";
 
 var SECTIONS = [
   { id: "report",       art: "report",    color: "#9B6DC5", Screen: Report },
@@ -52,6 +53,14 @@ export default function MoreScreen({ user, setUser, active, setActive, startTour
     var Screen = section.Screen;
     return <Screen user={user} setUser={setUser} onBack={function () { setActive(null); }} openSection={setActive} />;
   }
+
+  // Her stage's screens first (lib/more-sections.js), everything else underneath.
+  var visible = SECTIONS.filter(function (s) { return !s.hidden && !(inApp && s.webOnly); });
+  var byId = {};
+  visible.forEach(function (s) { byId[s.id] = s; });
+  var stage = stageOf(user);
+  var split = splitSections(visible.map(function (s) { return s.id; }), user);
+  function label(id) { return id === "upgrade" && plan ? t("more.plan", { p: plan.name }) : t("sec." + id); }
 
   var stats = follicleStats();
   var e2Last = latestE2(); // her own logged value; the persona's only for the demo
@@ -93,16 +102,38 @@ export default function MoreScreen({ user, setUser, active, setActive, startTour
         <span className="text-bloom-accent text-sm font-semibold">{t("more.edit")}</span>
       </button>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {SECTIONS.filter(function (s) { return !s.hidden && !(inApp && s.webOnly); }).map(function (sec) {
-          var label = sec.id === "upgrade" && plan ? t("more.plan", { p: plan.name }) : t("sec." + sec.id);
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold">{t("more.forNow", { phase: stage === "pregnant" ? t("phase.pregnant") : t("phase." + stage) })}</p>
+        <button onClick={function () { setActive("profile"); }} className="text-bloom-accent text-xs font-semibold">{t("more.changeStage")}</button>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        {split.now.map(function (id) {
+          var sec = byId[id];
           return (
-            <button key={sec.id} onClick={function () { setActive(sec.id); }}
+            <button key={id} onClick={function () { setActive(id); }}
               className="bg-white rounded-2xl p-4 border text-start transition-all active:scale-[0.98]"
               style={{ borderColor: sec.color + "30" }}>
               <div className="mb-2 -ms-1"><Illustration name={sec.art} size={60} /></div>
-              <p className="text-bloom-text text-sm font-bold mb-0.5">{label}</p>
-              <p className="text-bloom-muted text-xs leading-tight">{t("sec." + sec.id + ".d")}</p>
+              <p className="text-bloom-text text-sm font-bold mb-0.5">{label(id)}</p>
+              <p className="text-bloom-muted text-xs leading-tight">{t("sec." + id + ".d")}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-bloom-muted text-xs uppercase tracking-wider font-semibold mb-3">{t("more.everything")}</p>
+      <div className="bg-white rounded-2xl border border-bloom-border mb-4 overflow-hidden">
+        {split.rest.map(function (id) {
+          var sec = byId[id];
+          return (
+            <button key={id} onClick={function () { setActive(id); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-start border-b border-bloom-border last:border-0 active:bg-bloom-surface min-h-[56px]">
+              <Illustration name={sec.art} size={36} />
+              <span className="flex-1 min-w-0">
+                <span className="block text-bloom-text text-sm font-semibold">{label(id)}</span>
+                <span className="block text-bloom-muted text-xs truncate">{t("sec." + id + ".d")}</span>
+              </span>
+              <span className="text-bloom-dim text-sm flip-rtl" aria-hidden="true">→</span>
             </button>
           );
         })}
