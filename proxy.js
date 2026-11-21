@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 // - The real app (TESTER_PASSWORD): real accounts only, no demo. It lives at
 //   app.bloomivfcompanion.com (its homepage is served from /app) and at bloomivfcompanion.com/app.
 //   APP_OPEN=1 removes this gate on launch day. The public website at / is never gated.
+// - The pilot dashboard (/pilot, PILOT_PASSWORD): for the founder only.
 //
 // The native app (docs/sa6/app-store.md) has no cookie. For Nora's APIs only (/api/nora, the chat,
 // and /api/ai, Nora inside the screens):
@@ -16,6 +17,7 @@ import { NextResponse } from "next/server";
 // - CORS preflights (OPTIONS) go through so the route can answer them (they carry no data).
 // Otherwise they need the demo or the tester cookie; the voice-over needs the demo cookie.
 var DEMO = { cookie: "bloom_demo", salt: "bloom-demo:", env: "DEMO_PASSWORD", realm: "Bloom demo", page: "This page is private." };
+var PILOT = { cookie: "bloom_pilot", salt: "bloom-pilot:", env: "PILOT_PASSWORD", realm: "Bloom pilot", page: "This page is private." };
 var TESTERS = { cookie: "bloom_tester", salt: "bloom-tester:", env: "TESTER_PASSWORD", realm: "Bloom", page: "Bloom is not open yet." };
 var MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -100,9 +102,11 @@ export async function proxy(request) {
     return appOpen() ? pass() : gatePage(request, TESTERS, pass);
   }
 
+  if (path === "/pilot") return gatePage(request, PILOT, function () { return NextResponse.next(); });
+
   return gatePage(request, DEMO, function () { return NextResponse.next(); });
 }
 
 export const config = {
-  matcher: ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/ai", "/api/voice"],
+  matcher: ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/pilot", "/api/nora", "/api/ai", "/api/voice"],
 };

@@ -1,6 +1,6 @@
 import { buildSystemPrompt, demoReply, detectEmergency, emergencyReply, rateLimitedReply, sanitizeUser, noraProfile, NORA_PROMPT_VERSION } from "../../../lib/nora";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
-import { resolveCaller, limited, requireAuth, aiAllowedFor } from "../../../lib/ai-server";
+import { resolveCaller, limited, requireAuth, aiAllowedFor, noteUsage } from "../../../lib/ai-server";
 import { withCors, preflight } from "../../../lib/cors";
 
 // Nora chat. Calls the Anthropic Messages API server-side so the key never reaches the browser.
@@ -162,6 +162,7 @@ async function handle(request) {
     });
     var text = (data.content || []).filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("\n").trim();
     if (!text) return Response.json({ text: offline(), demo: true, ...flags });
+    await noteUsage("nora_chat");
     return Response.json({ text: text, ...flags });
   } catch (err) {
     console.error("Nora API error:", err.name === "TimeoutError" ? "timeout" : err.message);
