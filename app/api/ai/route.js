@@ -1,6 +1,6 @@
 import { buildTask, checkAnswer, requestError, sanitizeContext, AI_PROMPT_VERSION, MAX_FILE_B64 } from "../../../lib/ai-tasks";
 import { noraProfile, detectEmergency } from "../../../lib/nora";
-import { resolveCaller, limited, requireAuth, aiAllowedFor, callTask, noteUsage } from "../../../lib/ai-server";
+import { resolveCaller, limited, aiAllowedFor, callTask, noteUsage, liveAiWithoutAccount, withinDailyLimit } from "../../../lib/ai-server";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
 import { withCors, preflight } from "../../../lib/cors";
 
@@ -93,9 +93,14 @@ async function handle(request) {
     context = { ...ctx, checkins: storedList(st, "checkins", ctx.checkins), scans: storedList(st, "scans", ctx.scans) };
   }
 
-  if (caller.mode !== "user" && requireAuth()) return offline("account", flags);
+  // Without a verified account, live AI only for the investor demo (lib/ai-server.js).
+  if (caller.mode !== "user" && !(await liveAiWithoutAccount(request))) return offline("account", flags);
   if (!aiAllowedFor(caller, body)) return offline("consent", flags);
   if (!process.env.ANTHROPIC_API_KEY) return offline("unavailable", flags);
+
+  if (!(await withinDailyLimit(caller, "ai_" + task))) {
+    return Response.json({ error: "Too many requests", ...flags }, { status: 429, headers: { "Retry-After": "3600" } });
+  }
 
   var req = buildTask(task, { user: user, context: sanitizeContext(context), text: body.text, file: body.file, appt: body.appt }, lang);
   var started = Date.now();

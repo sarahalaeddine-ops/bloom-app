@@ -1,6 +1,6 @@
 import { buildSystemPrompt, demoReply, detectEmergency, emergencyReply, rateLimitedReply, sanitizeUser, noraProfile, NORA_PROMPT_VERSION } from "../../../lib/nora";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
-import { resolveCaller, limited, requireAuth, aiAllowedFor, noteUsage } from "../../../lib/ai-server";
+import { resolveCaller, limited, aiAllowedFor, noteUsage, liveAiWithoutAccount, withinDailyLimit } from "../../../lib/ai-server";
 import { withCors, preflight } from "../../../lib/cors";
 
 // Nora chat. Calls the Anthropic Messages API server-side so the key never reaches the browser.
@@ -123,12 +123,15 @@ async function handle(request) {
   var offline = function () { return demoReply(last, lang, { persona: profile.persona }); };
 
   // Live AI only for verified accounts when NORA_REQUIRE_AUTH is on.
-  if (caller.mode !== "user" && requireAuth()) return Response.json({ text: offline(), demo: true, authRequired: true, ...flags });
+  // Without a verified account, live AI only for the investor demo (lib/ai-server.js).
+  if (caller.mode !== "user" && !(await liveAiWithoutAccount(request))) return Response.json({ text: offline(), demo: true, authRequired: true, ...flags });
 
   if (!aiAllowedFor(caller, body)) return Response.json({ text: offline(), demo: true, aiOff: true, ...flags });
 
   var key = process.env.ANTHROPIC_API_KEY;
   if (!key) return Response.json({ text: offline(), demo: true, ...flags });
+
+  if (!(await withinDailyLimit(caller, "nora_chat"))) return tooMany({ retryAfter: 3600 });
 
   var model = process.env.NORA_MODEL || DEFAULT_MODEL;
   var started = Date.now();

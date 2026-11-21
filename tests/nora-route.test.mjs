@@ -1,5 +1,11 @@
 import { test, before, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+
+// Local (no account) callers get live AI only through the investor demo: requests carry its cookie
+// unless a test says otherwise (lib/ai-server.js liveAiWithoutAccount).
+process.env.DEMO_PASSWORD = "demo-pw";
+var DEMO_COOKIE = "bloom_demo=" + createHash("sha256").update("bloom-demo:demo-pw").digest("hex");
 
 var POST;
 var realFetch = globalThis.fetch;
@@ -21,11 +27,11 @@ afterEach(function () {
 });
 
 var ipCounter = 0;
-function req(body, ip) {
+function req(body, ip, cookie) {
   ipCounter++;
   return new Request("http://localhost/api/nora", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": ip || "10.0." + Math.floor(ipCounter / 250) + "." + (ipCounter % 250) },
+    headers: { "content-type": "application/json", "x-forwarded-for": ip || "10.0." + Math.floor(ipCounter / 250) + "." + (ipCounter % 250), cookie: cookie === undefined ? DEMO_COOKIE : cookie },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -412,4 +418,20 @@ test("cloud: the AI path follows the consent stored in her row, not the client's
   noCloud();
   assert.equal(data.text, "Live answer", "AI consent without cloud sync: live, with the client's sanitised profile");
   assert.match(calls.find(function (c) { return c.url.indexOf("anthropic") !== -1; }).body.system, /Client Clinic/);
+});
+
+test("without an account, live AI only through the investor demo: the tester cookie alone gets offline answers", async function () {
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  process.env.TESTER_PASSWORD = "testers";
+  var calls = mockAnthropic({ body: { content: [{ type: "text", text: "Live" }], usage: {} } });
+  var tester = "bloom_tester=" + createHash("sha256").update("bloom-tester:testers").digest("hex");
+  var a = await (await POST(req(ask("hi", { ai: true }), undefined, tester))).json();
+  var b = await (await POST(req(ask("hi", { ai: true }), undefined, ""))).json();
+  delete process.env.TESTER_PASSWORD;
+  assert.equal(a.demo, true);
+  assert.equal(a.authRequired, true);
+  assert.equal(b.authRequired, true);
+  assert.equal(calls.length, 0, "no Anthropic call");
+  var live = await (await POST(req(ask("hi", { ai: true })))).json();
+  assert.equal(live.text, "Live", "the demo cookie gets live answers");
 });
