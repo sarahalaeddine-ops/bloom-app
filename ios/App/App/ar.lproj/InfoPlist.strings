@@ -1,2 +1,5 @@
 /* Face ID permission text (iOS shows it the first time Bloom asks). Keep in step with Info.plist. */
 "NSFaceIDUsageDescription" = "يستخدم Bloom بصمة الوجه لفتح يومياتكِ الخاصة وبيانات دورة أطفال الأنابيب. لا تغادر بيانات وجهكِ جهاز iPhone أبدًا.";
+/* Voice typing (iOS asks the first time she taps the microphone). Keep in step with Info.plist. */
+"NSMicrophoneUsageDescription" = "يستخدم Bloom الميكروفون فقط عندما تضغطين على زر الميكروفون، لتتحدثي بدل الكتابة. لا يسجّل Bloom الصوت ولا يحتفظ به أبدًا.";
+"NSSpeechRecognitionUsageDescription" = "يحوّل Bloom ما تقولينه إلى نص في تسجيلكِ اليومي وملاحظاتكِ ومحادثتكِ مع نورا. تقوم بذلك خدمة التعرّف على الكلام من Apple، ولا يحتفظ Bloom إلا بالنص الذي ترينه.";

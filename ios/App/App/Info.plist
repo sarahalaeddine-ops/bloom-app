@@ -30,6 +30,10 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Bloom uses Face ID to unlock your private IVF journal and cycle data. Your face data never leaves your iPhone.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Bloom uses the microphone only while you tap the microphone button, so you can speak instead of typing. Bloom never records or keeps the audio.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Bloom turns what you say into text in your check-in, your notes and your chat with Nora. Apple's speech recognition does this; Bloom keeps only the text you see.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

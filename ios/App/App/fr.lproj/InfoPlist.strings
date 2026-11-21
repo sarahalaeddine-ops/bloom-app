@@ -1,2 +1,5 @@
 /* Face ID permission text (iOS shows it the first time Bloom asks). Keep in step with Info.plist. */
 "NSFaceIDUsageDescription" = "Bloom utilise Face ID pour déverrouiller votre journal FIV privé et les données de votre cycle. Les données de votre visage ne quittent jamais votre iPhone.";
+/* Voice typing (iOS asks the first time she taps the microphone). Keep in step with Info.plist. */
+"NSMicrophoneUsageDescription" = "Bloom utilise le micro uniquement quand vous touchez le bouton micro, pour parler au lieu d'écrire. Bloom n'enregistre ni ne garde jamais l'audio.";
+"NSSpeechRecognitionUsageDescription" = "Bloom transforme ce que vous dites en texte dans votre suivi, vos notes et votre discussion avec Nora. La reconnaissance vocale d'Apple s'en charge ; Bloom ne garde que le texte que vous voyez.";

@@ -280,7 +280,10 @@ All free and open source. Only `@capacitor/core` and lazily loaded plugin wrappe
 | `@capacitor/splash-screen` | ^8.0.2 | MIT | Native launch screen in Bloom colours, hidden once the app is ready. |
 | `@capacitor/keyboard` | ^8.0.5 | MIT | Resizes the view when the keyboard opens so the chat box stays visible (`resize: native`). |
 | `@capacitor/privacy-screen` | ^2.0.1 | MIT | Hides her data in the app switcher while the app lock is on. |
-| `@capgo/capacitor-native-biometric` | ^8.6.11 | **MPL-2.0** | Face ID / Touch ID / fingerprint unlock. **The only non-official package.** |
+| `@capgo/capacitor-native-biometric` | ^8.6.11 | **MPL-2.0** | Face ID / Touch ID / fingerprint unlock. |
+| `@capgo/capacitor-speech-recognition` (founder-approved 2026-11-21) | ^8.6.0 | **MPL-2.0** | Voice typing in the app (`lib/dictation.js`): the WebView has no usable Web Speech API, so the app uses Apple's Speech framework and Android's `SpeechRecognizer`. |
+
+**Why this speech plugin.** `@capacitor-community/speech-recognition` (MIT) was tried first, but its latest release (7.0.1, June 2025) has no `Package.swift`, so it can't join our Swift Package Manager iOS project. Capgo's plugin supports SPM and Capacitor 8 (peer dependency only), from the same maintainer as the biometric plugin; same MPL-2.0 terms (below). Audio stays with the phone's speech service: Bloom receives only the text.
 
 **Why this biometric plugin.** There is no official Capacitor biometrics plugin. The two candidates were `@capgo/capacitor-native-biometric` and `@aparajita/capacitor-biometric-auth`. We picked Capgo because: it declares Capacitor 8 as a peer dependency only (the other one pins `@capacitor/android`, `/ios`, `/app`, `/core` as hard dependencies, which risks duplicate native versions); it was updated in September 2026 (the other in February 2026); it supports Swift Package Manager, which our iOS project uses; and it can later keep the Supabase refresh token in the iOS Keychain / Android Keystore (gap G5) without another package. Licence: MPL-2.0 is file-level copyleft; using it unmodified in a closed app is fine, and only changes to its own files would have to be published. Keep the licence notice in the app's open-source notices.
 
@@ -301,12 +304,14 @@ Not added: `@capacitor/push-notifications` (server push is phase 2 and adds Fire
 |---|---|---|
 | iOS | `NSFaceIDUsageDescription` | "Bloom uses Face ID to unlock your private IVF journal and cycle data. Your face data never leaves your iPhone." Translated in `ios/App/App/{en,ar,fr}.lproj/InfoPlist.strings` (registered in the Xcode project; `knownRegions` now en, ar, fr). The in-app biometric prompt texts (`bio.*`) were already translated. |
 | iOS | Notifications | Asked at runtime when she turns reminders on (no Info.plist key needed). |
+| iOS | `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription` | Voice typing, asked the first time she taps the microphone. "Bloom uses the microphone only while you tap the microphone button, so you can speak instead of typing. Bloom never records or keeps the audio." / "Bloom turns what you say into text in your check-in, your notes and your chat with Nora. Apple's speech recognition does this; Bloom keeps only the text you see." In en/ar/fr `InfoPlist.strings`. |
 | iOS | `ITSAppUsesNonExemptEncryption = false` | Bloom only uses standard encryption (HTTPS, AES in the browser crypto API). Confirm in App Store Connect's export compliance questions. |
 | Android | `POST_NOTIFICATIONS` | Reminders (Android 13+ asks at runtime). |
 | Android | `USE_BIOMETRIC` | Face / fingerprint unlock. |
 | Android | `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK` | Added by the notifications plugin: restores scheduled reminders after a restart. |
 | Android | `SCHEDULE_EXACT_ALARM` | **Removed** on purpose (see 11, row 8). |
 | Android | `INTERNET` | Accounts, sync, Nora. |
+| Android | `RECORD_AUDIO` (+ `<queries>` for `android.speech.RecognitionService`) | Voice typing; Android asks the first time she taps the microphone. |
 
 ### 13.5 Real accounts vs the demo
 Done (2026-09-28). A real account only ever sees what she entered:
@@ -536,5 +541,7 @@ Notes: Face ID / fingerprint data never reaches Bloom (not collected). Data kept
 | Health and fitness → **Health info** | Yes | Optional (only synced with her cloud consent) | App functionality |
 | Messages → **Other in-app messages** (Nora chats) | Yes | Optional (AI consent / cloud consent) | App functionality |
 | App activity, Location, Financial, Photos, Audio, Files, Calendar, Contacts, Web browsing, Device IDs, App info and performance | No | | |
+
+**Since 2026-11-21, review before submitting:** voice typing audio is handled by the phone's own speech service and never reaches Bloom (Audio: not collected by the app, but confirm Apple's and Google's guidance for OS speech recognition). Photos or PDFs of results she chooses for "Read my results" are sent through Bloom's server to Anthropic and not stored: likely **Photos** (or **Files and docs**) "collected", processed ephemerally, for App functionality. Confirm both with the lawyer.
 
 Also in Play Console → App content: **Health apps** declaration (reproductive / fertility health), **Target audience** 18+, **Ads**: no ads, **Government app**: no, **Financial features**: none.
