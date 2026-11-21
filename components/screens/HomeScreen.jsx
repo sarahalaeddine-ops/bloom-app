@@ -13,6 +13,7 @@ import { getTodayMedLog, doseEntry, getCheckins, follicleStats, latestFollicles,
 import { dosesOn, upcomingAppts, fmtClock, apptAt, daysBetween } from "../../lib/schedule";
 import { apptLabel, relDay } from "../ScheduleForms";
 import ScanLog, { ScanEmpty } from "../ScanLog";
+import NoraBrief from "../ui/NoraBrief";
 
 function greeting() {
   var h = new Date().getHours();
@@ -80,6 +81,9 @@ export default function HomeScreen({ user, openMore, goTab }) {
         </div>
         {(protocol || clinic) && <p className="relative text-bloom-muted text-xs text-center mt-2">{protocol ? t("home.protocol", { p: "⁨" + protocol + "⁩" }) : ""}{protocol && clinic ? " · " : ""}{clinic ? <bdi>{clinic}</bdi> : null}</p>}
       </div>
+
+      <NoraBrief user={user} doses={doses} next={next} lastCheckin={getCheckins()[0] || null} goTab={goTab} openMore={openMore}
+        takenCount={doses.filter(function (d) { var e = doseEntry(log, d.med.id, d.time); return e && e.status === "taken"; }).length} />
 
       <Stories user={user} openMore={openMore} />
 

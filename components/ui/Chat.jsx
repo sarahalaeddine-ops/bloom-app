@@ -2,6 +2,8 @@
 import { useEffect, useRef } from "react";
 import { useT } from "../../lib/i18n";
 import { BloomFlower, Illustration } from "./Graphics";
+import MicButton from "./MicButton";
+import { appendSpoken } from "../../lib/dictation";
 
 // Nora gets the Bloom flower; Secret Space gets the locked journal.
 function Avatar({ mark }) {
@@ -38,14 +40,18 @@ export function Typing({ mark = "✦" }) {
   );
 }
 
+// Text box at the bottom of the Nora chat and Secret Space, with voice typing (MicButton).
 export function ChatInput({ value, onChange, onSend, disabled, placeholder, bottom = "bottom-[64px]" }) {
   var { t } = useT();
+  var valueRef = useRef(value);
+  useEffect(function () { valueRef.current = value; });
   return (
     <div className={"fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 py-3 bg-white border-t border-bloom-border flex gap-2 z-40 " + bottom}>
       <textarea value={value} onChange={function (e) { onChange(e.target.value); }}
         onKeyDown={function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
         placeholder={placeholder} rows={1} aria-label={placeholder} dir="auto"
         className="flex-1 bg-bloom-surface border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none focus:border-bloom-accent" />
+      <MicButton onText={function (x) { onChange(appendSpoken(valueRef.current, x)); }} />
       <button onClick={function () { onSend(); }} disabled={disabled || !value.trim()} aria-label={t("chat.send")}
         className="w-11 h-11 bg-bloom-accent rounded-xl flex items-center justify-center text-white disabled:opacity-40">
         <span className="flip-rtl">→</span>

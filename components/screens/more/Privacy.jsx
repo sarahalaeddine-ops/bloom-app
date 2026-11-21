@@ -199,6 +199,10 @@ export default function Privacy({ onBack, user, setUser }) {
             <span className="text-bloom-text font-semibold">{t("priv.noraLabel")}</span>
             {t("priv.noraBody")}
           </p>
+          <p className="text-bloom-muted text-xs mb-2 px-1">
+            <span className="text-bloom-text font-semibold">{t("priv.voiceLabel")}</span>
+            {t("priv.voiceBody")}
+          </p>
           {counts.map(function (c) {
             return (
               <div key={c[0]} className="flex justify-between py-2 border-t border-bloom-border first:border-0 text-sm">

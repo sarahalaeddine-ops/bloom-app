@@ -6,6 +6,46 @@ import { Illustration } from "../../ui/Graphics";
 import { useT } from "../../../lib/i18n";
 import { upcomingAppts, pastAppts, apptAt, apptColor, fmtClock } from "../../../lib/schedule";
 import { ApptForm, apptLabel, relDay } from "../../ScheduleForms";
+import { cachedPrep, loadPrep } from "../../../lib/ai-client";
+
+// "Prepare with Nora" (lib/ai-tasks.js "prep"): questions to ask and a summary of her last days to
+// show her doctor, for one upcoming appointment. Kept on this device per appointment.
+function Prep({ user, apt, label, color }) {
+  var { t, lang } = useT();
+  var [prep, setPrep] = useState(function () { return cachedPrep(apt.id, lang); });
+  var [loading, setLoading] = useState(false);
+  var [problem, setProblem] = useState(null);
+
+  async function load(force) {
+    setLoading(true);
+    setProblem(null);
+    var out = await loadPrep(user, lang, apt, label, force);
+    setLoading(false);
+    if (out.prep) setPrep(out.prep);
+    else setProblem(out.reason === "consent" ? "consent" : out.error === "busy" ? "busy" : "unavailable");
+  }
+
+  if (!prep) {
+    return (
+      <div className="mt-3">
+        <button onClick={function () { load(false); }} disabled={loading} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60" style={{ backgroundColor: color }}>
+          ✦ {loading ? t("prep.loading") : t("prep.cta")}
+        </button>
+        {problem && <p className="text-bloom-muted text-xs mt-2" role="status">{problem === "consent" ? t("ai.needsConsent") : problem === "busy" ? t("ai.busy") : t("ai.unavailable")}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 rounded-xl p-3 bg-bloom-surface" aria-live="polite">
+      <p className="text-bloom-text text-xs font-bold mb-1.5">✦ {t("prep.questions")}</p>
+      <ul className="space-y-1 mb-3">{prep.questions.map(function (q, i) { return <li key={i} className="text-bloom-text text-xs leading-relaxed flex gap-2"><span aria-hidden="true">•</span><bdi>{q}</bdi></li>; })}</ul>
+      <p className="text-bloom-text text-xs font-bold mb-1.5">{t("prep.summary")}</p>
+      <ul className="space-y-1 mb-2">{prep.summary.map(function (q, i) { return <li key={i} className="text-bloom-muted text-xs leading-relaxed flex gap-2"><span aria-hidden="true">•</span><bdi>{q}</bdi></li>; })}</ul>
+      <p className="text-bloom-dim text-[11px] mb-2">{t("ai.notMedical")}</p>
+      <button onClick={function () { load(true); }} disabled={loading} className="text-xs font-semibold disabled:opacity-60" style={{ color: color }}>{loading ? t("prep.loading") : t("prep.again")}</button>
+    </div>
+  );
+}
 
 // Illustration per appointment type (sa5), keyed by lib/schedule.js APPT_KINDS.
 var APPT_ART = { scan: "scan", bloods: "lab", consult: "clinic", trigger: "phone", retrieval: "egg", transfer: "embryo", beta: "lab", other: "calendar" };
@@ -100,6 +140,7 @@ export default function Appointments({ onBack, user }) {
               )}
               <button onClick={function () { setEditing(apt); }} className="text-xs font-semibold px-3 py-2 rounded-lg min-h-[36px] bg-bloom-surface text-bloom-text">{t("sched.edit")}</button>
             </div>
+            {!faded && <Prep user={user} apt={apt} label={label} color={color} />}
           </div>
         )}
       </div>
