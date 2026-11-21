@@ -96,7 +96,7 @@ export default function CheckInScreen({ user, openMore }) {
         <p className="text-bloom-accent text-xs uppercase tracking-wider font-semibold mb-1">✦ {t("tl.title")}</p>
         <p className="text-bloom-muted text-xs mb-3">{t("tl.sub")}</p>
         <div className="flex gap-2 items-start">
-          <textarea value={said} onChange={function (e) { setSaid(e.target.value); }} placeholder={t("tl.ph")} aria-label={t("tl.title")} dir="auto" maxLength={1500}
+          <textarea id="tl-text" value={said} onChange={function (e) { setSaid(e.target.value); }} placeholder={t("tl.ph")} aria-label={t("tl.title")} dir="auto" maxLength={1500}
             className="flex-1 bg-white border border-bloom-border rounded-xl px-3 py-2.5 text-bloom-text text-sm outline-none resize-none h-20 focus:border-bloom-accent" />
           <MicButton onText={function (x) { setSaid(function (p) { return appendSpoken(p, x); }); }} />
         </div>
