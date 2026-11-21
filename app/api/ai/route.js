@@ -1,6 +1,6 @@
 import { buildTask, checkAnswer, requestError, sanitizeContext, AI_PROMPT_VERSION, MAX_FILE_B64 } from "../../../lib/ai-tasks";
 import { noraProfile, detectEmergency } from "../../../lib/nora";
-import { resolveCaller, limited, requireAuth, aiAllowedFor, callTask } from "../../../lib/ai-server";
+import { resolveCaller, limited, requireAuth, aiAllowedFor, callTask, noteUsage } from "../../../lib/ai-server";
 import { createRateLimiter, clientIp } from "../../../lib/rate-limit";
 import { withCors, preflight } from "../../../lib/cors";
 
@@ -108,6 +108,7 @@ async function handle(request) {
     });
     var answer = checkAnswer(task, out.json, { urgent: urgent });
     if (!answer) return offline("failed", flags);
+    await noteUsage("ai_" + task);
     return Response.json({ [task]: answer, ...flags });
   } catch (err) {
     console.error("Nora task error:", task, err.name === "TimeoutError" ? "timeout" : err.message);

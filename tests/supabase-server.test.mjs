@@ -121,3 +121,32 @@ test("isUuid", function () {
   assert.ok(!isUuid(ID + "x"));
   assert.ok(!isUuid(null));
 });
+
+test("pilot measurement: counts and stats go through the service-role RPCs, and never throw", async function () {
+  var mod = await import("../lib/supabase-server.js");
+  var cfg = { url: "https://proj.supabase.co", anonKey: "anon" };
+  var calls = [];
+  var real = globalThis.fetch;
+  globalThis.fetch = async function (url, init) {
+    calls.push({ url: String(url), init: init });
+    if (String(url).endsWith("bloom_pilot_stats")) return new Response(JSON.stringify({ accounts: 3, weeks: [], cohorts: [] }), { status: 200 });
+    return new Response(null, { status: 204 });
+  };
+  try {
+    await mod.countUsage(cfg, "sb_secret_abc", "ai_brief");
+    assert.equal(calls[0].url, "https://proj.supabase.co/rest/v1/rpc/bloom_count");
+    assert.deepEqual(JSON.parse(calls[0].init.body), { event_name: "ai_brief" });
+    assert.equal(calls[0].init.headers.apikey, "sb_secret_abc");
+    await mod.countUsage(cfg, "sb_secret_abc", "Bad Event!");
+    await mod.countUsage(null, "sb_secret_abc", "ai_brief");
+    await mod.countUsage(cfg, "", "ai_brief");
+    assert.equal(calls.length, 1, "bad names and missing setup send nothing");
+    assert.deepEqual(await mod.pilotStats(cfg, "sb_secret_abc"), { stats: { accounts: 3, weeks: [], cohorts: [] } });
+    assert.deepEqual(await mod.pilotStats(cfg, ""), { error: "unavailable" });
+    globalThis.fetch = async function () { throw new Error("down"); };
+    await mod.countUsage(cfg, "sb_secret_abc", "ai_brief");
+    assert.deepEqual(await mod.pilotStats(cfg, "sb_secret_abc"), { error: "unavailable" });
+  } finally {
+    globalThis.fetch = real;
+  }
+});

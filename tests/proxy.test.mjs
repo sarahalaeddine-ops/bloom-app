@@ -10,10 +10,10 @@ function testerToken(pw) { return createHash("sha256").update("bloom-tester:" + 
 function basic(pw) { return "Basic " + Buffer.from("anyone:" + pw).toString("base64"); }
 function passedThrough(res) { return res.status === 200 && res.headers.get("x-middleware-next") === "1"; }
 
-afterEach(function () { delete process.env.DEMO_PASSWORD; delete process.env.TESTER_PASSWORD; delete process.env.APP_OPEN; });
+afterEach(function () { delete process.env.DEMO_PASSWORD; delete process.env.TESTER_PASSWORD; delete process.env.APP_OPEN; delete process.env.PILOT_PASSWORD; });
 
-test("runs on the homepage, the real app, the demo page, Nora's APIs and the demo voice-over only", function () {
-  assert.deepEqual(config.matcher, ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/api/nora", "/api/ai", "/api/voice"]);
+test("runs on the homepage, the real app, the demo page, the pilot dashboard, Nora's APIs and the demo voice-over only", function () {
+  assert.deepEqual(config.matcher, ["/", "/app", "/app/:path*", "/demo-7q4x", "/demo-7q4x/:path*", "/pilot", "/api/nora", "/api/ai", "/api/voice"]);
 });
 
 test("voice-over API needs the demo cookie; the native app's Bearer pass is for Nora only", async function () {
@@ -116,4 +116,15 @@ test("Nora-in-the-screens API (/api/ai) has the same gate as the Nora chat", asy
   assert.ok(passedThrough(await proxy(req("/api/ai", { cookie: "bloom_demo=" + token("pw-123") }))));
   assert.ok(passedThrough(await proxy(req("/api/ai", { cookie: "bloom_tester=" + testerToken("testers-1") }))));
   assert.ok(passedThrough(await proxy(req("/api/ai", { authorization: "Bearer abc.def.ghi" }))));
+});
+
+test("the pilot dashboard has its own password: the demo and tester passwords don't open it", async function () {
+  process.env.DEMO_PASSWORD = "pw-123";
+  process.env.TESTER_PASSWORD = "testers-1";
+  assert.equal((await proxy(req("/pilot", { authorization: basic("pw-123") }))).status, 401, "locked without PILOT_PASSWORD");
+  process.env.PILOT_PASSWORD = "founder-1";
+  assert.equal((await proxy(req("/pilot", { authorization: basic("testers-1"), cookie: "bloom_demo=" + token("pw-123") }))).status, 401);
+  var ok = await proxy(req("/pilot", { authorization: basic("founder-1") }));
+  assert.ok(passedThrough(ok));
+  assert.match(ok.headers.get("set-cookie"), /bloom_pilot=/);
 });

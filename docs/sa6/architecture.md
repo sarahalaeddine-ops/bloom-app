@@ -119,6 +119,13 @@ Design principles:
 - **Privacy impact:** new data sent to Anthropic with AI consent: check-in scores, feelings, symptoms and weight (never journal notes), latest scans, today's dose count, the words given to Tell Nora and results files she chooses. Consent text, Privacy Centre and the privacy policy updated; consent version `2026-11-21-draft3`, so existing users are asked again. **Lawyer:** review the new wording, and whether sending photos of medical documents needs extra steps (UAE health data law, UK GDPR Art. 9).
 - **Not verified live:** no Anthropic key in development; routes and screens are tested with a mocked API. Check each feature once on the live site after deploying.
 
+### 3.10 Pilot measurement (2026-11-21)
+- **Founder decision:** measure the pilot from accounts only; no tracking in the app.
+- **`activity_days`** (user id + UTC day, written by a trigger on `user_state` insert/update): "active" means her synced data changed that day. Only accounts with cloud sync count (consent-only rows count on the day consent changes). Deleted with her account.
+- **`usage_daily`** (day, event, count): `nora_chat` (a live Nora reply) and `ai_brief`, `ai_log`, `ai_results`, `ai_prep` (a checked answer from `/api/ai`), incremented by the server with the service-role key (`bloom_count`). No user id, no content. Skipped silently without Supabase or `SUPABASE_SERVICE_ROLE_KEY`.
+- **`/pilot`** (`app/pilot/page.jsx`, behind `PILOT_PASSWORD`): weekly sign-ups, active accounts, feature counts and week 1/2/4 return rates from `bloom_pilot_stats()`. Both functions are `security definer` and executable by `service_role` only; RLS on, no policies, so users can't read the tables. Tested on a local PostgreSQL 16 with an `auth` stub (schema re-run is idempotent).
+- **Privacy:** the privacy policy's Supabase line now mentions activity days and the anonymous feature counts.
+
 ### 3.5 Schema: `supabase/schema.sql`
 - `public.user_state(user_id uuid pk → auth.users on delete cascade, data jsonb, updated_at)`.
 - `public.consent_events(id, user_id → auth.users on delete cascade, version, cloud, ai, created_at)`: append-only consent log. RLS: select and insert own rows only, no update/delete policies; a trigger sets `created_at = now()` so the client can't back-date a consent.
@@ -185,6 +192,7 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | `ANTHROPIC_API_KEY` | `app/api/nora/route.js` | Yes | Enables live Nora. Unset = scripted replies. |
 | `NORA_MODEL` | `app/api/nora/route.js` | No | Default `claude-sonnet-4-6`. |
 | `NORA_TASK_MODEL` | `lib/ai-server.js` | No | Model for Nora inside the screens. Default `claude-opus-5-5`. |
+| `PILOT_PASSWORD` | `proxy.js` | No | Unlocks the private `/pilot` dashboard (cookie `bloom_pilot`). Unset = locked. |
 | `BLOB_READ_WRITE_TOKEN` | `app/api/waitlist/route.js` | Yes | Set automatically when a Vercel Blob store is connected. |
 | `NEXT_PUBLIC_SUPABASE_URL` | `lib/supabase.js` | No (public) | Enables cloud mode with the key below. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) | `lib/supabase.js`, `lib/supabase-server.js` | No (public, RLS protects data) | Never put the service-role key in a `NEXT_PUBLIC_` var. |
@@ -209,6 +217,8 @@ All optional. Without any of them Bloom runs as an offline demo (but the gated d
 | Secret Space | `bloom_secret_vault` (ciphertext) | Cloud sync as ciphertext only. **Never sent to Anthropic.** | Supabase (cannot read it) |
 | App-lock PIN hash, biometric-unlock setting, other local accounts, language, fired-reminder ids | `LOCAL_ONLY` keys | Never | none |
 | Consent record (version, choices, time) | `bloom_consent`; `consent_events` and `user_state.data.consent` for cloud accounts | Cloud accounts only (also without cloud-sync consent: it is the record of that choice) | Supabase |
+| Activity days (user id + date her synced data changed) | `activity_days` | Cloud accounts only; never sent elsewhere | Supabase |
+| Feature use counts (day, feature, total) | `usage_daily` | Not personal: no user id | Supabase |
 | Waitlist email | Vercel Blob (private) | Yes | Vercel |
 | Server logs | Vercel function logs | n/a | Vercel. Nora logs hold token counts only. |
 
@@ -315,6 +325,7 @@ Effort: S ≤ 2 days, M ≤ 1–2 weeks, L > 2 weeks. Costs are running costs on
 10. Community has no shared backend: posts stay on her device. Decide whether to build moderated rooms (new data flow, moderation, legal review) or hide Community in the app until then.
 
 ## 12. Change log
+- 2026-11-21 (pilot): More menu by stage (`lib/more-sections.js`); pilot measurement from accounts only (3.10): `activity_days`, `usage_daily`, `bloom_pilot_stats()`, `/pilot` behind `PILOT_PASSWORD`.
 - 2026-11-21: Nora inside the screens (`/api/ai`: Today with Nora, Tell Nora, Read my results, Prepare with Nora; Claude Opus 5.5, structured outputs) and voice typing (3.9). Shared caller/consent/limit helpers moved to `lib/ai-server.js`. Consent `2026-11-21-draft3`; privacy policy and Privacy Centre updated. Investor film's journal step now targets `#ci-journal`.
 - 2026-09-29 (merge with sa5's design, PRs #10/#11): sa5's new Home widgets follow the real-user rule: Sleep starts empty for real accounts (`lib/sleep.js`, seeded week demo-only), My cycle stats and the lead-follicle chart use her own scans (`hormoneSeries()`) with an empty state, the cycle calendar shows her own appointments (`lib/schedule.js`) and stim days only if she gave her stim day, the daily tiles have no persona fallback; partner preview shows only her data. All new sa5 strings in en/ar/fr.
 - 2026-09-29: Eight English-only screens, the Insights articles, the review board sheet and Upgrade translated (en/ar/fr, `lib/i18n-more.js`, `lib/articles-i18n.js`); fictional therapists replaced by one real coach, Tatiana F. Kutteh (`COACHES`, Coaching screen, onboarding "Meet a coach"); seeded Community posts hidden for real accounts and in the app (`lib/community.js`); new tests for i18n key usage, content keys, coaches and community.
