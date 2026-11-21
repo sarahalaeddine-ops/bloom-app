@@ -49,4 +49,13 @@
     <!-- Bloom v1 uses inexact reminders (allowWhileIdle), not exact alarms: remove the permission the
          local-notifications plugin declares so no Play Console exact-alarm declaration is needed. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <!-- Voice typing (lib/dictation.js): Android asks her the first time she taps the microphone.
+         The speech plugin also declares it; listed here so the app's permissions are in one place. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Android 11+ package visibility: lets Bloom find the phone's speech recognition service. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 </manifest>
