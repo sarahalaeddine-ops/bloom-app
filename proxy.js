@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { DEMO, PILOT, TESTERS, passToken, expectedToken, sameToken, hasGateCookie } from "./lib/gates";
+import { createRateLimiter, clientIp } from "./lib/rate-limit";
 
 // Two password gates, each asked once by the browser (any username works) and then remembered by a
 // cookie for 30 days. Without its password set, a gate stays locked.
@@ -16,33 +18,21 @@ import { NextResponse } from "next/server";
 //   Supabase session itself and answers 401 when it is not valid;
 // - CORS preflights (OPTIONS) go through so the route can answer them (they carry no data).
 // Otherwise they need the demo or the tester cookie; the voice-over needs the demo cookie.
-var DEMO = { cookie: "bloom_demo", salt: "bloom-demo:", env: "DEMO_PASSWORD", realm: "Bloom demo", page: "This page is private." };
-var PILOT = { cookie: "bloom_pilot", salt: "bloom-pilot:", env: "PILOT_PASSWORD", realm: "Bloom pilot", page: "This page is private." };
-var TESTERS = { cookie: "bloom_tester", salt: "bloom-tester:", env: "TESTER_PASSWORD", realm: "Bloom", page: "Bloom is not open yet." };
 var MAX_AGE = 60 * 60 * 24 * 30;
 
-async function passToken(gate, password) {
-  var bytes = new TextEncoder().encode(gate.salt + password);
-  var hash = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hash)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+// Wrong passwords: after 10 in 15 minutes from one address, that address gets "Too many attempts"
+// for the rest of the window, so a shared password can't be guessed by trying a word list.
+// In-memory, per server instance (lib/rate-limit.js), like the API limits.
+var wrongPasswords = createRateLimiter({ limit: 10, windowMs: 15 * 60 * 1000 });
+
+var blocked = new Map(); // gate + address -> blocked until (ms)
+
+function tooMany() {
+  return new Response("Too many attempts. Please try again later.", { status: 429, headers: { "Retry-After": "900" } });
 }
 
-function expectedToken(gate) {
-  var password = process.env[gate.env];
-  return password ? passToken(gate, password) : Promise.resolve(null);
-}
-
-// Compares two hex tokens without stopping at the first difference.
-function sameToken(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  var diff = 0;
-  for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-async function hasCookie(request, gate) {
-  var expected = await expectedToken(gate);
-  return !!expected && sameToken(request.cookies.get(gate.cookie)?.value, expected);
+function hasCookie(request, gate) {
+  return hasGateCookie(request, gate);
 }
 
 function passwordFromHeader(header) {
@@ -71,10 +61,20 @@ async function gatePage(request, gate, pass) {
   var expected = await expectedToken(gate);
   if (expected && sameToken(request.cookies.get(gate.cookie)?.value, expected)) return pass();
   var given = passwordFromHeader(request.headers.get("authorization"));
-  if (expected && given !== null && sameToken(await passToken(gate, given), expected)) {
-    var res = pass();
-    res.cookies.set(gate.cookie, expected, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: MAX_AGE });
-    return res;
+  if (given !== null) {
+    var key = gate.cookie + ":" + clientIp(request);
+    if (blocked.has(key) && blocked.get(key) > Date.now()) return tooMany();
+    if (expected && sameToken(await passToken(gate, given), expected)) {
+      var res = pass();
+      res.cookies.set(gate.cookie, expected, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: MAX_AGE });
+      return res;
+    }
+    var hit = wrongPasswords.check(key);
+    if (!hit.ok) {
+      if (blocked.size > 10000) blocked.forEach(function (until, k) { if (until <= Date.now()) blocked.delete(k); });
+      blocked.set(key, Date.now() + hit.retryAfter * 1000);
+      return tooMany();
+    }
   }
   return new Response(gate.page, {
     status: 401,

@@ -2,6 +2,12 @@
 // and cloud accounts. The Anthropic API and Supabase are mocked.
 import { test, before, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+
+// Local (no account) callers get live AI only through the investor demo: requests carry its cookie
+// unless a test says otherwise.
+process.env.DEMO_PASSWORD = "demo-pw";
+var DEMO_COOKIE = "bloom_demo=" + createHash("sha256").update("bloom-demo:demo-pw").digest("hex");
 
 var POST;
 var realFetch = globalThis.fetch;
@@ -25,9 +31,9 @@ afterEach(function () {
 });
 
 var ip = 0;
-function req(body, token) {
+function req(body, token, cookie) {
   ip++;
-  var headers = { "content-type": "application/json", "x-forwarded-for": "10.7." + Math.floor(ip / 250) + "." + (ip % 250) };
+  var headers = { "content-type": "application/json", "x-forwarded-for": "10.7." + Math.floor(ip / 250) + "." + (ip % 250), cookie: cookie === undefined ? DEMO_COOKIE : cookie };
   if (token) headers.authorization = "Bearer " + token;
   return new Request("http://localhost/api/ai", { method: "POST", headers: headers, body: typeof body === "string" ? body : JSON.stringify(body) });
 }
@@ -165,4 +171,45 @@ test("NORA_REQUIRE_AUTH: no live AI without a verified account", async function 
   var calls = mockAnthropic([{ body: answer(BRIEF) }]);
   assert.deepEqual(await (await POST(req({ task: "brief", ai: true }))).json(), { offline: true, reason: "account" });
   assert.equal(calls.length, 0);
+});
+
+test("without an account and outside the investor demo, nothing is sent to the AI", async function () {
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  var calls = mockAnthropic([{ body: answer(BRIEF) }]);
+  assert.deepEqual(await (await POST(req({ task: "brief", ai: true }, null, ""))).json(), { offline: true, reason: "account" });
+  assert.equal(calls.length, 0);
+});
+
+test("cloud account over today's AI allowance gets 429; when the allowance can't be checked it is let through", async function () {
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://proj.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_secret_x";
+  quiet();
+  var quota = false;
+  var anthropic = 0;
+  var row = { consent: { ai: true }, user: { name: "Lina" } };
+  globalThis.fetch = async function (url, init) {
+    url = String(url);
+    function json(b, st) { return new Response(JSON.stringify(b), { status: st || 200, headers: { "content-type": "application/json" } }); }
+    if (url.endsWith("/auth/v1/user")) return json({ id: "5f0c6a52-1c2b-4a57-9d3e-2b7c1e9f0a11" });
+    if (url.indexOf("/rest/v1/user_state") !== -1) return json([{ data: row }]);
+    if (url.endsWith("/rpc/bloom_take_quota")) {
+      assert.equal(JSON.parse(init.body).p_kind, "ai_brief");
+      return quota === "missing" ? json({ code: "PGRST202" }, 404) : json(quota);
+    }
+    if (url.endsWith("/rpc/bloom_count")) return json(null, 204);
+    anthropic++;
+    return json(answer(BRIEF));
+  };
+  try {
+    var res = await POST(req({ task: "brief", ai: true }, "a.b.c", ""));
+    assert.equal(res.status, 429);
+    assert.equal(anthropic, 0);
+    quota = "missing";
+    assert.deepEqual((await (await POST(req({ task: "brief", ai: true }, "a.b.c", ""))).json()).brief, BRIEF);
+    assert.equal(anthropic, 1);
+  } finally {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
 });

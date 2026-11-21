@@ -145,3 +145,27 @@ revoke all on function public.bloom_count(text) from public, anon, authenticated
 revoke all on function public.bloom_pilot_stats(integer) from public, anon, authenticated;
 grant execute on function public.bloom_count(text) to service_role;
 grant execute on function public.bloom_pilot_stats(integer) to service_role;
+
+-- ── Daily AI allowance per account (security, 2026-11-21) ─────────────────────
+-- Anyone can create an account with the public anon key, so the AI routes cap how often one
+-- account can use each AI feature per UTC day. Counted here, not in server memory, so the cap holds
+-- across all server instances. Server (service role) only; deleted with her account.
+create table if not exists public.ai_quota (
+  user_id uuid    not null references auth.users (id) on delete cascade,
+  day     date    not null,
+  kind    text    not null check (kind ~ '^[a-z_]{1,32}$'),
+  count   integer not null default 0,
+  primary key (user_id, day, kind)
+);
+alter table public.ai_quota enable row level security; -- no policies: server (service role) only
+
+-- Adds one use and says whether it is still within the day's limit.
+create or replace function public.bloom_take_quota(p_user uuid, p_kind text, p_limit integer)
+returns boolean language sql security definer set search_path = '' as $$
+  insert into public.ai_quota (user_id, day, kind, count) values (p_user, (now() at time zone 'utc')::date, p_kind, 1)
+    on conflict (user_id, day, kind) do update set count = public.ai_quota.count + 1
+    returning count <= p_limit;
+$$;
+
+revoke all on function public.bloom_take_quota(uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.bloom_take_quota(uuid, text, integer) to service_role;

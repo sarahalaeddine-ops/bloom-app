@@ -128,3 +128,16 @@ test("the pilot dashboard has its own password: the demo and tester passwords do
   assert.ok(passedThrough(ok));
   assert.match(ok.headers.get("set-cookie"), /bloom_pilot=/);
 });
+
+test("wrong passwords: after 10 from one address it is blocked for a while, even with the right one", async function () {
+  process.env.TESTER_PASSWORD = "right-one";
+  var ip = { "x-forwarded-for": "203.0.113.77" };
+  for (var i = 0; i < 10; i++) {
+    var res = await proxy(req("/app", { authorization: basic("guess" + i), ...ip }));
+    assert.equal(res.status, 401, "attempt " + (i + 1));
+  }
+  assert.equal((await proxy(req("/app", { authorization: basic("guess-11"), ...ip }))).status, 429);
+  assert.equal((await proxy(req("/app", { authorization: basic("right-one"), ...ip }))).status, 429, "blocked");
+  assert.ok(passedThrough(await proxy(req("/app", { authorization: basic("right-one"), "x-forwarded-for": "203.0.113.78" }))), "other addresses unaffected");
+  assert.equal((await proxy(req("/app", ip))).status, 401, "a visit without a password still just asks");
+});

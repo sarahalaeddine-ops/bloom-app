@@ -10,9 +10,33 @@ import type { NextConfig } from "next";
 //   The app calls the hosted API instead (NEXT_PUBLIC_API_BASE, lib/config.js).
 const isApp = process.env.BUILD_TARGET === "app";
 
-// Baseline security headers for every route. A Content-Security-Policy is still to do
-// (needs nonces and testing with Supabase and Google Fonts; see docs/sa6/architecture.md, G3).
+// Content-Security-Policy (G3). Limits where the pages may load code from and send data to: Bloom
+// itself, Google Fonts, and Supabase (accounts and sync). So even if someone managed to inject
+// script, it couldn't load code from elsewhere or send her data or her session to another site.
+// 'unsafe-inline' is still needed for scripts: Next.js inlines its startup data, and nonces would
+// need every page rendered per request (docs/sa6/architecture.md, G3). Vercel's preview toolbar is
+// blocked by this on preview deployments; production is unaffected.
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob:",
+  "media-src 'self' blob: data:", // data: the silent clip that unlocks audio on phones (lib/voice.js)
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+// Baseline security headers for every route.
 const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },

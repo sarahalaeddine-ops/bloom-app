@@ -103,3 +103,13 @@ test("consent: versioned, timestamped, opt-in, with history; demo persona never 
   assert.equal(consent.answered(demo), true);
   assert.equal(consent.aiAllowed(demo), true);
 });
+
+test("account errors never tell a stranger whether an email is registered (G13)", async function () {
+  var { authErrorMessage } = await import("../lib/store.js");
+  var taken = authErrorMessage({ message: "User already registered", code: "user_already_exists" }, "signUp");
+  assert.doesNotMatch(taken, /already registered/i);
+  assert.match(taken, /sign in/);
+  assert.match(authErrorMessage({ message: "email rate limit exceeded", code: "over_email_send_rate_limit" }, "signUp"), /Too many attempts/);
+  assert.equal(authErrorMessage({ message: "Invalid login credentials" }, "signIn"), "Wrong email or password.");
+  assert.equal(authErrorMessage({ message: "Password should be at least 8 characters." }, "signUp"), "Password should be at least 8 characters.");
+});
